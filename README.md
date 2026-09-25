@@ -9,7 +9,7 @@
 - [Подробный план хакатона](docs/PLAN.md)
 - [Правила, форматы и ограничения](docs/RULES.md)
 - [Инструкции агентам](AGENTS.md)
-- [Прогресс](PROGRESS.md) — пока намеренно пустой
+- [Прогресс](docs/PROGRESS.md) — пока намеренно пустой
 - [Исходное задание](docs/description.md) и [сообщения организаторов](docs/messages.md)
 - [Описание датасета](dataset/README.md) и [спецификация NDTP](dataset/docs/Emulator-and-Telematic-Packets-Specification.md)
 
