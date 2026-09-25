@@ -24,3 +24,8 @@ catboost_info/
 # Local emulator image; CSV data and source specifications are versioned
 dataset/ndtp-telemetry-emulator/
 dataset/*.tar
+
+# Python packaging
+*.egg-info/
+build/
+dist/

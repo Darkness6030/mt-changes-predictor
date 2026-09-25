@@ -1,0 +1,138 @@
+{
+  "selection": {
+    "boundary": "2026-01-06 16:35:00",
+    "fit_rows": 844,
+    "development_rows": 287,
+    "purged_rows": 10,
+    "development_cur_dev_mae_s": 98.53310104529616,
+    "development_train_median_mae_s": 111.24738675958189,
+    "candidates": {
+      "main": [
+        {
+          "depth": 4,
+          "residual": false,
+          "iterations": 370,
+          "development_mae_s": 90.10936592136092
+        },
+        {
+          "depth": 4,
+          "residual": true,
+          "iterations": 368,
+          "development_mae_s": 87.9010546585979
+        },
+        {
+          "depth": 6,
+          "residual": false,
+          "iterations": 130,
+          "development_mae_s": 90.03997786325584
+        },
+        {
+          "depth": 6,
+          "residual": true,
+          "iterations": 161,
+          "development_mae_s": 90.5667056352823
+        }
+      ],
+      "fallback": [
+        {
+          "depth": 4,
+          "residual": false,
+          "iterations": 600,
+          "development_mae_s": 96.43346240269075
+        },
+        {
+          "depth": 6,
+          "residual": false,
+          "iterations": 293,
+          "development_mae_s": 96.22512133661354
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Test shares vehicles/day with train and telemetry/plan with validate.",
+    "Development is used for model selection, not an unbiased final estimate.",
+    "Synthetic families excluded; vehicle-group validation is pending.",
+    "No calibrated probability, NDTP or HTTP service in this iteration."
+  ],
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 79.08736581427026,
+    "no_hint_mae_s": 87.32712274964757,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "train_median_mae_s": 101.20113314447592,
+    "absolute_error_p50_s": 63.73450762159278,
+    "absolute_error_p90_s": 180.49755633764667,
+    "slices": {
+      "vehicle:122048": {
+        "rows": 24,
+        "mae_s": 122.58731292868517
+      },
+      "vehicle:122613": {
+        "rows": 25,
+        "mae_s": 34.76856705333362
+      },
+      "vehicle:122658": {
+        "rows": 17,
+        "mae_s": 120.46229759378764
+      },
+      "vehicle:129964": {
+        "rows": 26,
+        "mae_s": 78.41259160450646
+      },
+      "vehicle:130072": {
+        "rows": 2,
+        "mae_s": 8.934724179707088
+      },
+      "vehicle:130238": {
+        "rows": 7,
+        "mae_s": 53.95241809732972
+      },
+      "vehicle:131672": {
+        "rows": 38,
+        "mae_s": 75.23954764059313
+      },
+      "vehicle:132430": {
+        "rows": 32,
+        "mae_s": 112.01446911933733
+      },
+      "vehicle:133300": {
+        "rows": 28,
+        "mae_s": 76.60557274441176
+      },
+      "vehicle:133957": {
+        "rows": 41,
+        "mae_s": 67.85552622134803
+      },
+      "vehicle:134040": {
+        "rows": 52,
+        "mae_s": 77.30808829093218
+      },
+      "vehicle:134494": {
+        "rows": 6,
+        "mae_s": 1.845202719183371
+      },
+      "vehicle:135081": {
+        "rows": 55,
+        "mae_s": 76.77667978981148
+      },
+      "early": {
+        "rows": 49,
+        "mae_s": 107.39677999851784
+      },
+      "ontime": {
+        "rows": 218,
+        "mae_s": 48.80481269201591
+      },
+      "late": {
+        "rows": 86,
+        "mae_s": 139.72033425175064
+      }
+    },
+    "feature_build_seconds": 0.3179958330001682,
+    "batch_predict_seconds": 0.001331457868218422
+  },
+  "train_seconds": 3.1632738749030977
+}

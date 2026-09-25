@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transport-ml"
+version = "0.1.0"
+description = "Causal transport delay prediction"
+requires-python = ">=3.12"
+dependencies = ["catboost>=1.2.8,<2", "numpy>=2.2,<2.3", "pandas>=2.2,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.12,<1"]
+
+[project.scripts]
+transport-ml = "transport_ml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

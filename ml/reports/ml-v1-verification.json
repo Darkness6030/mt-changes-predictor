@@ -1,0 +1,12 @@
+{
+  "pytest_passed": 18,
+  "ruff": "passed",
+  "pip_check": "passed",
+  "real_prefix_parity_cases": 5,
+  "docker_image": "sha256:231e695a61b384f2f79c570c5f4f942a68ebaee8c78dde8db2cc8d34cfccf7ae",
+  "docker_platform": "linux/arm64",
+  "submission_equal_bytes": true,
+  "submission_rows": 151,
+  "model_source_hashes_match": true,
+  "dataset_unchanged": true
+}

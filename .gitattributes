@@ -1,3 +1,7 @@
 # Preserve organizer-provided CSV bytes and reproducible SHA-256 hashes.
 dataset/**/*.csv -text
 dataset/*.csv -text
+
+# Frozen model bundle: preserve hashes even with Windows checkout settings.
+ml/pretrained/** -text
+*.cbm binary
