@@ -1,0 +1,26 @@
+# Local environment and tools
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
+
+# Generated artifacts
+artifacts/
+outputs/
+catboost_info/
+*.log
+
+# Local emulator image; CSV data and source specifications are versioned
+dataset/ndtp-telemetry-emulator/
+dataset/*.tar

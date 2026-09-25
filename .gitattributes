@@ -1,0 +1,3 @@
+# Preserve organizer-provided CSV bytes and reproducible SHA-256 hashes.
+dataset/**/*.csv -text
+dataset/*.csv -text
