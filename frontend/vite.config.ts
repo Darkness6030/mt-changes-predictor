@@ -2,7 +2,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // The UI is served as static files by its own container; /api is proxied to the Backend,
-// so the browser always talks to one origin and no CDN is required.
+// so data requests stay on one origin. The basemap loads from the Yandex Maps API.
 export default defineConfig({
   plugins: [react()],
   server: {

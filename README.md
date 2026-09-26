@@ -14,6 +14,10 @@
 
 ## Запуск за одну команду
 
+Для карты укажите `VITE_YANDEX_MAPS_API_KEY` в корневом `.env` (см. `.env.example`).
+Ключ JavaScript API используется браузером; после его изменения пересоберите UI.
+Без ключа очередь и управление временем работают, карта показывает сообщение настройки.
+
 ```bash
 docker compose up --build            # ML + Backend + UI
 ```
@@ -55,7 +59,7 @@ CSV replay (event-time) ──> [ Backend: framing/CRC → нормализов�
   HTTP-сервис инференса. Обучение — отдельная команда, не часть запроса.
 - `backend/` — `transport_backend`: TCP-сервер NDTP, виртуальные часы, ограниченное
   состояние, инциденты, API диспетчера и OpenAPI.
-- `frontend/` — React + Vite + TypeScript + Leaflet, статика в nginx, прокси `/api`.
+- `frontend/` — React + Vite + TypeScript + Яндекс Карты, статика в nginx, прокси `/api`.
 
 Признаки существуют **в одной реализации** (`transport_ml.features.FeatureBuilder`):
 Backend импортирует её, а не пишет вторую версию. Равенство batch и потока проверяется

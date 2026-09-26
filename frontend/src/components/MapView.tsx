@@ -1,15 +1,11 @@
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { signedDelay, sourceTime } from "../format";
 import { forecastColour as colourOf, RISK_COLOURS as COLOURS } from "../mapPresentation";
 import { VehicleMarker } from "../vehicleMarker";
+import { hintHtml, loadYandexMaps, svgImage } from "../yandexMaps";
 import type { Snapshot, VehicleDetail } from "../types";
 
-const MOSCOW: L.LatLngTuple = [55.751244, 37.618423];
-const TILE_URL =
-  (import.meta.env.VITE_TILE_URL as string | undefined) ??
-  "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const MOSCOW = [55.751244, 37.618423];
 interface Props {
   snapshot: Snapshot | null;
   detail: VehicleDetail | null;
@@ -19,65 +15,49 @@ interface Props {
 }
 
 /**
- * Leaflet map with vehicles, the selected plan sequence and the already observed track.
+ * Yandex map with vehicles, the selected plan sequence and the already observed track.
  * Nothing here is a road route: straight lines between planned stops are a schematic.
  */
 export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: Props) {
   const container = useRef<HTMLDivElement>(null);
-  const map = useRef<L.Map | null>(null);
+  const map = useRef<ymaps.Map | null>(null);
   const markers = useRef<Map<string, VehicleMarker>>(new Map());
-  const overlay = useRef<L.LayerGroup | null>(null);
-  const paths = useRef<Map<string, L.Polyline | L.CircleMarker>>(new Map());
+  const paths = useRef<Map<string, ymaps.Polyline | ymaps.Placemark>>(new Map());
+  const pathVersions = useRef<Map<string, string>>(new Map());
   const focused = useRef<{ sequence: number; fullPlan: boolean } | null>(null);
-  const tiles = useRef<L.TileLayer | null>(null);
-  const [tilesFailed, setTilesFailed] = useState(false);
-  const [basemap, setBasemap] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const select = useRef(onSelect);
   select.current = onSelect;
 
   useEffect(() => {
-    if (map.current || !container.current) return;
-    const instance = L.map(container.current, {
-      center: MOSCOW,
-      zoom: 10,
-      zoomControl: true,
-      preferCanvas: true,
-      attributionControl: true,
-    });
-    overlay.current = L.layerGroup().addTo(instance);
-    map.current = instance;
-    // The panel also changes size at layout breakpoints, without a window resize.
-    const resize = new ResizeObserver(() => instance.invalidateSize({ pan: false }));
-    resize.observe(container.current);
+    let cancelled = false;
+    let instance: ymaps.Map | null = null;
+    let resize: ResizeObserver | null = null;
+    setMapError(null);
+    setReady(false);
+    loadYandexMaps().then((api) => {
+      if (cancelled || !container.current) return;
+      instance = new api.Map(container.current, {
+        center: MOSCOW, zoom: 10, controls: ["zoomControl"],
+      });
+      map.current = instance;
+      resize = new ResizeObserver(() => instance?.container.fitToViewport());
+      resize.observe(container.current);
+      setReady(true);
+    }).catch((error: Error) => { if (!cancelled) setMapError(error.message); });
     return () => {
-      resize.disconnect();
-      instance.remove();
+      cancelled = true;
+      resize?.disconnect();
+      instance?.destroy();
       map.current = null;
       markers.current.clear();
       paths.current.clear();
+      pathVersions.current.clear();
+      focused.current = null;
     };
-  }, []);
-
-  useEffect(() => {
-    const instance = map.current;
-    if (!instance) return;
-    if (!basemap) {
-      tiles.current?.remove();
-      tiles.current = null;
-      return;
-    }
-    const layer = L.tileLayer(TILE_URL, {
-      maxZoom: 18,
-      attribution: "© OpenStreetMap contributors",
-    });
-    layer.on("tileerror", () => setTilesFailed(true));
-    layer.addTo(instance);
-    tiles.current = layer;
-    return () => {
-      layer.remove();
-      tiles.current = null;
-    };
-  }, [basemap]);
+  }, [attempt]);
 
   const vehicles = useMemo(() => snapshot?.vehicles ?? [], [snapshot]);
 
@@ -102,42 +82,55 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
         markers.current.delete(trId);
       }
     }
-  }, [vehicles, selected]);
+  }, [vehicles, selected, ready]);
 
   useEffect(() => {
-    const group = overlay.current;
-    if (!group) return;
-    // Reconcile by stable identity: polling must not remove the layer under the pointer.
+    const instance = map.current;
+    if (!instance) return;
+    // Stable objects keep hover hints open across snapshot polling.
     const seen = new Set<string>();
-    let topologyChanged = false;
-    const setTooltip = (layer: L.Polyline | L.CircleMarker, text?: string) => {
-      if (!text) return;
-      const existing = layer.getTooltip()?.getContent();
-      if (existing instanceof HTMLElement && existing.textContent === text) return;
-      const label = document.createElement("span");
-      label.textContent = text;
-      if (layer.getTooltip()) layer.setTooltipContent(label);
-      else layer.bindTooltip(label, { direction: "top" });
+    const setTooltip = (layer: ymaps.Polyline | ymaps.Placemark, text?: string) => {
+      if (text && String(layer.properties.get("hintContent", {})) !== hintHtml(text)) {
+        layer.properties.set("hintContent", hintHtml(text));
+      }
     };
-    const line = (key: string, points: L.LatLngTuple[], style: L.PolylineOptions, text?: string, trId?: string) => {
+    const line = (key: string, points: number[][], style: {
+      color: string; weight: number; opacity: number; dashArray?: string;
+    }, text?: string, trId?: string) => {
       seen.add(key);
-      let layer = paths.current.get(key) as L.Polyline | undefined;
+      const options = { strokeColor: style.color, strokeWidth: style.weight,
+        strokeOpacity: style.opacity, strokeStyle: style.dashArray ? "dash" : "solid", zIndex: 1 };
+      const version = JSON.stringify([points, options]);
+      let layer = paths.current.get(key) as ymaps.Polyline | undefined;
       if (!layer) {
-        layer = L.polyline(points, style).addTo(group);
-        if (trId) layer.on("click", () => select.current(trId));
+        layer = new ymaps.Polyline(points, {}, options);
+        instance.geoObjects.add(layer);
+        if (trId) layer.events.add("click", () => select.current(trId));
         paths.current.set(key, layer);
-        topologyChanged = true;
-      } else { layer.setLatLngs(points); layer.setStyle(style); }
+      } else if (pathVersions.current.get(key) !== version) {
+        layer.geometry!.setCoordinates(points); layer.options.set(options);
+      }
+      pathVersions.current.set(key, version);
       setTooltip(layer, text);
     };
-    const point = (key: string, position: L.LatLngTuple, style: L.CircleMarkerOptions, text: string) => {
+    const point = (key: string, position: number[], style: {
+      radius: number; color: string; fillColor: string; fillOpacity: number; weight: number;
+    }, text: string) => {
       seen.add(key);
-      let layer = paths.current.get(key) as L.CircleMarker | undefined;
+      const size = (style.radius + style.weight) * 2;
+      const icon = svgImage(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${style.radius}" fill="${style.fillColor}" fill-opacity="${style.fillOpacity}" stroke="${style.color}" stroke-width="${style.weight}"/></svg>`);
+      const options = { iconLayout: "default#image", iconImageHref: icon,
+        iconImageSize: [size, size], iconImageOffset: [-size / 2, -size / 2], zIndex: 10, zIndexHover: 20 };
+      const version = JSON.stringify([position, options]);
+      let layer = paths.current.get(key) as ymaps.Placemark | undefined;
       if (!layer) {
-        layer = L.circleMarker(position, style).addTo(group);
+        layer = new ymaps.Placemark(position, {}, options);
+        instance.geoObjects.add(layer);
         paths.current.set(key, layer);
-        topologyChanged = true;
-      } else { layer.setLatLng(position); layer.setStyle(style); layer.setRadius(style.radius ?? 4); }
+      } else if (pathVersions.current.get(key) !== version) {
+        layer.geometry!.setCoordinates(position); layer.options.set(options);
+      }
+      pathVersions.current.set(key, version);
       setTooltip(layer, text);
     };
     for (const vehicle of vehicles) {
@@ -161,7 +154,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       const track = (detail.track ?? []).filter((item) => item.lon !== null && item.lat !== null);
       if (track.length > 1) line(`track:${detail.tr_id}`,
         track.map((item) => [item.lat as number, item.lon as number]),
-        { color: "#e8eef5", weight: 2, opacity: 0.8 });
+        { color: "#52647d", weight: 2, opacity: 0.8 });
       const prediction = detail.prediction;
       if (prediction?.status === "ok" && prediction.target_lat != null && prediction.target_lon != null) {
         point(`target:${detail.tr_id}:${prediction.target_stop_id}`, [prediction.target_lat, prediction.target_lon], {
@@ -171,50 +164,51 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       }
     }
     for (const [key, layer] of paths.current) {
-      if (!seen.has(key)) { layer.remove(); paths.current.delete(key); topologyChanged = true; }
+      if (!seen.has(key)) {
+        instance.geoObjects.remove(layer); paths.current.delete(key); pathVersions.current.delete(key);
+      }
     }
-    // Stops and schematic lines must not capture hover/click above the bus at the same GPS.
-    if (topologyChanged) for (const marker of markers.current.values()) marker.bringToFront();
-  }, [detail, vehicles, selected]);
+  }, [detail, vehicles, selected, ready]);
 
   const focus = () => {
     const instance = map.current;
     if (!instance || !selected) return;
     const vehicle = vehicles.find((item) => item.tr_id === selected);
-    const points: L.LatLngTuple[] = detail?.tr_id === selected
+    const points: number[][] = detail?.tr_id === selected
       ? (detail.plan ?? []).map((visit) => [visit.lat, visit.lon]) : [];
     if (vehicle?.segment) points.push([vehicle.segment.from.lat, vehicle.segment.from.lon],
       [vehicle.segment.to.lat, vehicle.segment.to.lon]);
     const marker = markers.current.get(selected);
-    if (marker) points.push([marker.getLatLng().lat, marker.getLatLng().lng]);
-    if (points.length) instance.fitBounds(L.latLngBounds(points), { padding: [30, 30], maxZoom: 15 });
+    if (marker) points.push(marker.getPosition());
+    if (points.length) {
+      const lat = points.map((point) => point[0]), lon = points.map((point) => point[1]);
+      void instance.setBounds([[Math.min(...lat), Math.min(...lon)], [Math.max(...lat), Math.max(...lon)]],
+        { zoomMargin: [40, 40, 40, 40], checkZoomRange: true, preciseZoom: false }).then(() => {
+          if (map.current === instance && instance.getZoom() > 15) void instance.setZoom(15);
+        });
+    }
   };
 
   useEffect(() => {
-    if (!focusRequest || focusRequest.trId !== selected || !vehicles.some((item) => item.tr_id === selected)) return;
+    if (!ready || !focusRequest || focusRequest.trId !== selected || !vehicles.some((item) => item.tr_id === selected)) return;
     const fullPlan = detail?.tr_id === selected && (detail.plan?.length ?? 0) > 0;
     if (focused.current?.sequence === focusRequest.sequence && (focused.current.fullPlan || !fullPlan)) return;
     focus();
     focused.current = { sequence: focusRequest.sequence, fullPlan };
-  }, [focusRequest, selected, detail, vehicles]);
+  }, [focusRequest, selected, detail, vehicles, ready]);
 
   return (
     <div className="map-wrap">
       <div id="map" ref={container} role="application" aria-label="Карта транспортных средств" />
       <div className="map-buttons">
-        <button onClick={focus} disabled={!selected}>
+        <button onClick={focus} disabled={!selected || !ready}>
           Центрировать выбранное
         </button>
-        <button onClick={() => setBasemap((value) => !value)}>
-          {basemap ? "Схема без подложки" : "Включить подложку"}
-        </button>
       </div>
-      {tilesFailed && basemap ? (
-        <div className="map-note">
-          Тайлы подложки недоступны. Список, геометрия и прогнозы работают; можно переключиться
-          на схему без подложки.
-        </div>
-      ) : null}
+      {!ready ? <div className="map-note" role="status">
+        {mapError ?? "Загрузка Яндекс Карт…"}
+        {mapError ? <button onClick={() => setAttempt((value) => value + 1)}>Повторить</button> : null}
+      </div> : null}
       <details className="legend">
         <summary>Обозначения карты</summary>
         <div className="legend-content">

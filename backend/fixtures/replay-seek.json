@@ -40,7 +40,15 @@
     ],
     "playhead_at": "2026-01-06 11:30:15",
     "unrestricted": true,
-    "selection_width_fraction": 0.8
+    "selection_width_fraction": 0.8,
+    "playhead_drag": {
+      "hit_target": "red_line_and_head",
+      "preview": "continuous_local",
+      "commit": "one_seek_on_pointerup_rounded_to_second",
+      "preserves_range": true,
+      "cancel": "no_request"
+    },
+    "background_drag": "move_selected_range"
   },
   "outside_data_example": {
     "request": {
@@ -65,7 +73,9 @@
     "vehicle_shape": "heading_arrow",
     "unknown_heading_shape": "diamond",
     "heading_field": "position.heading_deg",
-    "heading_basis": "north_clockwise_degrees"
+    "heading_basis": "north_clockwise_degrees",
+    "provider": "yandex_maps_js_api_2_1",
+    "vehicle_renderer": "persistent_placemark_svg"
   },
   "ui_demo": {
     "placement": "time_toolbar_before_system",

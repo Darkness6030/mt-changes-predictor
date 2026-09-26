@@ -6,6 +6,8 @@ RUN npm ci
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 # The build fails on a type error, so a broken contract cannot reach the image.
+ARG VITE_YANDEX_MAPS_API_KEY
+ENV VITE_YANDEX_MAPS_API_KEY=$VITE_YANDEX_MAPS_API_KEY
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine

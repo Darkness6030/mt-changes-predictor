@@ -14,7 +14,19 @@ interface Props {
   onInteractionStart?: () => void;
 }
 
-type Drag = { mode: "start" | "end" | "move" | "seek"; origin: number; start: number; end: number; moved: boolean };
+type Drag = {
+  mode: "start" | "end" | "move" | "seek";
+  pointerId: number;
+  origin: number;
+  current: number;
+  viewStart: number;
+  span: number;
+  left: number;
+  width: number;
+  start: number;
+  end: number;
+  moved: boolean;
+};
 const STEPS = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 1800000, 3600000, 7200000, 21600000, 43200000, 86400000];
 
 /** Ruler, editable selection, and an independent source-time playhead. */
@@ -47,8 +59,10 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
   const percent = (value: number) => (value - view.start) / span * 100;
   const clamp = (value: number, low = -Infinity, high = Infinity) => Math.max(low, Math.min(high, Math.round(value / 1000) * 1000));
   const atPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const active = drag.current;
     const rect = event.currentTarget.getBoundingClientRect();
-    return clamp(view.start + (event.clientX - rect.left) / rect.width * span);
+    return (active?.viewStart ?? view.start) + (event.clientX - (active?.left ?? rect.left)) /
+      (active?.width ?? rect.width) * (active?.span ?? span);
   };
   const ticks = useMemo(() => {
     const ideal = span / Math.max(2, Math.floor(width / 90));
@@ -62,38 +76,49 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
   }, [span, width, view.start, view.end]);
 
   const begin = (event: PointerEvent<HTMLDivElement>) => {
-    if (disabled || event.button !== 0) return;
+    if (disabled || drag.current || event.button !== 0) return;
     onInteractionStart?.();
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-drag]");
-    const mode = (target?.dataset.drag ?? "seek") as Drag["mode"];
-    drag.current = { mode, origin: atPointer(event), start, end, moved: false };
+    const mode = (target?.dataset.drag ?? "move") as Drag["mode"];
+    const rect = event.currentTarget.getBoundingClientRect();
+    drag.current = { mode, pointerId: event.pointerId, origin: atPointer(event), current,
+      viewStart: view.start, span, left: rect.left, width: rect.width, start, end, moved: false };
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
-    if (mode === "seek") setPreview(atPointer(event));
+    if (mode === "seek") setPreview(current);
   };
   const move = (event: PointerEvent<HTMLDivElement>) => {
     const active = drag.current;
-    if (!active) return;
+    if (!active || active.pointerId !== event.pointerId) return;
     const at = atPointer(event);
     if (Math.abs(at - active.origin) > span / width * 3) active.moved = true;
     if (active.mode === "start") setDraft({ start: clamp(at, -Infinity, active.end - 1000), end: active.end });
     else if (active.mode === "end") setDraft({ start: active.start, end: clamp(at, active.start + 1000) });
     else if (active.mode === "move") {
-      const delta = at - active.origin;
+      const delta = clamp(at - active.origin);
       setDraft({ start: active.start + delta, end: active.end + delta });
-    } else setPreview(at);
+    } else setPreview(active.current + at - active.origin);
   };
   const finish = (event: PointerEvent<HTMLDivElement>) => {
     const active = drag.current;
-    if (!active) return;
+    if (!active || active.pointerId !== event.pointerId) return;
+    // Read the release coordinates directly: React state can lag the last pointer event.
+    const at = atPointer(event);
+    const delta = clamp(at - active.origin);
     drag.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (active.mode === "seek" || (active.mode === "move" && !active.moved)) {
-      void onSeek(atPointer(event));
-    } else if (draft) void onRange(draft.start, draft.end);
+      const time = clamp(active.mode === "seek" ? active.current + at - active.origin : at);
+      setPreview(time);
+      void onSeek(time).finally(() => setPreview(null));
+    } else if (active.mode === "start") {
+      void onRange(clamp(at, -Infinity, active.end - 1000), active.end);
+    } else if (active.mode === "end") {
+      void onRange(active.start, clamp(at, active.start + 1000));
+    } else void onRange(active.start + delta, active.end + delta);
     setDraft(null);
-    setPreview(null);
   };
+  const cancel = () => { drag.current = null; setDraft(null); setPreview(null); };
   const keyboardRange = (edge: "start" | "end", key: string) => {
     const delta = key === "ArrowLeft" ? -60000 : key === "ArrowRight" ? 60000 : 0;
     if (!delta || disabled) return;
@@ -108,7 +133,8 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
       <div ref={track} className={`time-ruler${disabled ? " is-disabled" : ""}`}
         role="group" aria-label="Линейка исторического времени"
         onPointerDown={begin} onPointerMove={move} onPointerUp={finish}
-        onPointerCancel={() => { drag.current = null; setDraft(null); setPreview(null); }}
+        onPointerCancel={cancel}
+        onLostPointerCapture={() => { if (drag.current) cancel(); }}
         onKeyDown={(event) => {
           if ((event.target as HTMLElement).dataset.keyboard !== "seek" || disabled) return;
           const value = event.key === "Home" ? start : event.key === "End" ? end
@@ -144,7 +170,11 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
               onKeyDown={(event) => { event.stopPropagation(); if (["ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); keyboardRange(edge, event.key); } }} />
           ) : null;
         })}
-        {visible ? <span className="ruler-playhead" title={`Текущее время: ${sourceLabel(playhead)}`}
+        {visible ? <span className="ruler-playhead" data-drag="seek" data-keyboard="seek"
+          role="slider" tabIndex={disabled ? -1 : 0} aria-label="Текущее время"
+          aria-valuemin={Math.min(view.start, playhead)} aria-valuemax={Math.max(view.end, playhead)}
+          aria-valuenow={playhead} aria-valuetext={sourceLabel(playhead)} aria-disabled={disabled}
+          title={`Перетащите текущее время: ${sourceLabel(playhead)}`}
           style={{ left: `${percent(playhead)}%` }} /> : null}
       </div>
       <div className="ruler-zoom" role="group" aria-label="Масштаб временной шкалы"

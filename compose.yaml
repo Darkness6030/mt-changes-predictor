@@ -72,6 +72,8 @@ services:
   ui:
     build:
       context: ./frontend
+      args:
+        VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
     image: mt-changes-ui:0.1
     depends_on:
       backend:

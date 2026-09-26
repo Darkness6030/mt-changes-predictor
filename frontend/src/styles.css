@@ -313,7 +313,7 @@ a { color: var(--accent); }
 .ruler-tick > span { position: absolute; bottom: 12px; transform: translateX(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ruler-handle { width: 5px; height: 32px; position: absolute; top: 5px; transform: translateX(-50%); background: var(--accent); border-radius: 3px; cursor: ew-resize; z-index: 3; touch-action: none; }
 .ruler-handle::before { content: ""; position: absolute; inset: -5px -7px; }
-.ruler-playhead { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--red); pointer-events: none; z-index: 4; }
+.ruler-playhead { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--red); cursor: ew-resize; touch-action: none; z-index: 4; }
 .ruler-playhead::before { content: ""; position: absolute; top: 0; left: -3px; width: 8px; height: 5px; background: var(--red); clip-path: polygon(0 0,100% 0,50% 100%); }
 .ruler-zoom { display: flex; align-items: center; gap: 1px; border-left: 1px solid var(--line); padding: 0 5px; }
 .ruler-zoom button { padding: 4px 8px; background: transparent; border-color: transparent; }
@@ -357,3 +357,7 @@ a { color: var(--accent); }
 @media (max-width: 640px) {
   .source-popover { right: 10px; width: calc(100vw - 20px); }
 }
+
+.ruler-playhead::after { content: ""; position: absolute; inset: -4px -6px; }
+.ruler-playhead:active { cursor: grabbing; }
+.map-note button { display: block; margin-top: 8px; }
