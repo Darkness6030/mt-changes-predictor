@@ -322,6 +322,29 @@ class Engine:
             self.clock.start(start_ns, paused=False)
         self.revision += 1
 
+    async def seek(self, start_at: str) -> None:
+        """Rebuild the bounded causal prefix and freeze at an exact source timestamp."""
+        if self.replay is None:
+            raise ValueError("Перемотка доступна только для исторического replay")
+        target_ns = parse_source(start_at)
+        if (
+            self.replay.first_ns is None
+            or self.replay.last_ns is None
+            or not self.replay.first_ns <= target_ns <= self.replay.last_ns
+        ):
+            raise ValueError("Выберите время внутри периода исторических данных")
+        # Validation precedes reset, so a rejected seek cannot destroy the current run.
+        await self.reset(start_at)
+        self.clock.start(target_ns, paused=True)
+        self.replay.reset(target_ns - int(self.settings.history_window_s * SECOND_NS))
+        while events := self.replay.due(target_ns):
+            for event in events:
+                self.state.add(event, target_ns)
+        self.state.trim(target_ns)
+        # Periodic predictions use only this rebuilt prefix, with estimated/missing hints.
+        # Official points before the seek are not evaluated or replayed retrospectively.
+        self.revision += 1
+
     # ------------------------------------------------------------------ ingestion
 
     def _ingest(self, event: TelemetryEvent) -> None:
@@ -358,6 +381,7 @@ class Engine:
             await asyncio.sleep(settings.tick_interval_s)
 
     async def _cycle(self) -> None:
+        run_id = self.run_id
         now_ns = self.clock.now_ns()
         if now_ns is None:
             return
@@ -371,10 +395,13 @@ class Engine:
             self.sidecar.mature(now_ns)
         if self.ml.model is None:
             await self.ml.refresh_model()
+        if run_id != self.run_id:
+            return
         requests = self._collect(now_ns)
         if requests:
             await self._predict(requests, now_ns)
-        self._expire_alerts(now_ns)
+        if run_id == self.run_id:
+            self._expire_alerts(now_ns)
 
     # ------------------------------------------------------------------ predictions
 

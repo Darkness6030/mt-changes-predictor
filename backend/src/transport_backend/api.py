@@ -20,7 +20,7 @@ from transport_backend.engine import Engine
 class ReplayCommand(BaseModel):
     model_config = {"extra": "forbid"}
 
-    action: Literal["start", "pause", "reset", "speed"]
+    action: Literal["start", "pause", "reset", "speed", "seek"]
     speed: float | None = Field(default=None, gt=0, le=3600)
     start_at: str | None = Field(default=None, max_length=64)
 
@@ -164,6 +164,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if command.speed is None:
                 raise error(400, "bad_request", "Speed is required for the speed action")
             engine.clock.set_speed(command.speed)
+        elif command.action == "seek":
+            if not command.start_at:
+                raise error(400, "bad_request", "Для перемотки укажите start_at")
+            try:
+                await engine.seek(command.start_at)
+            except (ValueError, OverflowError) as exc:
+                raise error(400, "bad_request", str(exc)) from exc
         else:
             await engine.reset(command.start_at)
         return {"clock": engine.clock_view(), "run_id": engine.run_id}

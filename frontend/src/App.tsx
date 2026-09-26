@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "./api";
+import { api, type ReplayAction } from "./api";
 import { Header } from "./components/Header";
 import { MapView } from "./components/MapView";
 import { Queue, type Filter } from "./components/Queue";
@@ -14,12 +14,14 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [showSystem, setShowSystem] = useState(false);
+  const [commandPending, setCommandPending] = useState(false);
+  const [pollKey, setPollKey] = useState(0);
   const [commandError, setCommandError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
 
-  const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000);
-  const statusPoll = usePolling((signal) => api.status(signal), 4000);
+  const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000, true, String(pollKey));
+  const statusPoll = usePolling((signal) => api.status(signal), 4000, true, String(pollKey));
   const qualityPoll = usePolling((signal) => api.quality(signal), 10000, showSystem);
   const detailPoll = usePolling<VehicleDetail>(
     (signal) => api.vehicle(selected as string, signal),
@@ -62,12 +64,17 @@ export default function App() {
   }, []);
 
   const command = useCallback(
-    async (action: "start" | "pause" | "reset" | "speed", speed?: number) => {
+    async (action: ReplayAction, speed?: number, startAt?: string) => {
+      setCommandPending(true);
       try {
-        await api.replay(action, speed);
+        await api.replay(action, speed, startAt);
+        if (action === "seek" || action === "reset") setSelected(null);
+        setPollKey((value) => value + 1);
         setCommandError(null);
       } catch (error) {
         setCommandError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setCommandPending(false);
       }
     },
     [],
@@ -127,7 +134,8 @@ export default function App() {
         )}
       </div>
       <ReplayControls
-        status={statusPoll.data}
+        status={statusPoll.data ? { ...statusPoll.data, clock: snapshot?.run_id === statusPoll.data.run_id ? snapshot.clock : statusPoll.data.clock } : null}
+        pending={commandPending}
         onCommand={command}
         showSystem={showSystem}
         onToggleSystem={() => setShowSystem((value) => !value)}

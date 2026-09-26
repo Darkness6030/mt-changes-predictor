@@ -31,6 +31,8 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   }
 }
 
+export type ReplayAction = "start" | "pause" | "reset" | "speed" | "seek";
+
 export const api = {
   snapshot: (signal?: AbortSignal) => request<Snapshot>("/api/v1/snapshot", signal),
   status: (signal?: AbortSignal) => request<Status>("/api/v1/status", signal),
@@ -43,12 +45,15 @@ export const api = {
     });
     if (!response.ok) throw new ApiError("Не удалось отметить алерт", response.status);
   },
-  async replay(action: "start" | "pause" | "reset" | "speed", speed?: number): Promise<void> {
+  async replay(action: ReplayAction, speed?: number, startAt?: string): Promise<void> {
     const response = await fetch("/api/v1/replay/control", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(speed === undefined ? { action } : { action, speed }),
+      body: JSON.stringify({ action, speed, start_at: startAt }),
     });
-    if (!response.ok) throw new ApiError("Команда replay отклонена", response.status);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(body?.detail?.detail ?? "Команда replay отклонена", response.status);
+    }
   },
 };

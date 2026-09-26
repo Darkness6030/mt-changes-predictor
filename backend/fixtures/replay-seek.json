@@ -1,0 +1,25 @@
+{
+  "request": {
+    "action": "seek",
+    "start_at": "2026-01-06 11:30:15"
+  },
+  "response": {
+    "clock": {
+      "time_basis": "dataset_naive_ns",
+      "mode": "driven",
+      "source_time": "2026-01-06 11:30:15",
+      "wall_time": "2026-09-26T18:00:00.000Z",
+      "speed": 60.0,
+      "paused": true,
+      "plan_shift_s": 0.0,
+      "source_window": {
+        "first": "2026-01-06 00:00:02",
+        "last": "2026-01-06 23:59:59"
+      },
+      "source_progress": 0.4527758647076829,
+      "events_delivered": 47335,
+      "events_total": 104544
+    },
+    "run_id": "run-fixture-after-seek"
+  }
+}

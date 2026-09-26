@@ -257,3 +257,69 @@ async def test_replay_control_reset_starts_a_new_run():
         assert format_source(engine.clock.now_ns()).startswith("2026-01-06")
     finally:
         await engine.stop()
+
+
+async def test_seek_backwards_rebuilds_causal_history_and_batch_features(offline_features):
+    points, builder = offline_features
+    engine = make_engine()
+    engine.clock.set_speed(120)
+    try:
+        # Seek forward first, then backwards: future state and alerts must disappear.
+        for index in (250, 40):
+            row = points.iloc[index]
+            old_run = engine.run_id
+            await engine.seek(str(row["T"]))
+            cutoff_ns = int(row["T"].value)
+            assert engine.run_id != old_run
+            assert engine.clock.paused and engine.clock.now_ns() == cutoff_ns
+            assert engine.clock.speed == 120
+            assert not engine.predictions and not engine.alerts and not engine.prediction_log
+            assert engine.state.accepted_events > 0
+            assert all(
+                cutoff_ns - int(engine.settings.history_window_s * SECOND_NS)
+                <= event.event_time_ns
+                <= cutoff_ns
+                for track in engine.state.tracks.values()
+                for event in track.events
+            )
+            request = {
+                "tr_id": row.tr_id,
+                "cutoff_ns": cutoff_ns,
+                "target_stop_id": row.target_stop_id,
+                "target_planned_ns": int(row.target_time_begin.value),
+                "cur_dev_s": float(row.cur_dev_s),
+                "cur_dev_source": "supplied",
+                "sample_id": row.sample_id,
+                "trigger": "point",
+            }
+            actual = engine._build_features([request])[id(request)]
+            expected = builder.transform(points.iloc[[index]]).iloc[0]
+            assert_series_equal(pd.Series(actual, dtype=float), expected, check_names=False)
+            # A paused seek still produces periodic forecasts from the restored history.
+            await engine._cycle()
+            assert engine.predictions
+            assert all(p["cutoff_ns"] == cutoff_ns for p in engine.predictions.values())
+            assert engine.clock.now_ns() == cutoff_ns
+            cursor = engine.replay.cursor
+            engine.clock.start(cutoff_ns + 60 * SECOND_NS)
+            await engine._cycle()
+            assert engine.replay.cursor > cursor
+    finally:
+        await engine.stop()
+
+
+async def test_seek_accepts_endpoints_and_rejects_invalid_time_without_reset():
+    engine = make_engine()
+    try:
+        for target in (engine.replay.first_ns, engine.replay.last_ns):
+            await engine.seek(format_source(target))
+            assert engine.clock.now_ns() == target
+        old_run = engine.run_id
+        old_cursor = engine.replay.cursor
+        for value in ("invalid", "NaT", "2026-01-05", "2026-01-08", "2026-01-06T12:00:00Z"):
+            with pytest.raises(ValueError):
+                await engine.seek(value)
+            assert engine.run_id == old_run
+            assert engine.replay.cursor == old_cursor
+    finally:
+        await engine.stop()
