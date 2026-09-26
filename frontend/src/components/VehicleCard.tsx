@@ -52,10 +52,13 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
   }
   const prediction = detail.prediction;
   const ok = prediction?.status === "ok";
-  const risk = ok ? prediction!.risk_level ?? "green" : null;
+  const previous = prediction?.status === "ml_unavailable" && prediction.delay_s != null;
+  const available = ok || previous;
+  const risk = available ? prediction!.risk_level ?? "green" : null;
   const fresh = freshness(detail);
   const alert = alerts.find(
-    (item) => item.tr_id === detail.tr_id && item.state === "active",
+    (item) => item.tr_id === detail.tr_id && item.state === "active" &&
+      item.target_stop_id === prediction?.target_stop_id && prediction?.run_id === detail.run_id,
   );
   return (
     <section className="card" aria-label={`Карточка ТС ${detail.tr_id}`}>
@@ -65,8 +68,10 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
         <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
       </div>
 
-      {ok ? (
+      {available ? (
         <>
+          {previous ? <div className="banner warn">Последний прогноз · ML недоступен</div> : null}
+          <div className="hint">Возраст прогноза: {duration(prediction!.prediction_age_s)}</div>
           <p className={`big risk-${risk}`}>{signedDelay(prediction!.delay_s)}</p>
           <div className="hint">
             {RISK_LABEL[risk!]} · {prediction!.risk_basis} · порог красного{" "}
@@ -94,6 +99,13 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
             </div>
           </div>
 
+          <div className="section">
+            <h3>Участок подхода к цели</h3>
+            {detail.segment ? <>
+              <p>{detail.segment.from.address ?? detail.segment.from.target_stop_id} → {detail.segment.to.address ?? detail.segment.to.target_stop_id}</p>
+              <div className="hint">Схема двух последовательных плановых посещений; цвет линии соответствует риску ТС.</div>
+            </> : <div className="hint">Участок не определён: нет предыдущего посещения либо разрыв плана больше 30 минут.</div>}
+          </div>
           <div className="section">
             <h3>Риск опоздания</h3>
             <div className="kv">
@@ -141,7 +153,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
           <div className="section">
             <h3>Предлагаемое действие</h3>
             <div className="advice">{prediction!.recommendation}</div>
-            {alert ? (
+            {alert && ok ? (
               <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={() => onAcknowledge(alert.alert_id)} disabled={!!alert.acknowledged_at}>
                   {alert.acknowledged_at ? "Принято в работу" : "Отметить «принято в работу»"}

@@ -25,7 +25,7 @@ export default function App() {
     (signal) => api.vehicle(selected as string, signal),
     2000,
     selected !== null,
-    selected,
+    `${snapshot?.run_id ?? ""}:${selected ?? ""}`,
   );
 
   // A stale answer must never overwrite a newer snapshot revision.
@@ -38,20 +38,19 @@ export default function App() {
     }
   }, [snapshotPoll.data, snapshot?.run_id, revision]);
 
-  // A new run starts with clean local selection instead of mixing vehicles between runs.
-  useEffect(() => {
-    if (snapshot && selected && !snapshot.vehicles.some((item) => item.tr_id === selected)) {
-      const stillKnown = snapshot.vehicles.length === 0;
-      if (!stillKnown) setSelected(null);
-    }
-  }, [snapshot?.run_id]);
+  useEffect(() => { setSelected(null); }, [snapshot?.run_id]);
 
   const detail = useMemo(() => {
+    const current = snapshot?.vehicles.find((item) => item.tr_id === selected);
+    if (!current || !snapshot) return null;
     const loaded = detailPoll.data;
-    if (loaded && loaded.tr_id === selected) return loaded;
-    const fallback = snapshot?.vehicles.find((item) => item.tr_id === selected);
-    return fallback ? ({ ...fallback, track: [], plan: [], prediction_history: [] } as VehicleDetail) : null;
-  }, [detailPoll.data, snapshot, selected]);
+    const usable = loaded?.tr_id === selected && loaded?.run_id === snapshot.run_id && !detailPoll.error;
+    if (usable) {
+      return { ...loaded, ...(loaded.revision > snapshot.revision ? {} : current) };
+    }
+    return { ...current, run_id: snapshot.run_id, revision: snapshot.revision,
+      track: [], plan: [], prediction_history: [] } as VehicleDetail;
+  }, [detailPoll.data, detailPoll.error, snapshot, selected]);
 
   const acknowledge = useCallback(async (alertId: string) => {
     try {
@@ -74,8 +73,13 @@ export default function App() {
     [],
   );
 
-  const ageMs = snapshotPoll.updatedAt ? Date.now() - snapshotPoll.updatedAt : null;
-  const connectionLost = snapshotPoll.error !== null;
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const ageMs = snapshotPoll.updatedAt ? now - snapshotPoll.updatedAt : null;
+  const connectionLost = snapshotPoll.error !== null || (ageMs !== null && ageMs > 6000);
   const clock = snapshot?.clock;
 
   return (
@@ -83,7 +87,7 @@ export default function App() {
       <Header snapshot={snapshot} status={statusPoll.data} ageMs={ageMs} />
       {connectionLost ? (
         <div className="banner">
-          Связь с Backend потеряна: {snapshotPoll.error}. Показано последнее полученное состояние
+          Связь с Backend потеряна: {snapshotPoll.error ?? "состояние давно не обновлялось"}. Показано последнее полученное состояние
           {ageMs ? ` (${Math.round(ageMs / 1000)} с назад)` : ""}.
         </div>
       ) : null}
@@ -97,6 +101,9 @@ export default function App() {
       {snapshot?.fixture ? (
         <div className="banner warn">Демонстрационные фикстуры, не живой поток.</div>
       ) : null}
+      {selected && detailPoll.error ? <div className="banner warn">
+        История ТС недоступна: {detailPoll.error}. Основные данные обновляются из общей очереди.
+      </div> : null}
       <div className="body">
         <Queue
           snapshot={snapshot}

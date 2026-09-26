@@ -140,6 +140,8 @@ class NdtpServer:
             counters.crc_errors += 1
             raise NdtpError("CRC mismatch over NPH and body")
         unit = str(frame.peer_address)
+        if unit not in counters.units and len(counters.units) >= 1024:
+            counters.units.pop(next(iter(counters.units)))
         counters.units[unit] = counters.units.get(unit, 0) + 1
         if frame.is_handshake:
             if len(frame.body) != _HANDSHAKE_BODY.size:

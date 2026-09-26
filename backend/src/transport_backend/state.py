@@ -86,6 +86,37 @@ class PlanStore:
         candidates = np.flatnonzero((horizon > 600) & (horizon <= 900))
         return None if not len(candidates) else visits.iloc[candidates[0]]
 
+    def segment(self, tr_id: str, target_stop_id: str | None) -> dict | None:
+        """Schematic approach to a target visit, never a claimed road geometry."""
+        visits = self.visits.get(str(tr_id))
+        if visits is None or target_stop_id is None:
+            return None
+        matches = np.flatnonzero(visits.tt_action_item_id.eq(target_stop_id).to_numpy())
+        if not len(matches) or matches[0] == 0:
+            return None
+        index = int(matches[0])
+        previous, target = visits.iloc[index - 1], visits.iloc[index]
+        gap = (target.time_begin - previous.time_begin).total_seconds()
+        # Long breaks and simultaneous visits do not define an unambiguous segment.
+        if not 0 < gap <= 1800:
+            return None
+
+        def endpoint(visit):
+            return {
+                "target_stop_id": str(visit.tt_action_item_id),
+                "address": self.address(str(visit.tt_action_item_id)),
+                "planned_at": format_source(int(visit.time_begin.value)),
+                "lon": float(visit.lon),
+                "lat": float(visit.lat),
+            }
+
+        return {
+            "segment_id": f"{tr_id}:{previous.tt_action_item_id}:{target.tt_action_item_id}",
+            "kind": "planned_visit_schematic",
+            "from": endpoint(previous),
+            "to": endpoint(target),
+        }
+
     def next_visit(self, tr_id: str, at_ns: int) -> pd.Series | None:
         visits = self.visits.get(str(tr_id))
         if visits is None:
@@ -109,7 +140,6 @@ class VehicleTrack:
         self.tr_id = tr_id
         self.unit_id = unit_id
         self.events: deque[TelemetryEvent] = deque(maxlen=max_events)
-        self.seen: deque[tuple] = deque(maxlen=max_events)
         self.fingerprints: set[tuple] = set()
         self.duplicates = 0
         self.conflicting_times = 0
@@ -136,15 +166,32 @@ class VehicleTrack:
                 self.out_of_order += 1
             elif event.event_time_ns == self.last_event_ns:
                 self.conflicting_times += 1
-        self.events.append(event)
-        self.fingerprints.add(fingerprint)
-        self.seen.append(fingerprint)
-        while len(self.seen) == self.seen.maxlen and len(self.fingerprints) > len(self.events):
-            self.fingerprints.discard(self.seen.popleft())
+        # The normal ordered stream stays O(1); only late/conflicting packets need sorting.
+        key = (event.event_time_ns, repr(fingerprint))
+        last_key = (
+            (self.events[-1].event_time_ns, repr(self.events[-1].fingerprint()))
+            if self.events
+            else None
+        )
+        if last_key is None or key >= last_key:
+            if len(self.events) == self.events.maxlen:
+                self.fingerprints.discard(self.events.popleft().fingerprint())
+            self.events.append(event)
+            self.fingerprints.add(fingerprint)
+        else:
+            ordered = sorted(
+                [*self.events, event],
+                key=lambda item: (item.event_time_ns, repr(item.fingerprint())),
+            )
+            self.events = deque(ordered[-self.events.maxlen :], maxlen=self.events.maxlen)
+            self.fingerprints = {item.fingerprint() for item in self.events}
         self.received_events += 1
         self.last_received_monotonic = perf_counter()
         self.last_event_ns = max(self.last_event_ns or event.event_time_ns, event.event_time_ns)
-        if event.gps_valid:
+        if event.gps_valid and (
+            self.last_valid is None
+            or key >= (self.last_valid.event_time_ns, repr(self.last_valid.fingerprint()))
+        ):
             self.last_valid_ns = event.event_time_ns
             self.last_valid = event
         return True
@@ -224,6 +271,8 @@ class FleetState:
     def key(self, event: TelemetryEvent) -> str | None:
         tr_id = event.tr_id or self.mapping.get(event.unit_id)
         if tr_id is None:
+            if event.unit_id not in self.unmapped and len(self.unmapped) >= 256:
+                self.unmapped.pop(next(iter(self.unmapped)))
             self.unmapped[event.unit_id] = self.unmapped.get(event.unit_id, 0) + 1
             return None
         return tr_id

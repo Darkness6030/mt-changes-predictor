@@ -34,15 +34,16 @@ interface Props {
 function matches(vehicle: Vehicle, filter: Filter): boolean {
   const prediction = vehicle.prediction;
   const ok = prediction?.status === "ok";
+  const available = ok || (prediction?.status === "ml_unavailable" && prediction.delay_s != null);
   switch (filter) {
     case "all":
       return true;
     case "attention":
-      return ok && (prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
+      return available && (prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
     case "late":
-      return ok && (prediction!.delay_s ?? 0) > 0;
+      return available && (prediction!.delay_s ?? 0) > 0;
     case "early":
-      return ok && (prediction!.delay_s ?? 0) < 0;
+      return available && (prediction!.delay_s ?? 0) < 0;
     case "nodata":
       return !ok;
   }
@@ -105,7 +106,9 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
           rows.map((vehicle) => {
             const prediction = vehicle.prediction;
             const ok = prediction?.status === "ok";
-            const risk = ok ? prediction!.risk_level ?? "green" : null;
+            const previous = prediction?.status === "ml_unavailable" && prediction.delay_s != null;
+            const available = ok || previous;
+            const risk = available ? prediction!.risk_level ?? "green" : null;
             const fresh = freshness(vehicle);
             return (
               <button
@@ -120,9 +123,10 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                   </span>
                   <span className="id">ТС {vehicle.tr_id}</span>
                   <span className={`delay ${risk ? `risk-${risk}` : "risk-none"}`}>
-                    {ok ? signedDelay(prediction!.delay_s) : "нет прогноза"}
+                    {available ? signedDelay(prediction!.delay_s) : "нет прогноза"}
                   </span>
                 </div>
+                {previous ? <div className="hint">Последний прогноз · {Math.round(prediction!.prediction_age_s ?? 0)} с назад</div> : null}
                 <div className="meta">
                   <span>{ok ? RISK_LABEL[risk!] : STATUS_LABEL[prediction?.status ?? ""] ?? "—"}</span>
                   {ok && prediction!.target_planned_at ? (

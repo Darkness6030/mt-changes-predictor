@@ -19,6 +19,7 @@ export function usePolling<T>(
   loader.current = load;
 
   useEffect(() => {
+    setState({ data: null, error: null, updatedAt: null });
     if (!enabled) return;
     // resetKey restarts the loop immediately, e.g. when another vehicle is selected.
     let cancelled = false;

@@ -12,18 +12,23 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, { signal, headers: { Accept: "application/json" } });
-  if (!response.ok) {
-    let detail = `${response.status} ${response.statusText}`;
-    try {
-      const body = await response.json();
-      detail = body?.detail?.detail ?? body?.detail ?? detail;
-    } catch {
-      /* keep the status line */
-    }
-    throw new ApiError(String(detail), response.status);
+  const controller = new AbortController();
+  let timedOut = false;
+  const cancel = () => controller.abort();
+  signal?.addEventListener("abort", cancel, { once: true });
+  if (signal?.aborted) cancel();
+  const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 5000);
+  try {
+    const response = await fetch(path, { signal: controller.signal, headers: { Accept: "application/json" } });
+    if (!response.ok) throw new ApiError(`${response.status} ${response.statusText}`, response.status);
+    return (await response.json()) as T;
+  } catch (error) {
+    if (timedOut) throw new ApiError("Ответ сервера не получен за 5 секунд");
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+    signal?.removeEventListener("abort", cancel);
   }
-  return (await response.json()) as T;
 }
 
 export const api = {

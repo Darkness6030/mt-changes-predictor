@@ -1,7 +1,9 @@
 # Контракт API и snapshot, версия 1
 
-Дата фиксации: 26.09.2026. Источник истины для схем — OpenAPI работающего Backend
-(`/openapi.json`, Swagger `/docs`) и OpenAPI ML-сервиса. Этот файл описывает согласованные
+Дата фиксации: 26.09.2026. OpenAPI работающего Backend
+(`/openapi.json`, Swagger `/docs`) пока содержит общие dict для ряда ответов;
+строгие response-модели остаются задачей. ML-сервис имеет типизированные схемы.
+Этот файл описывает согласованные
 имена, единицы, статусы и правила времени, чтобы Backend, ML и UI не расходились.
 Требования, из которых он выведен: [RULES](RULES.md), [PLAN](PLAN.md),
 [README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
@@ -34,7 +36,7 @@
 - `unit_id != tr_id`. Маппинг приходит из явного файла/CSV; неизвестный unit не получает
   случайный `tr_id`, он публикуется со статусом `no_mapping`.
 - Соответствие naive-времени CSV и Unix-времени NDTP объявляется параметром демонстрации
-  (`NDTP_TIME_BASIS_OFFSET_S`, по умолчанию 0 = naive трактуется как UTC). Основание
+  (`BACKEND_NDTP_TIME_OFFSET_S`, по умолчанию 0 = naive трактуется как UTC). Основание
   гипотезы: `sample_id` всех 151 точки validate равен `f"{tr_id}_{unix(T, UTC)}"`.
   Это обратимое соглашение для бинарного replay, а не подтверждённая организаторами зона.
 
@@ -96,7 +98,7 @@
       "used_hint": true,
       "late_probability": 0.37,
       "late_threshold_s": 120.0,
-      "calibration": {"method": "platt", "status": "validated", "report": "ml/reports/ml-v2.md"}
+      "calibration": {"method": "platt", "status": "fitted_on_development", "report": "ml/reports/ml-v2.md"}
     }
   ]
 }
@@ -195,6 +197,19 @@
 `quality_flags` ⊂ `{invalid_gps, stale_gps, sparse_history, clock_skew, no_schedule,
 no_mapping, history_truncated}`.
 
+### 5.2.1 Участок и детальная карточка (совместимое дополнение v1)
+
+`VehicleView.segment` — `null` либо объект с `segment_id`,
+`kind = "planned_visit_schematic"` и `from` / `to`. Каждая граница содержит
+`target_stop_id`, `address`, `planned_at`, `lon`, `lat`. Это соседние посещения
+плана того же ТС, заканчивающиеся на цели прогноза, с интервалом `(0, 1800]` с.
+Первое посещение, равные времена и более длинные разрывы не образуют участок.
+UI отображает прямую с цветом риска и предупреждением о схематичной геометрии.
+
+Ответ `/vehicles/{tr_id}` дополнительно содержит `run_id` и `revision`.
+UI не смешивает карточку старого прогона с новым snapshot. Ack в карточке выбирается
+по текущим `tr_id`, `target_stop_id` и `run_id`, только при статусе прогноза `ok`.
+
 ### 5.3 PredictionView
 
 ```json
@@ -218,7 +233,7 @@ no_mapping, history_truncated}`.
   "risk_basis": "delay_s > 120",
   "late_probability": 0.62,
   "late_threshold_s": 120.0,
-  "calibration": {"method": "platt", "status": "validated", "report": "ml/reports/ml-v2.md"},
+  "calibration": {"method": "platt", "status": "fitted_on_development", "report": "ml/reports/ml-v2.md"},
   "model_version": "b3f1…",
   "model_used": "main",
   "feature_schema_version": "1",
@@ -252,7 +267,8 @@ no_mapping, history_truncated}`.
 | `invalid_input` | Признаки не прошли проверку контракта |
 
 Отсутствие прогноза никогда не выдаётся как `delay_s = 0`: `delay_s` в этих статусах
-`null`. `cur_dev_source`: `supplied` (подсказка из прогнозной точки офлайн-контура),
+`null`, кроме `ml_unavailable`: он может сохранять последний числовой прогноз
+с возрастом и исходной целью. `cur_dev_source`: `supplied` (подсказка из прогнозной точки офлайн-контура),
 `estimated` (причинная оценка по GPS и плану, с `cur_dev_age_s` и флагом качества),
 `missing` (ML использует fallback без подсказки). `risk_level` определяется порогами
 `risk_policy` по `delay_s`; `late_probability` показывается отдельно и не подменяет риск.
@@ -291,7 +307,7 @@ no_mapping, history_truncated}`.
 {"action": "start" | "pause" | "reset" | "speed", "speed": 10.0, "start_at": "2026-01-06 11:30:00"}
 ```
 
-Доступно только при `mode = replay` и `REPLAY_CONTROL_ENABLED=true`; источник данных
+Доступно только при `mode = replay` и `BACKEND_REPLAY_CONTROL=true`; источник данных
 ограничен заранее заданным каталогом раздачи. `reset` создаёт новый `run_id` и очищает
 состояние, историю и инциденты. Пауза останавливает виртуальные возраста данных,
 но не влияет на wall-clock health.
@@ -330,3 +346,14 @@ TelemetryEvent(source, run_id, unit_id, tr_id|None, event_time_ns, time_basis,
 `backend/fixtures/snapshot.json`, `backend/fixtures/status.json`,
 `backend/fixtures/vehicle.json`. Они помечены `"fixture": true` и не применяются в
 production-сборке UI. При изменении контракта фикстуры обновляются вместе с кодом.
+
+## 9. Режим live и защита времени
+
+При `BACKEND_MODE=ndtp` forecast points по умолчанию отключены; используются
+периодические цели из плана и `estimated`/`missing` подсказки. Пустое
+`BACKEND_USE_POINTS` выбирает значение по режиму; `true` — явная диагностика с points.
+Неизвестный unit не меняет общие часы. Первая метка известного unit проверяется
+по диапазону загруженного плана ± history_window; последующие проходят проверку
+будущего (60 с допуска) до обновления часов. Отклонённые события считаются и
+не сохраняются в истории. Первая неверная метка внутри диапазона плана остаётся
+ограничением: для финальной среды нужна согласованная политика синхронизации.

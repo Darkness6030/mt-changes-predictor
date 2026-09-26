@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from transport_ml.features import FeatureConfig
+
 from transport_backend.clock import SECOND_NS, TIME_BASIS
 from transport_backend.ndtp import Nav00
 
@@ -55,7 +57,16 @@ def from_nav00(
     zero_position = nav.lon == 0.0 and nav.lat == 0.0
     if zero_position:
         flags.append("zero_position")
-    usable = nav.gps_valid and not zero_position
+    in_range = -180 <= nav.lon <= 180 and -90 <= nav.lat <= 90
+    if not in_range:
+        flags.append("coordinate_out_of_range")
+    usable = nav.gps_valid and not zero_position and in_range
+    speed_valid = 0 <= nav.speed_kmh <= FeatureConfig().max_speed_kmh
+    heading_valid = 0 <= nav.heading_deg <= 360
+    if not speed_valid:
+        flags.append("invalid_speed")
+    if not heading_valid:
+        flags.append("invalid_heading")
     return TelemetryEvent(
         source=source,
         unit_id=str(unit_id),
@@ -63,8 +74,8 @@ def from_nav00(
         gps_valid=usable,
         lon=nav.lon if usable else None,
         lat=nav.lat if usable else None,
-        speed_kmh=nav.speed_kmh if usable else None,
-        heading_deg=nav.heading_deg if usable else None,
+        speed_kmh=nav.speed_kmh if usable and speed_valid else None,
+        heading_deg=nav.heading_deg if usable and heading_valid else None,
         altitude_m=nav.altitude_m if usable else None,
         quality_flags=tuple(flags),
     )

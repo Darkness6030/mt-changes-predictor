@@ -61,7 +61,7 @@ class Settings:
     mode: str = "replay"
     data_root: Path = Path("dataset")
     split: str = "test"
-    use_points: bool = True
+    use_points: bool | None = None
     labels: Path | None = None
     offline_metrics: Path | None = Path("ml/pretrained/v2/metrics.json")
 
@@ -97,6 +97,8 @@ class Settings:
     risk: RiskPolicy = field(default_factory=RiskPolicy)
 
     def __post_init__(self) -> None:
+        if self.use_points is None:
+            object.__setattr__(self, "use_points", self.mode == "replay")
         if self.mode not in MODES:
             raise ValueError(f"BACKEND_MODE must be one of {MODES}")
         if self.split not in {"train", "test", "validate"}:
@@ -113,7 +115,11 @@ class Settings:
             mode=os.environ.get("BACKEND_MODE", "replay").strip().lower(),
             data_root=Path(os.environ.get("BACKEND_DATA_ROOT", "dataset")),
             split=os.environ.get("BACKEND_SPLIT", "test").strip().lower(),
-            use_points=_bool("BACKEND_USE_POINTS", True),
+            use_points=(
+                None
+                if not os.environ.get("BACKEND_USE_POINTS")
+                else _bool("BACKEND_USE_POINTS", False)
+            ),
             labels=_path("BACKEND_LABELS", None),
             offline_metrics=_path("BACKEND_OFFLINE_METRICS", "ml/pretrained/v2/metrics.json"),
             ml_url=os.environ.get("BACKEND_ML_URL", "http://ml:8001").rstrip("/"),

@@ -10,10 +10,7 @@
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
 | Вероятность `P(задержка > 120 с)` | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v2/submission.csv`](ml/pretrained/v2/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Инференс ML p50 / p95 | 3,6 / 6,0 мс | [измерения](docs/PERFORMANCE.md) |
-| Событие → опубликованный прогноз p50 / p95 | 49 / 63 мс | [измерения](docs/PERFORMANCE.md) |
-| Холодный старт трёх контейнеров | 11 с до ответа API через UI | [измерения](docs/PERFORMANCE.md) |
-| Тесты | 59 (ML, признаки, NDTP, состояние, движок, API) | `python -m pytest -q` |
+| Тесты | 80 (ML, признаки, NDTP, состояние, движок, API) | `python -m pytest -q` |
 
 ## Запуск за одну команду
 
@@ -70,7 +67,7 @@ Backend импортирует её, а не пишет вторую верси�
 |---|---|
 | [`docs/DEMO.md`](docs/DEMO.md) | Инструкция жюри: сценарии, команды, что смотреть |
 | [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) | Контракт snapshot/prediction/alert, статусы, время |
-| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Измерения latency, throughput, память, деградация |
+| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Короткий замер latency и границы проверки |
 | [`ml/README.md`](ml/README.md) | Признаки, обучение, модели, вероятность, CLI, сервис |
 | [`backend/README.md`](backend/README.md) | NDTP, часы, состояние, инциденты, endpoints |
 | [`frontend/README.md`](frontend/README.md) | Экраны, состояния, пороги, сборка |
@@ -88,7 +85,7 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 59 тестов
+.venv/bin/python -m pytest -q                                  # 80 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
@@ -121,7 +118,8 @@ cd frontend && npm install && npm run dev
   `transport-backend check-hint`). Если оценки нет — модель без подсказки и явный статус.
 - Официальный эмулятор двигает ТС случайно и ставит свои timestamp: он доказывает приём
   NDTP и живую цепочку, но не качество прогноза по маршруту. Для качества используется
-  размеченный replay и наш NDTP-replayer с исходными временами.
+  размеченный replay; автономный NDTP-replayer проверяет сквозную цепочку,
+  но ещё не имеет отдельного отчёта качества. NDTP по умолчанию не читает forecast points.
 - Линии на карте — схема плановых посещений и пройденный трек, не дорожный маршрут.
   Маршрутного графа, дверей, ДТП и пассажиропотока в раздаче нет.
 - `test`/`validate` делят телеметрию и один день: локальные метрики — benchmark, а не

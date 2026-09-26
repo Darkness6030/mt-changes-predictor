@@ -41,6 +41,8 @@ services:
     environment:
       BACKEND_MODE: ${BACKEND_MODE:-replay}
       BACKEND_SPLIT: ${BACKEND_SPLIT:-test}
+      BACKEND_USE_POINTS: ${BACKEND_USE_POINTS:-}
+      BACKEND_NDTP_TIME_OFFSET_S: ${BACKEND_NDTP_TIME_OFFSET_S:-0}
       BACKEND_DATA_ROOT: /app/dataset
       BACKEND_ML_URL: http://ml:8001
       BACKEND_LABELS: ${BACKEND_LABELS:-/app/dataset/labels/labels_test.csv}
@@ -78,7 +80,7 @@ services:
     profiles: ["tools"]
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     entrypoint:
       - transport-backend
       - send-ndtp
@@ -103,6 +105,7 @@ services:
     volumes:
       - ./dataset:/app/dataset:ro
       - ./artifacts:/app/artifacts
+      - ./ml/pretrained/${MODEL_VERSION:-v2}:/app/model:ro
     logging: *logging
 
   # Official emulator from the distribution. The image must be imported locally first:

@@ -17,7 +17,7 @@ const COLOURS: Record<string, string> = {
 
 function colourOf(vehicle: Vehicle): string {
   const prediction = vehicle.prediction;
-  if (!prediction || prediction.status !== "ok" || !prediction.risk_level) return COLOURS.none;
+  if (!prediction || !["ok", "ml_unavailable"].includes(prediction.status) || !prediction.risk_level) return COLOURS.none;
   return COLOURS[prediction.risk_level];
 }
 
@@ -94,13 +94,14 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
       seen.add(vehicle.tr_id);
       const latlng: L.LatLngTuple = [position.lat, position.lon];
       const isSelected = vehicle.tr_id === selected;
+      const outdated = vehicle.stale || vehicle.prediction?.status === "ml_unavailable";
       const style = {
         color: isSelected ? "#ffffff" : colourOf(vehicle),
         weight: isSelected ? 3 : 1.5,
         fillColor: colourOf(vehicle),
-        fillOpacity: vehicle.stale ? 0.35 : 0.9,
+        fillOpacity: outdated ? 0.35 : 0.9,
         radius: isSelected ? 10 : 7,
-        dashArray: vehicle.stale ? "3 3" : undefined,
+        dashArray: outdated ? "3 3" : undefined,
       };
       const prediction = vehicle.prediction;
       const tooltip =
@@ -136,6 +137,18 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
     const group = overlay.current;
     if (!group) return;
     group.clearLayers();
+    for (const vehicle of vehicles) {
+      const segment = vehicle.segment;
+      if (!segment) continue;
+      const line = L.polyline([[segment.from.lat, segment.from.lon], [segment.to.lat, segment.to.lon]], {
+        color: colourOf(vehicle), weight: vehicle.tr_id === selected ? 7 : 4,
+        opacity: vehicle.stale ? 0.35 : 0.8,
+        dashArray: vehicle.prediction?.status === "ok" ? undefined : "5 5",
+      });
+      const label = document.createElement("span");
+      label.textContent = `ТС ${vehicle.tr_id}: ${segment.from.address ?? "посещение"} → ${segment.to.address ?? "цель"} (схема)`;
+      line.bindTooltip(label).on("click", () => select.current(vehicle.tr_id)).addTo(group);
+    }
     if (!detail) return;
     const plan = detail.plan ?? [];
     if (plan.length > 1) {
@@ -184,7 +197,7 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
         )
         .addTo(group);
     }
-  }, [detail]);
+  }, [detail, vehicles, selected]);
 
   const focus = () => {
     const instance = map.current;
@@ -235,7 +248,7 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
           <span>Нет прогноза / данные устарели (пунктир)</span>
         </div>
         <div className="item" style={{ color: "var(--muted)" }}>
-          Линии — схема плановых посещений и пройденный трек, не дорожный маршрут
+          Цветные линии — риск на участке подхода к цели. Геометрия схематичная, не дорожный маршрут
         </div>
       </div>
     </div>

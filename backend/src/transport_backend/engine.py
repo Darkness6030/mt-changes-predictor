@@ -326,8 +326,22 @@ class Engine:
 
     def _ingest(self, event: TelemetryEvent) -> None:
         """Called from the NDTP server task for every decoded navigation cell."""
-        self.clock.observe(event.event_time_ns)
-        self.state.add(event, self.clock.now_ns())
+        # Unknown units must not advance the clock used to trim every vehicle.
+        if event.unit_id not in self.mapping:
+            self.state.key(event)
+            return
+        now_ns = self.clock.now_ns()
+        if now_ns is None:
+            # Bootstrap is constrained by the explicitly loaded plan, not host UTC.
+            times = self.plan.plan.time_begin.astype("int64")
+            margin = int(self.settings.history_window_s * SECOND_NS)
+            if times.empty or not (
+                times.min() - margin <= event.event_time_ns <= times.max() + margin
+            ):
+                self.state.rejected_future += 1
+                return
+        if self.state.add(event, now_ns):
+            self.clock.observe(event.event_time_ns)
 
     async def _loop(self) -> None:
         settings = self.settings
@@ -428,6 +442,7 @@ class Engine:
         return None
 
     async def _predict(self, requests: list[dict], now_ns: int) -> None:
+        run_id = self.run_id
         prepared: list[dict] = []
         skipped: list[dict] = []
         for request in requests:
@@ -447,6 +462,12 @@ class Engine:
                 if int(target.time_begin.value) != request["target_planned_ns"]:
                     skipped.append({**request, "status": "invalid_input"})
                     continue
+            track = self.state.tracks[request["tr_id"]]
+            request["_event_received_monotonic"] = (
+                track.last_received_monotonic
+                if track.last_event_ns is not None and track.last_event_ns <= request["cutoff_ns"]
+                else None
+            )
             prepared.append(request)
         started = perf_counter()
         features = self._build_features(prepared)
@@ -473,6 +494,8 @@ class Engine:
             request["_features"] = row
             request["_request_id"] = str(len(items) - 1)
         results = await self.ml.predict(items, SCHEMA_VERSION) if items else {}
+        if run_id != self.run_id:
+            return  # A reset invalidates all in-flight results of the previous run.
         for request in prepared:
             if "_request_id" not in request:
                 continue
@@ -579,10 +602,9 @@ class Engine:
             }
             return
         self.prediction_seq += 1
-        if track is not None and track.last_received_monotonic is not None:
-            # Wall-clock path from the newest received event to the published prediction.
-            # UI polling adds up to its own interval on top and is reported separately.
-            self.publish_latency.add((perf_counter() - track.last_received_monotonic) * 1000)
+        received = request.get("_event_received_monotonic")
+        if received is not None:
+            self.publish_latency.add((perf_counter() - received) * 1000)
         features = request["_features"]
         delay_s = float(result["delay_s"])
         policy = self.settings.risk
@@ -751,6 +773,9 @@ class Engine:
                 }
             ),
             "prediction": prediction,
+            "segment": self.plan.segment(
+                tr_id, prediction.get("target_stop_id") if prediction else None
+            ),
         }
 
     def snapshot(
@@ -864,6 +889,8 @@ class Engine:
                 for event in events
             ]
         visits = self.plan.window(tr_id, now_ns, before_s=1800, after_s=3600)
+        view["run_id"] = self.run_id
+        view["revision"] = self.revision
         view["track"] = track_points
         view["plan"] = [
             {

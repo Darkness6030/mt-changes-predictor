@@ -1062,5 +1062,25 @@
    "target_stop_id": "53699019214",
    "trigger": "periodic"
   }
- ]
+ ],
+ "run_id": "run-20260926T140051Z-6fdc",
+ "revision": 64,
+ "segment": {
+  "segment_id": "122048:53699019217:53699019214",
+  "kind": "planned_visit_schematic",
+  "from": {
+   "target_stop_id": "53699019217",
+   "address": "Большая Тульская ул., д.2",
+   "planned_at": "2026-01-06 11:01:00",
+   "lon": 37.62151148,
+   "lat": 55.71032494
+  },
+  "to": {
+   "target_stop_id": "53699019214",
+   "address": "Большая Тульская ул., д.10",
+   "planned_at": "2026-01-06 11:03:00",
+   "lon": 37.62090917,
+   "lat": 55.70700843
+  }
+ }
 }

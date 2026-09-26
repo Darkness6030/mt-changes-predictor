@@ -80,6 +80,13 @@ export interface PlanVisit {
   passed?: boolean;
 }
 
+export interface Segment {
+  segment_id: string;
+  kind: "planned_visit_schematic";
+  from: PlanVisit;
+  to: PlanVisit;
+}
+
 export interface Vehicle {
   tr_id: string;
   unit_id: string | null;
@@ -94,10 +101,13 @@ export interface Vehicle {
   quality_flags: string[];
   has_schedule: boolean;
   next_visit: PlanVisit | null;
+  segment?: Segment | null;
   prediction: Prediction | null;
 }
 
 export interface VehicleDetail extends Vehicle {
+  run_id: string;
+  revision: number;
   track: { lon: number | null; lat: number | null; speed_kmh: number | null; event_at: string }[];
   plan: PlanVisit[];
   prediction_history: {

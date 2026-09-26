@@ -89,7 +89,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "122048",
@@ -174,6 +175,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "122048:53699019217:53699019214",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53699019217",
+     "address": "Большая Тульская ул., д.2",
+     "planned_at": "2026-01-06 11:01:00",
+     "lon": 37.62151148,
+     "lat": 55.71032494
+    },
+    "to": {
+     "target_stop_id": "53699019214",
+     "address": "Большая Тульская ул., д.10",
+     "planned_at": "2026-01-06 11:03:00",
+     "lon": 37.62090917,
+     "lat": 55.70700843
+    }
    }
   },
   {
@@ -254,6 +273,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "122613:53718539214:53718539260",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53718539214",
+     "address": "Братеевская ул., д.16, к.1",
+     "planned_at": "2026-01-06 10:47:00",
+     "lon": 37.76432598,
+     "lat": 55.63347164
+    },
+    "to": {
+     "target_stop_id": "53718539260",
+     "address": "Братеевская ул., д.16, к.1",
+     "planned_at": "2026-01-06 11:06:00",
+     "lon": 37.76432598,
+     "lat": 55.63347164
+    }
    }
   },
   {
@@ -332,6 +369,24 @@
     "quality_flags": [
      "invalid_gps"
     ]
+   },
+   "segment": {
+    "segment_id": "122658:53699433902:53699433903",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53699433902",
+     "address": "4-я Мякининская ул., д.27",
+     "planned_at": "2026-01-06 11:00:00",
+     "lon": 37.38384523,
+     "lat": 55.80912701
+    },
+    "to": {
+     "target_stop_id": "53699433903",
+     "address": "Строгинский бульв., д.2, к.1",
+     "planned_at": "2026-01-06 11:01:00",
+     "lon": 37.39496481,
+     "lat": 55.80508518
+    }
    }
   },
   {
@@ -412,6 +467,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "129964:53700336539:53700336538",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53700336539",
+     "address": "Нагатинская наб., д.62",
+     "planned_at": "2026-01-06 11:01:00",
+     "lon": 37.68910616,
+     "lat": 55.69088822
+    },
+    "to": {
+     "target_stop_id": "53700336538",
+     "address": "Нагатинская наб., д.54",
+     "planned_at": "2026-01-06 11:03:00",
+     "lon": 37.68318523,
+     "lat": 55.689356
+    }
    }
   },
   {
@@ -471,7 +544,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "130238",
@@ -551,6 +625,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "130238:53698370407:53698370420",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53698370407",
+     "address": "Мичуринский просп., д.22, к.1",
+     "planned_at": "2026-01-06 11:01:00",
+     "lon": 37.50444676,
+     "lat": 55.7013018
+    },
+    "to": {
+     "target_stop_id": "53698370420",
+     "address": "ул. Пельше, д.26",
+     "planned_at": "2026-01-06 11:02:00",
+     "lon": 37.50171181,
+     "lat": 55.69977702
+    }
    }
   },
   {
@@ -602,7 +694,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "131542",
@@ -654,7 +747,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "131672",
@@ -711,7 +805,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "131954",
@@ -763,7 +858,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "132430",
@@ -843,6 +939,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "132430:53698549462:53698549463",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53698549462",
+     "address": null,
+     "planned_at": "2026-01-06 11:00:00",
+     "lon": 37.44838873,
+     "lat": 55.53519889
+    },
+    "to": {
+     "target_stop_id": "53698549463",
+     "address": null,
+     "planned_at": "2026-01-06 11:02:00",
+     "lon": 37.44568716,
+     "lat": 55.54255625
+    }
    }
   },
   {
@@ -928,6 +1042,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "133300:53700641089:53700641370",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53700641089",
+     "address": "Ярцевская ул., д.25, к.3",
+     "planned_at": "2026-01-06 10:55:00",
+     "lon": 37.41463303,
+     "lat": 55.74160241
+    },
+    "to": {
+     "target_stop_id": "53700641370",
+     "address": "Ярцевская ул., д.25, к.3",
+     "planned_at": "2026-01-06 11:05:00",
+     "lon": 37.41463303,
+     "lat": 55.74160241
+    }
    }
   },
   {
@@ -1013,6 +1145,24 @@
      "invalid_gps",
      "conflicting_event_times"
     ]
+   },
+   "segment": {
+    "segment_id": "133957:53699456423:53699456430",
+    "kind": "planned_visit_schematic",
+    "from": {
+     "target_stop_id": "53699456423",
+     "address": "ул. Островитянова, д.37А",
+     "planned_at": "2026-01-06 11:01:00",
+     "lon": 37.52892826,
+     "lat": 55.63310597
+    },
+    "to": {
+     "target_stop_id": "53699456430",
+     "address": "ул. Островитянова, д.31",
+     "planned_at": "2026-01-06 11:02:00",
+     "lon": 37.52324365,
+     "lat": 55.63379817
+    }
    }
   },
   {
@@ -1072,7 +1222,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "135081",
@@ -1126,7 +1277,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   },
   {
    "tr_id": "135511",
@@ -1178,7 +1330,8 @@
     "evidence": [],
     "recommendation": null,
     "quality_flags": []
-   }
+   },
+   "segment": null
   }
  ],
  "alerts": [
