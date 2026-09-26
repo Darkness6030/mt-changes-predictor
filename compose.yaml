@@ -53,6 +53,9 @@ services:
       BACKEND_CURRENT_DEVIATION_MAX_AGE_S: ${BACKEND_CURRENT_DEVIATION_MAX_AGE_S:-300}
       BACKEND_NDTP_PORT: "9201"
       BACKEND_PLAN_SHIFT_S: ${BACKEND_PLAN_SHIFT_S:-0}
+      BACKEND_DEMO_ENABLED: ${BACKEND_DEMO_ENABLED:-true}
+      BACKEND_EMULATOR_URL: http://emulator:18080
+      BACKEND_EMULATOR_TARGET_HOST: backend
     volumes:
       - ./dataset:/app/dataset:ro
       - ./ml/pretrained/${MODEL_VERSION:-v2}:/app/model:ro

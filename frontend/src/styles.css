@@ -333,3 +333,17 @@ a { color: var(--accent); }
 .vehicle-tooltip { width: max-content; white-space: pre-line; max-width: 290px; overflow-wrap: anywhere; }
 .vehicle-colour-key { flex: none; width: 16px; height: 16px; border: 3px solid var(--yellow); border-radius: 50%; background: var(--red); }
 .current-deviation-value { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 600; margin-bottom: 4px; }
+
+.demo-panel { flex: none; border-bottom: 1px solid var(--line); background: var(--panel); padding: 7px 16px; font-size: 12px; }
+.demo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.demo-toolbar label { display: flex; align-items: center; gap: 6px; }
+.demo-toolbar select { width: auto; max-width: 240px; font-size: 12px; }
+.demo-toolbar button { font-size: 12px; }
+.demo-note { color: var(--muted); margin-top: 4px; }
+.demo-help { position: relative; margin-left: auto; }
+.demo-help summary { cursor: pointer; color: var(--accent); }
+.demo-help > div { position: absolute; right: 0; top: 25px; width: min(380px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; z-index: 1200; box-shadow: 0 5px 20px #0008; }
+@media (max-width: 640px) {
+  .demo-panel { padding: 8px 10px; }
+  .demo-toolbar label { flex-wrap: wrap; }
+}

@@ -72,24 +72,41 @@ class NdtpServer:
         self.source = source
         self.counters = NdtpCounters()
         self._server: asyncio.AbstractServer | None = None
+        self._clients: dict[asyncio.Task, asyncio.StreamWriter] = {}
 
     async def start(self) -> None:
         self._server = await asyncio.start_server(self._handle, self.host, self.port)
 
     async def stop(self) -> None:
-        if self._server is not None:
-            self._server.close()
+        server = self._server
+        self._server = None
+        if server is not None:
+            server.close()
+        # Closing the listener alone leaves accepted connections alive. A source switch
+        # must retire their callbacks before a new fleet/clock can receive any packets.
+        clients = list(self._clients.items())
+        for task, writer in clients:
+            writer.close()
+            task.cancel()
+        if clients:
+            await asyncio.gather(*(task for task, _ in clients), return_exceptions=True)
+        if server is not None:
             with contextlib.suppress(Exception):
-                await self._server.wait_closed()
-            self._server = None
+                await server.wait_closed()
 
     @property
     def running(self) -> bool:
         return self._server is not None and self._server.is_serving()
 
+    @property
+    def bound_port(self) -> int:
+        if self._server is None or not self._server.sockets:
+            raise RuntimeError("NDTP listener is not started")
+        return self._server.sockets[0].getsockname()[1]
+
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         counters = self.counters
-        if counters.connections_open >= self.max_connections:
+        if not self.running or counters.connections_open >= self.max_connections:
             counters.rejected_connections += 1
             writer.close()
             with contextlib.suppress(Exception):
@@ -97,6 +114,8 @@ class NdtpServer:
             return
         counters.connections_total += 1
         counters.connections_open += 1
+        task = asyncio.current_task()
+        self._clients[task] = writer
         reading_payload = False
         try:
             while True:
@@ -128,6 +147,7 @@ class NdtpServer:
         except (ConnectionResetError, BrokenPipeError):
             counters.disconnects += 1
         finally:
+            self._clients.pop(task, None)
             counters.connections_open -= 1
             writer.close()
             with contextlib.suppress(Exception):

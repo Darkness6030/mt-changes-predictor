@@ -245,6 +245,19 @@ export interface Status {
   fixture?: boolean;
 }
 
+export type DemoSource = "replay" | "ndtp_replay" | "emulator";
+export interface DemoState {
+  enabled: boolean;
+  active: DemoSource | "external_ndtp";
+  run_id: string;
+  busy: boolean;
+  phase: "running" | "connecting" | "completed" | "error";
+  last_error: string | null;
+  speed: number;
+  sender: { units: number; frames: number; errors: number } | null;
+  sources: { id: DemoSource; available: boolean; reason: string | null; note: string }[];
+}
+
 export interface Percentiles {
   samples: number;
   p50_ms: number | null;

@@ -1,6 +1,6 @@
 /** One thin API layer. The UI never computes risk or picks a target: it renders Backend data. */
 
-import type { Quality, Snapshot, Status, VehicleDetail } from "./types";
+import type { DemoSource, DemoState, Quality, Snapshot, Status, VehicleDetail } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -34,6 +34,24 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 export type ReplayAction = "start" | "pause" | "reset" | "speed" | "seek";
 
 export const api = {
+  demo: (signal?: AbortSignal) => request<DemoState>("/api/v1/demo/sources", signal),
+  async source(source: DemoSource, speed: number): Promise<DemoState> {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch("/api/v1/demo/source", {
+        method: "POST", signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source, speed }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new ApiError(body?.detail?.detail ?? "Источник не переключён", response.status);
+      return body as DemoState;
+    } catch (error) {
+      if (controller.signal.aborted) throw new ApiError("Переключение ещё не подтверждено. Проверяется состояние Backend.");
+      throw error;
+    } finally { window.clearTimeout(timer); }
+  },
   snapshot: (signal?: AbortSignal) => request<Snapshot>("/api/v1/snapshot", signal),
   status: (signal?: AbortSignal) => request<Status>("/api/v1/status", signal),
   quality: (signal?: AbortSignal) => request<Quality>("/api/v1/metrics/quality", signal),

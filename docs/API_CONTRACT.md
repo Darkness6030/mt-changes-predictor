@@ -440,3 +440,44 @@ stale/unavailable; старый Backend без поля current_deviation тра
 При остановке сохраняется переданный курс, подсказка отмечает нулевую скорость. Размер
 маркера в пикселях сохраняется после изменения масштаба; курс указан в подсказке.
 Snapshot schema 1 сохранена с совместимым новым полем VehicleView.current_deviation.
+
+## 11. Панель демо и переключение источников
+
+Панель opt-in: `BACKEND_DEMO_ENABLED=true` (в Compose включена по умолчанию;
+в standalone Settings — false). Docker API/socket Backend не использует.
+Три источника сохраняют два значения `snapshot.mode`: CSV = replay, оба TCP = ndtp.
+
+- `GET /api/v1/demo/sources`: enabled, active, run_id, busy, phase, last_error, speed,
+  sender (итоговые units/frames/errors либо null), sources[{id, available, reason, note}].
+- active: replay / ndtp_replay / emulator; при обычном запуске BACKEND_MODE=ndtp без
+  панели — external_ndtp. phase: running / connecting / completed / error.
+- `POST /api/v1/demo/source`: `{source: "replay"|"ndtp_replay"|"emulator", speed?: 60,
+  start_at?: "2026-01-06 08:00:00"}`. speed в (0,3600], лишние поля запрещены.
+  Успех возвращает тот же DemoState. Повтор выбранного источника начинает новый прогон.
+- Пропущенный start_at берётся из BACKEND_REPLAY_START; если он не задан, движок CSV
+  выбирает своё начальное время, NDTP sender начинает с первого события датасета.
+- Недоступность источника/одновременная команда/отключённая панель = 409,
+  detail.code=source_switch_failed. Ошибка структуры команды = 422.
+- Недоступный официальный эмулятор проверяется до остановки текущего источника.
+  При ошибке запуска после остановки Backend восстанавливает чистый CSV replay,
+  возвращает 409 и публикует phase=error/last_error; прежний прогон не восстанавливается.
+- Команды сериализованы общим asyncio.Lock с replay/control; конфликт replay/control
+  возвращает 409 source_busy. Валидация и загрузка нового плана предшествуют остановке.
+- Переключение останавливает принадлежащий панели sender/автогенерацию, закрывает
+  старый NDTP listener и все принятые соединения, завершает цикл и HTTP-клиент ML.
+  Новый Engine получает отдельный run_id, пустые ТС, прогнозы, алерты и метрики.
+- ndtp_replay использует существующий CSV→NDTP sender по loopback TCP; supplied points
+  выключены, план без сдвига, соглашение Unix/naive offset=0. Управление sender —
+  скорость нового прогона и перезапуск; пауза/seek к нему не применяются.
+- emulator управляется документированным HTTP API фиксированного BACKEND_EMULATOR_URL;
+  targetHost задаёт BACKEND_EMULATOR_TARGET_HOST, порт — BACKEND_NDTP_PORT.
+  Панель выбирает два известных unit из mapping, автогенерация каждые 3000 мс.
+  План сдвигается по дате (auto), supplied points выключены. Это случайная демонстрация,
+  не подтверждение качества прогноза на маршруте. Контейнер заранее запускается Compose.
+- Не запускать сторонние sender/config одновременно с управляемой панелью: владение
+  внешними процессами невозможно гарантировать. При недоступном API активного эмулятора
+  смена отменяется, чтобы его reconnect не смешался с новым TCP-потоком.
+
+UI приостанавливает polling на время своей команды, затем заново запрашивает snapshot,
+status/detail/quality и sources; успешная смена сразу очищает выбор/карту/карточку.
+CSV показывает историческую линейку; TCP — текущее время источника без перемотки.

@@ -10,7 +10,7 @@
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
 | Вероятность `P(задержка > 120 с)` | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v2/submission.csv`](ml/pretrained/v2/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 80 (ML, признаки, NDTP, состояние, движок, API) | `python -m pytest -q` |
+| Тесты | 106 (ML, признаки, NDTP, состояние, движок, API, демо) | `python -m pytest -q` |
 
 ## Запуск за одну команду
 
@@ -20,7 +20,7 @@ docker compose up --build            # ML + Backend + UI
 
 | Сервис | Адрес по умолчанию | Назначение |
 |---|---|---|
-| UI (дашборд) | http://localhost:8080 | Очередь ТС, карта, карточка прогноза, панель системы |
+| UI (дашборд) | http://localhost:8080 | Очередь ТС, карта, карточка, панели системы и демо |
 | Backend Swagger | http://localhost:8080/docs | Пробный запрос к API, схемы OpenAPI |
 | Backend напрямую | http://localhost:8010 | `/api/v1/snapshot`, `/api/v1/status`, `/api/v1/metrics/quality` |
 | ML-сервис | http://localhost:8011/docs | `/v1/predict`, `/v1/model`, `/health/ready` |
@@ -133,3 +133,8 @@ CSV раздачи сохранены в репозитории неизменн
 первичные источники. Локальный OCI-каталог эмулятора в Git не входит; как его
 импортировать, описано в [`docs/DEMO.md`](docs/DEMO.md).
 Исходная ссылка на раздачу из PDF задания: https://disk.yandex.ru/d/CA6tsj4aJJ4Aaw.
+
+Панель «Демо / отладка» переключает CSV replay / наш NDTP-replayer / официальный
+эмулятор без перезапуска Backend. Последний требует импорт образа и
+`docker compose --profile emulator up -d emulator`; источник архива и полный сценарий —
+[DEMO, раздел 4](docs/DEMO.md#4-сценарий-c-официальный-эмулятор-организаторов).

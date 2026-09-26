@@ -32,3 +32,15 @@ NDTP-счётчики по unit — 1024. Длительный нагрузоч�
 Возраст оценки ограничен `BACKEND_CURRENT_DEVIATION_MAX_AGE_S` (300 с по умолчанию),
 возраст GPS — `BACKEND_STALE_AFTER_S`; исторические значения остаются с status stale.
 При reset/seek кеш сбрасывается/восстанавливается причинно. ML features не менялись.
+
+## Локальная панель демо
+
+`BACKEND_DEMO_ENABLED=true` включает `GET /api/v1/demo/sources` и
+`POST /api/v1/demo/source`: источники replay / ndtp_replay / emulator.
+Контроллер владеет sender и движком; смена источника закрывает старые TCP-соединения
+и очищает состояние. Наш sender использует настоящий loopback TCP; официальный
+эмулятор управляется HTTP и должен быть заранее запущен профилем Compose.
+`BACKEND_EMULATOR_URL` — фиксированный URL, `BACKEND_EMULATOR_TARGET_HOST` — адрес
+Backend, видимый контейнеру эмулятора. Без Compose панель по умолчанию отключена.
+Не запускать внешние отправители параллельно с панелью. Семантика ошибок и fallback —
+[API_CONTRACT](../docs/API_CONTRACT.md#11-панель-демо-и-переключение-источников).

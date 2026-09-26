@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from transport_backend import SCHEMA_VERSION, __version__
 from transport_backend.config import Settings
+from transport_backend.demo import DemoController, DemoError, DemoSource
 from transport_backend.engine import Engine
 
 
@@ -22,6 +23,14 @@ class ReplayCommand(BaseModel):
 
     action: Literal["start", "pause", "reset", "speed", "seek"]
     speed: float | None = Field(default=None, gt=0, le=3600)
+    start_at: str | None = Field(default=None, max_length=64)
+
+
+class SourceCommand(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    source: DemoSource
+    speed: float = Field(default=60, gt=0, le=3600)
     start_at: str | None = Field(default=None, max_length=64)
 
 
@@ -39,10 +48,12 @@ async def lifespan(app: FastAPI):
     engine = Engine(settings)
     app.state.engine = engine
     await engine.start()
+    demo = DemoController(settings, engine)
+    app.state.demo = demo
     try:
         yield
     finally:
-        await engine.stop()
+        await demo.close()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -56,12 +67,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.settings = settings
 
     def get_engine(request: Request) -> Engine:
-        engine: Engine | None = getattr(request.app.state, "engine", None)
+        demo = getattr(request.app.state, "demo", None)
+        engine: Engine | None = demo.engine if demo else getattr(request.app.state, "engine", None)
         if engine is None:
             raise error(503, "not_ready", "Engine is still starting")
         return engine
 
     EngineDep = Annotated[Engine, Depends(get_engine)]
+
+    @app.get("/api/v1/demo/sources", tags=["demo"])
+    async def demo_sources(request: Request) -> dict:
+        return await request.app.state.demo.view()
+
+    @app.post("/api/v1/demo/source", tags=["demo"])
+    async def demo_source(command: SourceCommand, request: Request) -> dict:
+        demo = request.app.state.demo
+        try:
+            await demo.switch(command.source, command.speed, command.start_at)
+        except (DemoError, ValueError, OverflowError) as exc:
+            raise error(409, "source_switch_failed", str(exc)) from exc
+        finally:
+            request.app.state.engine = demo.engine
+        return await demo.view()
 
     @app.get("/health/live", tags=["health"])
     def live() -> dict:
@@ -152,7 +179,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     @app.post("/api/v1/replay/control", tags=["replay"])
-    async def replay_control(command: ReplayCommand, engine: EngineDep) -> dict:
+    async def replay_control(command: ReplayCommand, request: Request) -> dict:
+        demo = request.app.state.demo
+        if demo.lock.locked():
+            raise error(409, "source_busy", "Дождитесь завершения команды источника")
+        async with demo.lock:
+            return await apply_replay_command(command, demo.engine)
+
+    async def apply_replay_command(command: ReplayCommand, engine: Engine) -> dict:
         settings = engine.settings
         if settings.mode != "replay" or not settings.replay_control_enabled:
             raise error(409, "replay_disabled", "Replay control is available in demo replay mode")

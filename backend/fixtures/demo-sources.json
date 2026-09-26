@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "active": "replay",
+  "run_id": "run-demo-example",
+  "busy": false,
+  "phase": "running",
+  "last_error": null,
+  "speed": 60,
+  "sender": null,
+  "sources": [
+    {
+      "id": "replay",
+      "available": true,
+      "reason": null,
+      "note": "Исторические CSV: точное время, пауза, ускорение и перемотка."
+    },
+    {
+      "id": "ndtp_replay",
+      "available": true,
+      "reason": null,
+      "note": "Исторические CSV через настоящий NDTP/TCP; время квантовано до секунд."
+    },
+    {
+      "id": "emulator",
+      "available": true,
+      "reason": null,
+      "note": "Случайная телеметрия организаторов, текущее время. Не оценка качества ML."
+    }
+  ]
+}

@@ -69,7 +69,7 @@ Default — replay/test, старт 08:00, скорость 60×; в остав�
 
 ### Активная задача
 
-Нет активной задачи Codex. VEHICLE-ARROW-08 завершена; результат ниже.
+Нет активной задачи Codex. DEMO-SOURCES-09 завершена; результат ниже.
 
 ### Следующие задачи (не выполнены)
 
@@ -96,6 +96,39 @@ Bootstrap clock проверяет диапазон плана, но не рас
 опциональны, realtime-проверка обязательна, боевого эмулятора не будет.
 
 ## Журнал выполненного
+
+## 27.09.2026 — DEMO-SOURCES-09: панель демо и три источника
+
+- Codex, `main`. Добавлена панель над картой: CSV replay / наш NDTP-replayer /
+  официальный эмулятор, новый прогон, скорость нового TCP-прогона, описание источников
+  и серверная доступность. Переключение не перезапускает контейнер Backend.
+- Backend: opt-in DemoController, два endpoint demo/sources и demo/source, строгая
+  request-модель. Общий lock с replay/control; отдельный Engine/run_id на источник.
+  Старые sender, цикл, ML client и принятые TCP-соединения завершаются перед новым run.
+  Недоступный эмулятор не разрушает текущий прогон, сбой запуска восстанавливает CSV.
+- Наш sender использует существующий NDTP encoder и настоящий loopback TCP, без
+  supplied points. Официальный источник — HTTP API отдельного контейнера, два известных
+  unit из mapping, auto shift даты плана с явным баннером; Docker socket не нужен.
+- В раздаче по ссылке из PDF/README найден dataset.zip (147448993 байта), внутри
+  ndtp-telemetry-emulator.tar. Скачан только в ignored artifacts, CSV не заменены.
+  Образ ndtp-telemetry-emulator:1.0 импортирован, профиль emulator запущен локально.
+  Источник и инструкции прямого tar-импорта добавлены в DEMO.
+- Проверено: `.venv/bin/python -m pytest -q` — **106 passed** (6 новых regression tests,
+  прежнее предупреждение Starlette/httpx); Ruff check/format backend; frontend build.
+  Docker build backend/UI и up --no-deps --wait — healthy.
+- Браузер 1280×720: CSV → NDTP sender → официальный → CSV, 3 разных run_id,
+  очистка выбранной карточки, исчезновение/возврат timeline, NDTP packets растут.
+  Официальный smoke: 12 Nav событий, 2 handshake/устройства, CRC/invalid/unknown/truncated=0.
+  При возврате emulator config.units=[], план снова shift=0, receiver отсутствует.
+- Узкий экран 390×844: горизонтального overflow нет. Остановленный emulator отмечен
+  недоступным в UI, POST даёт 409 и сохраняет CSV run_id; после проверки контейнер
+  возвращён. Console errors при переключении нет. JSON свидетельства в
+  artifacts/demo-sources-20260927/, fixtures/контракт/README обновлены.
+- Ограничения: панель локальная и в standalone выключена; внешние sender/config нельзя
+  смешивать с управляемой панелью. TCP sender поддерживает перезапуск/скорость нового
+  прогона, не seek/паузу. Официальная случайная генерация не следует расписанию и не
+  доказывает качество ML. Сейчас оставлен CSV replay; emulator готов, без активных units.
+  Следующий шаг — общая FE-QA-01/INT-02, длительная нагрузка этим smoke не закрыта.
 
 ## 27.09.2026 — VEHICLE-ARROW-08: направление ТС на карте
 

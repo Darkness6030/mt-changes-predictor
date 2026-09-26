@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type ReplayAction } from "./api";
 import { Header } from "./components/Header";
+import { DemoPanel } from "./components/DemoPanel";
 import { MapView } from "./components/MapView";
 import { Queue, type Filter } from "./components/Queue";
 import { ReplayControls } from "./components/ReplayControls";
@@ -8,7 +9,7 @@ import { SystemPanel } from "./components/SystemPanel";
 import { VehicleCard } from "./components/VehicleCard";
 import { sourceMs } from "./replayTime";
 import { usePolling } from "./usePolling";
-import type { Snapshot, Status, VehicleDetail } from "./types";
+import type { DemoSource, DemoState, Snapshot, Status, VehicleDetail } from "./types";
 
 export default function App() {
   const [filter, setFilter] = useState<Filter>("attention");
@@ -19,32 +20,32 @@ export default function App() {
   const [commandPending, setCommandPending] = useState(false);
   const [pollKey, setPollKey] = useState(0);
   const [commandError, setCommandError] = useState<string | null>(null);
-  const [revision, setRevision] = useState(0);
+  const [demo, setDemo] = useState<DemoState | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [lastStatus, setLastStatus] = useState<Status | null>(null);
 
-  const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000, true, String(pollKey));
-  const statusPoll = usePolling((signal) => api.status(signal), 4000, true, String(pollKey));
-  const qualityPoll = usePolling((signal) => api.quality(signal), 10000, showSystem);
+  const demoPoll = usePolling((signal) => api.demo(signal), 5000, !commandPending, String(pollKey));
+  const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000, !commandPending, String(pollKey));
+  const statusPoll = usePolling((signal) => api.status(signal), 4000, !commandPending, String(pollKey));
+  const qualityPoll = usePolling((signal) => api.quality(signal), 10000, showSystem && !commandPending, String(pollKey));
   const detailPoll = usePolling<VehicleDetail>(
     (signal) => api.vehicle(selected as string, signal),
     2000,
-    selected !== null,
+    selected !== null && !commandPending,
     `${snapshot?.run_id ?? ""}:${selected ?? ""}`,
   );
 
   useEffect(() => { if (statusPoll.data) setLastStatus(statusPoll.data); }, [statusPoll.data]);
+  useEffect(() => { if (demoPoll.data) setDemo(demoPoll.data); }, [demoPoll.data]);
   const navigationStatus = statusPoll.data ?? lastStatus;
 
   // A stale answer must never overwrite a newer snapshot revision.
   useEffect(() => {
     const fresh = snapshotPoll.data;
     if (!fresh) return;
-    if (fresh.run_id !== snapshot?.run_id || fresh.revision >= revision) {
-      setSnapshot(fresh);
-      setRevision(fresh.revision);
-    }
-  }, [snapshotPoll.data, snapshot?.run_id, revision]);
+    setSnapshot((previous) => !previous || fresh.run_id !== previous.run_id || fresh.revision >= previous.revision
+      ? fresh : previous);
+  }, [snapshotPoll.data]);
 
   useEffect(() => { setSelected(null); }, [snapshot?.run_id]);
 
@@ -98,6 +99,24 @@ export default function App() {
     [],
   );
 
+  const switchSource = useCallback(async (source: DemoSource, speed: number) => {
+    setCommandPending(true);
+    try {
+      const result = await api.source(source, speed);
+      setDemo(result);
+      setSelected(null);
+      setMapFocus(null);
+      setSnapshot(null);
+      setLastStatus(null);
+      setCommandError(null);
+    } catch (error) {
+      setCommandError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPollKey((value) => value + 1);
+      setCommandPending(false);
+    }
+  }, []);
+
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -111,6 +130,7 @@ export default function App() {
     <div className="app">
       <Header snapshot={displaySnapshot} status={statusPoll.data} ageMs={ageMs}
         error={commandError ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
+      <DemoPanel state={demo} pending={commandPending} error={demoPoll.error} onSwitch={switchSource} />
       {connectionLost ? (
         <div className="banner">
           Связь с Backend потеряна: {snapshotPoll.error ?? "состояние давно не обновлялось"}. Показано последнее полученное состояние

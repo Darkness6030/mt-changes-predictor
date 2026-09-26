@@ -139,5 +139,11 @@ async def replay_to_ndtp(
             )
         )
     if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            # A managed source cannot leak per-unit senders into the next run.
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
     return stats

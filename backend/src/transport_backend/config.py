@@ -95,6 +95,11 @@ class Settings:
     plan_shift_s: float = 0.0
     plan_shift_auto: bool = False
 
+    # Local demo control; no Docker socket or arbitrary target from HTTP requests.
+    demo_enabled: bool = False
+    emulator_url: str = "http://emulator:18080"
+    emulator_target_host: str = "backend"
+
     risk: RiskPolicy = field(default_factory=RiskPolicy)
 
     def __post_init__(self) -> None:
@@ -144,6 +149,11 @@ class Settings:
             tick_interval_s=_float("BACKEND_TICK_INTERVAL_S", 0.5),
             plan_shift_s=0.0 if shift in {"auto", ""} else float(shift),
             plan_shift_auto=shift == "auto",
+            demo_enabled=_bool("BACKEND_DEMO_ENABLED", False),
+            emulator_url=os.environ.get("BACKEND_EMULATOR_URL", "http://emulator:18080").rstrip(
+                "/"
+            ),
+            emulator_target_host=os.environ.get("BACKEND_EMULATOR_TARGET_HOST", "backend"),
             risk=RiskPolicy(
                 green_max_delay_s=_float("BACKEND_GREEN_MAX_DELAY_S", 60.0),
                 red_min_delay_s=_float("BACKEND_RED_MIN_DELAY_S", 120.0),
