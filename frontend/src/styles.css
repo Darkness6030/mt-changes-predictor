@@ -140,9 +140,10 @@ input[type="search"], select {
 
 .map-wrap { position: relative; flex: 1; min-width: 0; }
 #map { position: absolute; inset: 0; background: #0b1016; }
-/* API 2.1 can retain these links despite suppressMapOpenBlock. Keep copyright/terms. */
+/* Scope API 2.1 footer overrides to the requested text/actions; keep the map logo. */
 #map [class$="-gotoymaps"],
-#map [class$="-gototech"] { display: none !important; }
+#map [class$="-gototech"],
+#map [class$="-copyright__content"] { display: none !important; }
 .map-note {
   position: absolute;
   z-index: 500;
@@ -336,7 +337,7 @@ a { color: var(--accent); }
 .header-data-status { height: 18px; line-height: 18px; margin-top: 4px; font-size: 12px; color: var(--red); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 .vehicle-tooltip { width: max-content; white-space: pre-line; max-width: 290px; overflow-wrap: anywhere; }
-.vehicle-colour-key { flex: none; width: 16px; height: 16px; border: 3px solid var(--yellow); border-radius: 50%; background: var(--red); }
+.vehicle-colour-key { flex: none; align-self: center; width: 16px; height: 16px; border: 3px solid var(--yellow); border-radius: 50%; background: var(--red); }
 .current-deviation-value { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 600; margin-bottom: 4px; }
 
 .demo-source { flex: none; }

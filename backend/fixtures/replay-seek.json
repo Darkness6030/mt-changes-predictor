@@ -77,7 +77,10 @@
     "provider": "yandex_maps_js_api_2_1",
     "vehicle_renderer": "persistent_placemark_svg",
     "suppress_map_open_block": true,
-    "terms_link_visible": true
+    "terms_link_visible": false,
+    "copyright_text_visible": false,
+    "logo_visible": true,
+    "legend_vehicle_colour_alignment": "center"
   },
   "ui_demo": {
     "placement": "time_toolbar_before_system",
