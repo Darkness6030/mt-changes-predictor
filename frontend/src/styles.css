@@ -329,3 +329,7 @@ a { color: var(--accent); }
 .ruler-seek-control:focus-visible { outline-offset: -2px; }
 .ruler-no-data { position: absolute; inset-block: 0; pointer-events: none; background: repeating-linear-gradient(135deg, transparent, transparent 5px, #93a2b414 5px, #93a2b414 6px); }
 .header-data-status { height: 18px; line-height: 18px; margin-top: 4px; font-size: 12px; color: var(--red); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.vehicle-tooltip { width: max-content; white-space: pre-line; max-width: 290px; overflow-wrap: anywhere; }
+.vehicle-colour-key { flex: none; width: 16px; height: 16px; border: 3px solid var(--yellow); border-radius: 50%; background: var(--red); }
+.current-deviation-value { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 600; margin-bottom: 4px; }

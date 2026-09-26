@@ -342,3 +342,32 @@ async def test_seek_outside_data_is_empty_and_can_return(target):
         assert engine.snapshot()["vehicles"]
     finally:
         await engine.stop()
+
+
+async def test_current_deviation_survives_missing_ml_and_seek_but_not_reset():
+    from unittest.mock import patch
+
+    engine = make_engine()
+    try:
+        await engine.seek("2026-01-06 11:30:15")
+        first = engine.snapshot()
+        assert any(v["current_deviation"]["status"] == "ok" for v in first["vehicles"])
+        assert all(v["prediction"] is None for v in first["vehicles"])
+        with patch.object(
+            engine.state, "estimate_deviation", side_effect=AssertionError("HTTP scan")
+        ):
+            for _ in range(5):
+                assert engine.snapshot()["vehicles"] == first["vehicles"]
+                detail = engine.vehicle_detail(first["vehicles"][0]["tr_id"])
+                assert detail["current_deviation"] == first["vehicles"][0]["current_deviation"]
+        engine.ml.fail = True
+        await engine._cycle()
+        assert any(v["current_deviation"]["status"] == "ok" for v in engine.snapshot()["vehicles"])
+        await engine.seek("2026-01-05 12:00:00")
+        assert not engine.current_deviation.estimates
+        await engine.seek("2026-01-06 11:30:15")
+        assert engine.current_deviation.estimates
+        await engine.reset()
+        assert not engine.current_deviation.estimates
+    finally:
+        await engine.stop()

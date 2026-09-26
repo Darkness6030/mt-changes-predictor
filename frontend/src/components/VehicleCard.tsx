@@ -9,6 +9,7 @@ import {
   signedDelay,
   sourceTime,
 } from "../format";
+import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -69,10 +70,12 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
         <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
       </div>
 
+      <CurrentDeviationCard value={detail.current_deviation} />
+
       {available ? (
         <>
           {previous ? <div className="banner warn">Последний прогноз · ML недоступен</div> : null}
-          <div className="hint">Возраст прогноза: {duration(prediction!.prediction_age_s)}</div>
+          <div className="hint">Прогноз к целевой остановке · возраст: {duration(prediction!.prediction_age_s)}</div>
           <p className={`big risk-${risk}`}>{signedDelay(prediction!.delay_s)}</p>
           <div className="hint">
             {RISK_LABEL[risk!]} · {prediction!.risk_basis} · порог красного{" "}

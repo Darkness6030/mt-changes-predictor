@@ -84,6 +84,7 @@ class Settings:
     history_window_s: float = 1800.0
     history_max_events: int = 900
     stale_after_s: float = 120.0
+    current_deviation_max_age_s: float = 300.0
     predict_interval_s: float = 30.0
     tick_interval_s: float = 0.5
     max_predictions_kept: int = 4000
@@ -105,6 +106,8 @@ class Settings:
             raise ValueError("BACKEND_SPLIT must be train, test or validate")
         if self.replay_speed <= 0 or self.tick_interval_s <= 0:
             raise ValueError("Replay speed and tick interval must be positive")
+        if self.current_deviation_max_age_s <= 0:
+            raise ValueError("Current deviation max age must be positive")
         if self.history_window_s < 600:
             raise ValueError("History window must cover the 600 s feature windows")
 
@@ -136,6 +139,7 @@ class Settings:
             history_window_s=_float("BACKEND_HISTORY_WINDOW_S", 1800.0),
             history_max_events=_int("BACKEND_HISTORY_MAX_EVENTS", 900),
             stale_after_s=_float("BACKEND_STALE_AFTER_S", 120.0),
+            current_deviation_max_age_s=_float("BACKEND_CURRENT_DEVIATION_MAX_AGE_S", 300.0),
             predict_interval_s=_float("BACKEND_PREDICT_INTERVAL_S", 30.0),
             tick_interval_s=_float("BACKEND_TICK_INTERVAL_S", 0.5),
             plan_shift_s=0.0 if shift in {"auto", ""} else float(shift),

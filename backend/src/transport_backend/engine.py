@@ -31,6 +31,7 @@ from transport_backend.clock import (
     wall_now,
 )
 from transport_backend.config import Settings
+from transport_backend.current_deviation import CurrentDeviationMonitor
 from transport_backend.events import TelemetryEvent
 from transport_backend.explain import evidence, recommendation
 from transport_backend.mlclient import Latency, MlClient
@@ -175,6 +176,9 @@ class Engine:
         self.cycle_latency = Latency()
         self.feature_latency = Latency()
         self.publish_latency = Latency()
+        self.current_deviation = CurrentDeviationMonitor(
+            settings.current_deviation_max_age_s, settings.risk
+        )
         self.predictions: dict[str, dict] = {}
         self.prediction_log: deque[dict] = deque(maxlen=settings.max_predictions_kept)
         self.alerts: dict[str, Alert] = {}
@@ -299,6 +303,7 @@ class Engine:
     async def reset(self, start_at: str | None = None) -> None:
         """A new run: new run_id, empty state, cleared incidents and clocks."""
         self.run_id = self._new_run_id()
+        self.current_deviation.clear()
         self.predictions.clear()
         self.prediction_log.clear()
         self.alerts.clear()
@@ -344,6 +349,7 @@ class Engine:
             for event in events:
                 self.state.add(event, target_ns)
         self.state.trim(target_ns)
+        self.current_deviation.refresh(self.state, target_ns)
         # Periodic predictions use only this rebuilt prefix, with estimated/missing hints.
         # Official points before the seek are not evaluated or replayed retrospectively.
         self.revision += 1
@@ -392,6 +398,7 @@ class Engine:
             for event in self.replay.due(now_ns):
                 self.state.add(event, now_ns)
         self.state.trim(now_ns)
+        self.current_deviation.refresh(self.state, now_ns)
         self.cycles += 1
         self.last_cycle_at = wall_iso()
         if self.sidecar is not None:
@@ -776,6 +783,10 @@ class Engine:
                 "prediction_age_s": (now_ns - prediction["cutoff_ns"]) / SECOND_NS,
             }
             prediction.pop("cutoff_ns", None)
+        current_deviation = self.current_deviation.view(
+            tr_id, now_ns, position_age_s, self.settings.stale_after_s
+        )
+        current_deviation["visit_address"] = self.plan.address(current_deviation["visit_id"])
         return {
             "tr_id": tr_id,
             "unit_id": track.unit_id if track else None,
@@ -803,6 +814,7 @@ class Engine:
                 }
             ),
             "prediction": prediction,
+            "current_deviation": current_deviation,
             "segment": self.plan.segment(
                 tr_id, prediction.get("target_stop_id") if prediction else None
             ),

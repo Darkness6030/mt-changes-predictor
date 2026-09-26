@@ -1,26 +1,15 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RISK_LABEL, signedDelay, sourceTime } from "../format";
-import type { Snapshot, Vehicle, VehicleDetail } from "../types";
+import { signedDelay, sourceTime } from "../format";
+import { forecastColour as colourOf, RISK_COLOURS as COLOURS } from "../mapPresentation";
+import { VehicleMarker } from "../vehicleMarker";
+import type { Snapshot, VehicleDetail } from "../types";
 
 const MOSCOW: L.LatLngTuple = [55.751244, 37.618423];
 const TILE_URL =
   (import.meta.env.VITE_TILE_URL as string | undefined) ??
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const COLOURS: Record<string, string> = {
-  green: "#2fbf71",
-  yellow: "#f2b63c",
-  red: "#ff5d5d",
-  none: "#6b7a8d",
-};
-
-function colourOf(vehicle: Vehicle): string {
-  const prediction = vehicle.prediction;
-  if (!prediction || !["ok", "ml_unavailable"].includes(prediction.status) || !prediction.risk_level) return COLOURS.none;
-  return COLOURS[prediction.risk_level];
-}
-
 interface Props {
   snapshot: Snapshot | null;
   detail: VehicleDetail | null;
@@ -36,7 +25,7 @@ interface Props {
 export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
-  const markers = useRef<Map<string, L.CircleMarker>>(new Map());
+  const markers = useRef<Map<string, VehicleMarker>>(new Map());
   const overlay = useRef<L.LayerGroup | null>(null);
   const paths = useRef<Map<string, L.Polyline | L.CircleMarker>>(new Map());
   const focused = useRef<{ sequence: number; fullPlan: boolean } | null>(null);
@@ -100,38 +89,12 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       const position = vehicle.position;
       if (!position || position.lon === null || position.lat === null) continue;
       seen.add(vehicle.tr_id);
-      const latlng: L.LatLngTuple = [position.lat, position.lon];
-      const isSelected = vehicle.tr_id === selected;
-      const outdated = vehicle.stale || vehicle.prediction?.status === "ml_unavailable";
-      const style = {
-        color: isSelected ? "#ffffff" : colourOf(vehicle),
-        weight: isSelected ? 3 : 1.5,
-        fillColor: colourOf(vehicle),
-        fillOpacity: outdated ? 0.35 : 0.9,
-        radius: isSelected ? 10 : 7,
-        dashArray: outdated ? "3 3" : undefined,
-      };
-      const prediction = vehicle.prediction;
-      const tooltip =
-        `ТС ${vehicle.tr_id}` +
-        (prediction?.status === "ok"
-          ? ` · ${signedDelay(prediction.delay_s)} · ${RISK_LABEL[prediction.risk_level ?? "green"]}` +
-            ` · цель ${sourceTime(prediction.target_planned_at)}`
-          : " · нет прогноза") +
-        (vehicle.stale ? " · данные устарели" : "");
-      const existing = markers.current.get(vehicle.tr_id);
-      if (existing) {
-        existing.setLatLng(latlng);
-        existing.setStyle(style);
-        existing.setRadius(style.radius);
-        if (existing.getTooltip()?.getContent() !== tooltip) existing.setTooltipContent(tooltip);
-      } else {
-        const marker = L.circleMarker(latlng, style)
-          .bindTooltip(tooltip, { direction: "top" })
-          .on("click", () => select.current(vehicle.tr_id))
-          .addTo(instance);
+      let marker = markers.current.get(vehicle.tr_id);
+      if (!marker) {
+        marker = new VehicleMarker(vehicle, instance, (trId) => select.current(trId));
         markers.current.set(vehicle.tr_id, marker);
       }
+      marker.update(vehicle, vehicle.tr_id === selected);
     }
     for (const [trId, marker] of markers.current) {
       if (!seen.has(trId)) {
@@ -146,6 +109,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
     if (!group) return;
     // Reconcile by stable identity: polling must not remove the layer under the pointer.
     const seen = new Set<string>();
+    let topologyChanged = false;
     const setTooltip = (layer: L.Polyline | L.CircleMarker, text?: string) => {
       if (!text) return;
       const existing = layer.getTooltip()?.getContent();
@@ -162,6 +126,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
         layer = L.polyline(points, style).addTo(group);
         if (trId) layer.on("click", () => select.current(trId));
         paths.current.set(key, layer);
+        topologyChanged = true;
       } else { layer.setLatLngs(points); layer.setStyle(style); }
       setTooltip(layer, text);
     };
@@ -171,6 +136,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       if (!layer) {
         layer = L.circleMarker(position, style).addTo(group);
         paths.current.set(key, layer);
+        topologyChanged = true;
       } else { layer.setLatLng(position); layer.setStyle(style); layer.setRadius(style.radius ?? 4); }
       setTooltip(layer, text);
     };
@@ -205,8 +171,10 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       }
     }
     for (const [key, layer] of paths.current) {
-      if (!seen.has(key)) { layer.remove(); paths.current.delete(key); }
+      if (!seen.has(key)) { layer.remove(); paths.current.delete(key); topologyChanged = true; }
     }
+    // Stops and schematic lines must not capture hover/click above the bus at the same GPS.
+    if (topologyChanged) for (const marker of markers.current.values()) marker.bringToFront();
   }, [detail, vehicles, selected]);
 
   const focus = () => {
@@ -250,6 +218,13 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       <details className="legend">
         <summary>Обозначения карты</summary>
         <div className="legend-content">
+        <div className="item">
+          <span className="vehicle-colour-key" aria-hidden="true" />
+          <span>Обводка ТС — текущее отклонение по GPS; заливка и линия — прогноз к цели.</span>
+        </div>
+        <div className="legend-note">Серая пунктирная обводка — оценка отсутствует или устарела.
+          Белый внешний ореол — выбранное ТС. Текущее отклонение оценено на последней
+          распознанной остановке, возраст указан в подсказке.</div>
         <div className="item">
           <span className="risk-red" aria-hidden="true">
             ■

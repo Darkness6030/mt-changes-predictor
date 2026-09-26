@@ -87,6 +87,20 @@ export interface Segment {
   to: PlanVisit;
 }
 
+export interface CurrentDeviation {
+  status: "ok" | "stale" | "unavailable";
+  delay_s: number | null;
+  risk_level: RiskLevel | null;
+  source: "gps_plan" | null;
+  observed_at: string | null;
+  age_s: number | null;
+  max_age_s: number;
+  visit_id: string | null;
+  visit_address: string | null;
+  match_distance_m: number | null;
+  reason: "no_match" | "no_valid_position" | "stale_gps" | "estimate_too_old" | null;
+}
+
 export interface Vehicle {
   tr_id: string;
   unit_id: string | null;
@@ -103,6 +117,7 @@ export interface Vehicle {
   next_visit: PlanVisit | null;
   segment?: Segment | null;
   prediction: Prediction | null;
+  current_deviation?: CurrentDeviation;
 }
 
 export interface VehicleDetail extends Vehicle {

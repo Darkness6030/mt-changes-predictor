@@ -115,6 +115,10 @@ def test_seek_freezes_at_exact_time_with_restored_history(client):
     assert response.json()["clock"]["paused"] is True
     snapshot = client.get("/api/v1/snapshot").json()
     assert snapshot["vehicles"]
+    current = snapshot["vehicles"][0]["current_deviation"]
+    assert set(current) >= {"status", "delay_s", "risk_level", "observed_at", "age_s", "visit_id"}
+    tr_id = snapshot["vehicles"][0]["tr_id"]
+    assert client.get(f"/api/v1/vehicles/{tr_id}").json()["current_deviation"] == current
     assert snapshot["clock"]["source_time"] == "2026-01-06 11:30:15"
 
 
