@@ -23,25 +23,35 @@
 ```bash
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
-.venv/bin/python -m pip install --no-deps -e ml
+.venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v1 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v2 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v1/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v2/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
 ## Карта проекта и точка продолжения
 
+Срез кода: `74ffbe8`, 26.09.2026. Проверенная база: **80 Python-тестов**,
+Ruff ML/Backend, TypeScript/Vite build, три healthy Docker-сервиса. Это результаты
+предыдущих проверок, а не требование запускать все проверки при редакционной правке.
+
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | Features, train/evaluate/predict, две CatBoost-модели, 18 тестов | ML-02: group holdout; ML-03: вероятность/калибровка | `ml/src/transport_ml/`, `ml/tests/`, `ml/reports/` |
-| ML API | Только библиотека/CLI, HTTP отсутствует | ML-API-01: сервис поверх готового DelayModel | `ml/`, граница HTTP пока проектируется |
-| Backend | README и пустой Dockerfile | BE-01: контракты/state/CSV replay; затем BE-02: NDTP | `backend/`, общая библиотека `transport_ml` |
-| Frontend | README и пустой Dockerfile | FE-01: пульт на согласованном snapshot | `frontend/` |
-| Интеграция | ML CLI Docker проверен; Compose отсутствует | INT-01: три сервиса, readiness, end-to-end demo | будущий корневой `compose.yaml` |
+| ML | 44 общих признака; main/fallback CatBoost; v2 с классификаторами и Platt; group holdout | LIVE-EVAL-01: автономная оценка; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/`, `ml/pretrained/v2/` |
+| ML API | FastAPI, health/ready, model/schema, batch predict | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
+| Backend | CSV replay, NDTP TCP, state, GPS-hint, alerts/ack, snapshot, runtime metrics | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
+| Frontend | React/Vite/TS/Leaflet; очередь, карта, участки, карточка, системная панель, адаптивная вёрстка | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
+| Интеграция | Compose ML/Backend/UI, trainer, NDTP sender, официальный emulator smoke | INT-02: длительная нагрузка, cold start и чистый clone текущей поставки | `compose.yaml`, `docs/DEMO.md`, `docs/PERFORMANCE.md` |
+
+Запуск полного стенда: `docker compose up -d --build --wait`.
+UI: `http://localhost:8080`, Backend: `http://localhost:8010`, ML: `http://localhost:8011`,
+NDTP TCP: `localhost:9201`. По умолчанию **исторический replay**, а не live;
+режим/порты задаются через `.env` по `.env.example`. Frontend локально:
+`npm --prefix frontend ci`, затем `npm --prefix frontend run dev`.
 
 Полные условия задач и зависимости — в начале `docs/PROGRESS.md`. Не выбирать задачу из
 старой записи журнала, пока не проверено её состояние в таблице. Если пользователь задал
@@ -52,11 +62,11 @@ CSV — `ml/pretrained/v1/submission.csv`. Обучать заново для з
 - Проверить `git status` и ветку перед изменениями; не стирать чужие незакоммиченные файлы.
 - На отдельном клоне/изолированной рабочей копии — ветка `feat/<task-id>-<short-name>`.
   В общей рабочей директории не переключать ветку за другого участника; согласовать изоляцию.
-- Зафиксировать взятую задачу, исполнителя и ветку в PROGRESS. Сейчас задачи в очереди,
-  имена владельцев не назначены. Перед работой проверить, не взял ли её напарник.
-- До параллельной реализации Backend/UI записать версию API-контракта и пример snapshot
-  в `docs/API_CONTRACT.md` (этот файл ещё нужно создать). OpenAPI станет источником схем
-  после появления API. Endpoints research пока предложения, не работающие адреса.
+- Зафиксировать взятую задачу, исполнителя и ветку в PROGRESS. Проверить текущую очередь
+  и владельца; не считать историческую запись о работе действующим назначением.
+- При изменении Backend/UI обновлять `docs/API_CONTRACT.md` (snapshot schema 1) и
+  `backend/fixtures/`. У ML OpenAPI типизирован; у Backend часть ответов пока общие dict.
+  Не считать OpenAPI исчерпывающим контрактом до BE-03; сверять его с кодом.
 - FeatureBuilder/scheme меняет ML-направление; Backend импортирует библиотеку. При изменении
   schema обновить версию, модель/manifest, проверки и согласовать потребителей.
 - Коммитить свою задачу; не делать force push, не сливать и не перетирать работу напарника
@@ -96,7 +106,8 @@ CSV — `ml/pretrained/v1/submission.csv`. Обучать заново для з
 ## Организация реализации
 
 Структура: `ml/`, `backend/`, `frontend/`. Python 3.12+, CatBoost как первая модель,
-FastAPI как Backend; точные версии зафиксировать при реализации зависимостей.
+FastAPI как Backend; зависимости зафиксированы в `ml/requirements.lock`,
+`backend/requirements.lock`, `frontend/package-lock.json`.
 Обучение, feature builder, inference, NDTP и API разделять по ответственности.
 Финальная Docker-поставка — три модуля ML service / Backend / UI, не монолит (критерий PDF).
 Повторно использовать одну функцию признаков, не создавать независимые batch/live версии.
@@ -106,6 +117,22 @@ FastAPI как Backend; точные версии зафиксировать п�
 
 NDTP: TCP — поток байтов; не приравнивать `recv` к кадру. Проверять размер, CRC и границы;
 не пропускать неизвестные ячейки по выдуманной длине. Использовать исходную спецификацию.
+
+## Особенности текущего live-контура
+
+- `BACKEND_MODE=ndtp` по умолчанию отключает forecast points; пустой
+  `BACKEND_USE_POINTS` выбирает режимный default, `true` — явная offline-диагностика.
+- GPS-estimated hint не равен supplied hint. Test MAE 79,0874 с относится к supplied;
+  диагностический estimated+fallback дал 90,6019 с, all-fallback 87,3271 с.
+  Это не end-to-end live benchmark и не основание подбирать политику на test.
+- Sidecar считает известные `sample_id`; periodic live-запросы без них не оцениваются.
+  LIVE-EVAL-01 должен устранить этот пробел, не добавляя labels в inference.
+- Mapping проверяется до общих часов. Первая метка ограничена диапазоном плана
+  ± history_window, далее допуск будущего 60 с. Неверную первую метку внутри диапазона
+  эта политика не обнаруживает; её дальнейшее изменение требует регрессионных проверок.
+- Участок — соседние посещения с интервалом `(0,1800]` с. Это схема, не дорожный маршрут.
+  Двери и невыданные дополнительные данные опциональны по ответам организаторов.
+- Калибровка v2 имеет статус `fitted_on_development`; перенос на другой день/ТС не доказан.
 
 ## Проверка изменений
 
@@ -119,7 +146,9 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 - обработка пустой истории, незнакомого unit и устаревших данных;
 - submission: UTF-8, `;`, ровно `sample_id;prediction`, все 151 ID текущего validate,
   без дублей, NaN/inf и лишних колонок;
-- сквозной smoke test и Docker build после интеграционных изменений.
+- сквозной smoke test и Docker build после интеграционных изменений;
+- UI: `npm --prefix frontend run build`, осмотр очереди/карточки/системной панели
+  на широком и узком экране; автоматического браузерного E2E-набора пока нет.
 
 Не писать тесты, которые только повторяют реализацию, и не запускать обучение ради
 редакционных правок. Пока инструменты не созданы, не указывать вымышленные команды как
@@ -129,8 +158,9 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 ## Git, артефакты и прогресс
 
 Не коммитить `.env`, токены, `.venv`, IDE, кэши, Docker-слои и большие модели.
-Исключение для передачи команде: небольшой зафиксированный `ml/pretrained/v1/` уже хранит
-модели и CSV первого запуска. Не менять v1 на месте; эксперименты писать в `artifacts/<run>/`.
+Исключение для передачи команде: небольшие `ml/pretrained/v1/` и `ml/pretrained/v2/`
+хранят модели, manifests и CSV. По умолчанию используется v2. Не менять эти комплекты
+на месте; эксперименты писать в `artifacts/<run>/`.
 Исходные CSV включены в приватный репозиторий для воспроизводимости; OCI-образ остаётся
 локальным. Не менять публичность репозитория и не удалять исходные файлы по собственной
 инициативе. Не делать force push и не переписывать чужую историю без указания пользователя.
