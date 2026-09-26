@@ -14,6 +14,7 @@ export default function App() {
   const [filter, setFilter] = useState<Filter>("attention");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [mapFocus, setMapFocus] = useState<{ trId: string; sequence: number } | null>(null);
   const [showSystem, setShowSystem] = useState(false);
   const [commandPending, setCommandPending] = useState(false);
   const [pollKey, setPollKey] = useState(0);
@@ -138,8 +139,9 @@ export default function App() {
           onFilter={setFilter}
           onSearch={setSearch}
           onSelect={setSelected}
+          onFocus={(trId) => { setSelected(trId); setMapFocus((previous) => ({ trId, sequence: (previous?.sequence ?? 0) + 1 })); }}
         />
-        <MapView snapshot={displaySnapshot} detail={detail} selected={selected} onSelect={setSelected} />
+        <MapView snapshot={displaySnapshot} detail={detail} selected={selected} onSelect={setSelected} focusRequest={mapFocus} />
         {showSystem ? (
           <SystemPanel status={statusPoll.data} quality={qualityPoll.data} />
         ) : (

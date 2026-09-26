@@ -29,6 +29,7 @@ interface Props {
   onFilter: (filter: Filter) => void;
   onSearch: (value: string) => void;
   onSelect: (trId: string) => void;
+  onFocus: (trId: string) => void;
 }
 
 function matches(vehicle: Vehicle, filter: Filter): boolean {
@@ -50,7 +51,7 @@ function matches(vehicle: Vehicle, filter: Filter): boolean {
 }
 
 /** Работа диспетчера начинается здесь: сначала те, у кого прогноз хуже и цель ближе. */
-export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, onSelect }: Props) {
+export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, onSelect, onFocus }: Props) {
   const policy = snapshot?.risk_policy ?? null;
   const rows = useMemo(() => {
     const vehicles = snapshot?.vehicles ?? [];
@@ -115,6 +116,8 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                 key={vehicle.tr_id}
                 className={`row${selected === vehicle.tr_id ? " selected" : ""}`}
                 onClick={() => onSelect(vehicle.tr_id)}
+                onDoubleClick={() => onFocus(vehicle.tr_id)}
+                title="Двойное нажатие — центрировать маршрут"
                 aria-current={selected === vehicle.tr_id}
               >
                 <div className="top">

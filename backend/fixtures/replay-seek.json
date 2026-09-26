@@ -58,5 +58,9 @@
       "header_error": "Нет данных в выбранный момент",
       "map_empty": true
     }
+  },
+  "ui_map": {
+    "queue_double_click": "fit_selected_plan_segment_and_position",
+    "hover_tooltip": "preserved_during_polling_until_pointer_leaves_or_object_removed"
   }
 }

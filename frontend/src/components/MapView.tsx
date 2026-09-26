@@ -26,17 +26,20 @@ interface Props {
   detail: VehicleDetail | null;
   selected: string | null;
   onSelect: (trId: string) => void;
+  focusRequest: { trId: string; sequence: number } | null;
 }
 
 /**
  * Leaflet map with vehicles, the selected plan sequence and the already observed track.
  * Nothing here is a road route: straight lines between planned stops are a schematic.
  */
-export function MapView({ snapshot, detail, selected, onSelect }: Props) {
+export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const markers = useRef<Map<string, L.CircleMarker>>(new Map());
   const overlay = useRef<L.LayerGroup | null>(null);
+  const paths = useRef<Map<string, L.Polyline | L.CircleMarker>>(new Map());
+  const focused = useRef<{ sequence: number; fullPlan: boolean } | null>(null);
   const tiles = useRef<L.TileLayer | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
   const [basemap, setBasemap] = useState(true);
@@ -62,6 +65,7 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
       instance.remove();
       map.current = null;
       markers.current.clear();
+      paths.current.clear();
     };
   }, []);
 
@@ -120,7 +124,7 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
         existing.setLatLng(latlng);
         existing.setStyle(style);
         existing.setRadius(style.radius);
-        existing.setTooltipContent(tooltip);
+        if (existing.getTooltip()?.getContent() !== tooltip) existing.setTooltipContent(tooltip);
       } else {
         const marker = L.circleMarker(latlng, style)
           .bindTooltip(tooltip, { direction: "top" })
@@ -140,74 +144,91 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
   useEffect(() => {
     const group = overlay.current;
     if (!group) return;
-    group.clearLayers();
+    // Reconcile by stable identity: polling must not remove the layer under the pointer.
+    const seen = new Set<string>();
+    const setTooltip = (layer: L.Polyline | L.CircleMarker, text?: string) => {
+      if (!text) return;
+      const existing = layer.getTooltip()?.getContent();
+      if (existing instanceof HTMLElement && existing.textContent === text) return;
+      const label = document.createElement("span");
+      label.textContent = text;
+      if (layer.getTooltip()) layer.setTooltipContent(label);
+      else layer.bindTooltip(label, { direction: "top" });
+    };
+    const line = (key: string, points: L.LatLngTuple[], style: L.PolylineOptions, text?: string, trId?: string) => {
+      seen.add(key);
+      let layer = paths.current.get(key) as L.Polyline | undefined;
+      if (!layer) {
+        layer = L.polyline(points, style).addTo(group);
+        if (trId) layer.on("click", () => select.current(trId));
+        paths.current.set(key, layer);
+      } else { layer.setLatLngs(points); layer.setStyle(style); }
+      setTooltip(layer, text);
+    };
+    const point = (key: string, position: L.LatLngTuple, style: L.CircleMarkerOptions, text: string) => {
+      seen.add(key);
+      let layer = paths.current.get(key) as L.CircleMarker | undefined;
+      if (!layer) {
+        layer = L.circleMarker(position, style).addTo(group);
+        paths.current.set(key, layer);
+      } else { layer.setLatLng(position); layer.setStyle(style); layer.setRadius(style.radius ?? 4); }
+      setTooltip(layer, text);
+    };
     for (const vehicle of vehicles) {
       const segment = vehicle.segment;
       if (!segment) continue;
-      const line = L.polyline([[segment.from.lat, segment.from.lon], [segment.to.lat, segment.to.lon]], {
+      line(`segment:${vehicle.tr_id}`, [[segment.from.lat, segment.from.lon], [segment.to.lat, segment.to.lon]], {
         color: colourOf(vehicle), weight: vehicle.tr_id === selected ? 7 : 4,
         opacity: vehicle.stale ? 0.35 : 0.8,
         dashArray: vehicle.prediction?.status === "ok" ? undefined : "5 5",
-      });
-      const label = document.createElement("span");
-      label.textContent = `ТС ${vehicle.tr_id}: ${segment.from.address ?? "посещение"} → ${segment.to.address ?? "цель"} (схема)`;
-      line.bindTooltip(label).on("click", () => select.current(vehicle.tr_id)).addTo(group);
+      }, `ТС ${vehicle.tr_id}: ${segment.from.address ?? "посещение"} → ${segment.to.address ?? "цель"} (схема)`, vehicle.tr_id);
     }
-    if (!detail) return;
-    const plan = detail.plan ?? [];
-    if (plan.length > 1) {
-      L.polyline(
-        plan.map((visit) => [visit.lat, visit.lon] as L.LatLngTuple),
-        { color: "#4da3ff", weight: 2, opacity: 0.5, dashArray: "6 6" },
-      ).addTo(group);
+    if (detail) {
+      const plan = detail.plan ?? [];
+      if (plan.length > 1) line(`plan:${detail.tr_id}`,
+        plan.map((visit) => [visit.lat, visit.lon]),
+        { color: "#4da3ff", weight: 2, opacity: 0.5, dashArray: "6 6" });
+      for (const visit of plan) point(`visit:${detail.tr_id}:${visit.target_stop_id}`, [visit.lat, visit.lon], {
+        radius: 4, color: visit.passed ? "#4a5a6d" : "#4da3ff",
+        fillColor: visit.passed ? "#2a3542" : "#1d3a58", fillOpacity: 1, weight: 1,
+      }, `${sourceTime(visit.planned_at)} · ${visit.address ?? "адрес не указан"}` + (visit.passed ? " · пройдено" : ""));
+      const track = (detail.track ?? []).filter((item) => item.lon !== null && item.lat !== null);
+      if (track.length > 1) line(`track:${detail.tr_id}`,
+        track.map((item) => [item.lat as number, item.lon as number]),
+        { color: "#e8eef5", weight: 2, opacity: 0.8 });
+      const prediction = detail.prediction;
+      if (prediction?.status === "ok" && prediction.target_lat != null && prediction.target_lon != null) {
+        point(`target:${detail.tr_id}:${prediction.target_stop_id}`, [prediction.target_lat, prediction.target_lon], {
+          radius: 9, color: "#ffffff", weight: 2,
+          fillColor: COLOURS[prediction.risk_level ?? "green"], fillOpacity: 0.85,
+        }, `Целевая остановка · план ${sourceTime(prediction.target_planned_at)} · ${signedDelay(prediction.delay_s)}`);
+      }
     }
-    for (const visit of plan) {
-      L.circleMarker([visit.lat, visit.lon], {
-        radius: 4,
-        color: visit.passed ? "#4a5a6d" : "#4da3ff",
-        fillColor: visit.passed ? "#2a3542" : "#1d3a58",
-        fillOpacity: 1,
-        weight: 1,
-      })
-        .bindTooltip(
-          `${sourceTime(visit.planned_at)} · ${visit.address ?? "адрес не указан"}` +
-            (visit.passed ? " · пройдено" : ""),
-          { direction: "top" },
-        )
-        .addTo(group);
-    }
-    const track = (detail.track ?? []).filter(
-      (point) => point.lon !== null && point.lat !== null,
-    ) as { lon: number; lat: number }[];
-    if (track.length > 1) {
-      L.polyline(
-        track.map((point) => [point.lat, point.lon] as L.LatLngTuple),
-        { color: "#e8eef5", weight: 2, opacity: 0.8 },
-      ).addTo(group);
-    }
-    const prediction = detail.prediction;
-    if (prediction?.status === "ok" && prediction.target_lat && prediction.target_lon) {
-      L.circleMarker([prediction.target_lat, prediction.target_lon], {
-        radius: 9,
-        color: "#ffffff",
-        weight: 2,
-        fillColor: COLOURS[prediction.risk_level ?? "green"],
-        fillOpacity: 0.85,
-      })
-        .bindTooltip(
-          `Целевая остановка · план ${sourceTime(prediction.target_planned_at)} · ` +
-            `${signedDelay(prediction.delay_s)}`,
-          { direction: "top", permanent: false },
-        )
-        .addTo(group);
+    for (const [key, layer] of paths.current) {
+      if (!seen.has(key)) { layer.remove(); paths.current.delete(key); }
     }
   }, [detail, vehicles, selected]);
 
   const focus = () => {
     const instance = map.current;
-    const marker = selected ? markers.current.get(selected) : null;
-    if (instance && marker) instance.setView(marker.getLatLng(), Math.max(instance.getZoom(), 13));
+    if (!instance || !selected) return;
+    const vehicle = vehicles.find((item) => item.tr_id === selected);
+    const points: L.LatLngTuple[] = detail?.tr_id === selected
+      ? (detail.plan ?? []).map((visit) => [visit.lat, visit.lon]) : [];
+    if (vehicle?.segment) points.push([vehicle.segment.from.lat, vehicle.segment.from.lon],
+      [vehicle.segment.to.lat, vehicle.segment.to.lon]);
+    const marker = markers.current.get(selected);
+    if (marker) points.push([marker.getLatLng().lat, marker.getLatLng().lng]);
+    if (points.length) instance.fitBounds(L.latLngBounds(points), { padding: [30, 30], maxZoom: 15 });
   };
+
+  useEffect(() => {
+    if (!focusRequest || focusRequest.trId !== selected || !vehicles.some((item) => item.tr_id === selected)) return;
+    const fullPlan = detail?.tr_id === selected && (detail.plan?.length ?? 0) > 0;
+    if (focused.current?.sequence === focusRequest.sequence && (focused.current.fullPlan || !fullPlan)) return;
+    focus();
+    focused.current = { sequence: focusRequest.sequence, fullPlan };
+  }, [focusRequest, selected, detail, vehicles]);
 
   return (
     <div className="map-wrap">
