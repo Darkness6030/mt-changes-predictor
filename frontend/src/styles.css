@@ -295,3 +295,19 @@ button:disabled, input:disabled { opacity: .55; cursor: wait; }
   .replay-timeline, .replay-exact { flex-basis: 100%; }
   .replay-exact-fields input { flex: 1 1 200px; }
 }
+
+.header .sub .replay-paused { color: var(--yellow); font-weight: 600; }
+.replay-range { flex-basis: 100%; display: flex; align-items: end; flex-wrap: wrap; gap: 8px 12px; }
+.replay-range label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.replay-range input { min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
+.range-available { flex-basis: 100%; }
+@media (max-width: 640px) {
+  .replay-range label { flex: 1 1 160px; }
+  .timeline-labels > span { font-size: 11px; }
+}
+@media (max-width: 640px) {
+  .timeline-labels { display: grid; grid-template-columns: 1fr 1fr; }
+  .timeline-labels strong { grid-column: 1 / -1; grid-row: 1; text-align: center; }
+  .timeline-labels > span { grid-row: 2; }
+  .timeline-labels > span:last-child { text-align: right; }
+}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import type { ReplayAction } from "../api";
-import { sourceTime } from "../format";
 import type { Status } from "../types";
 
 interface Props {
@@ -24,6 +23,17 @@ function sourceInput(value: number): string {
   return Number.isFinite(value) ? new Date(value).toISOString().slice(0, 19) : "";
 }
 
+function sourceLabel(value: number): string {
+  return sourceInput(value).replace("T", " ");
+}
+
+interface NavigationRange {
+  sourceFirst: number;
+  sourceLast: number;
+  start: number;
+  end: number;
+}
+
 /** Historical navigation rebuilds the causal prefix and leaves the clock paused. */
 export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, error }: Props) {
   const replay = status?.mode === "replay" && status?.replay?.control_enabled;
@@ -32,9 +42,12 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
   const last = Math.floor(sourceMs(clock?.source_window?.last) / 1000) * 1000;
   const current = sourceMs(clock?.source_time);
   const hasPeriod = Number.isFinite(first) && Number.isFinite(last) && first <= last;
+  const [selection, setSelection] = useState<NavigationRange | null>(null);
+  const range = selection?.sourceFirst === first && selection?.sourceLast === last
+    ? selection : { start: first, end: last };
   const [draft, setDraft] = useState<number | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  const position = hasPeriod ? Math.max(first, Math.min(last, draft ?? current)) : 0;
+  const position = hasPeriod ? Math.max(range.start, Math.min(range.end, draft ?? current)) : 0;
 
   useEffect(() => {
     setDraft(null);
@@ -42,13 +55,28 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
   }, [status?.run_id]);
 
   const seek = async (value: number) => {
-    if (!Number.isFinite(value) || !hasPeriod || value < first || value > last) {
-      setLocalError("Выберите время внутри периода исторических данных");
+    if (!Number.isFinite(value) || !hasPeriod || value < range.start || value > range.end) {
+      setLocalError("Выберите время внутри выбранного диапазона");
       return;
     }
     setLocalError(null);
     await onCommand("seek", undefined, sourceInput(value).replace("T", " "));
     setDraft(null);
+  };
+
+  const applyRange = async (start: number, end: number) => {
+    if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end)
+      || start < first || end > last || start >= end) {
+      setLocalError("Начало должно быть раньше конца, обе границы — внутри доступного периода");
+      return;
+    }
+    setSelection({ sourceFirst: first, sourceLast: last, start, end });
+    setDraft(null);
+    setLocalError(null);
+    // A new navigation interval should display the real position, not a clamped fiction.
+    if (current < start || current > end) {
+      await onCommand("seek", undefined, sourceLabel(start));
+    }
   };
 
   return (
@@ -82,26 +110,42 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
       )}
       <div className="footer-status">
         {error || localError ? <span role="alert" className="risk-red">{localError ?? error}</span> : null}
-        <span className="source-period">
-          период {sourceTime(clock?.source_window?.first)} — {sourceTime(clock?.source_window?.last)}
-        </span>
         <button onClick={onToggleSystem} aria-pressed={showSystem}>
           {showSystem ? "Скрыть панель системы" : "Панель системы"}
         </button>
       </div>
       {replay && hasPeriod ? (
         <div className="replay-navigation" aria-label="Перемотка исторического времени">
+          <form className="replay-range" key={`${first}:${last}:${range.start}:${range.end}`} onSubmit={(event) => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            void applyRange(sourceMs(String(fields.get("from"))), sourceMs(String(fields.get("to"))));
+          }}>
+            <label>Начало диапазона
+              <input name="from" type="datetime-local" step="1" required
+                min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.start)} disabled={pending} />
+            </label>
+            <label>Конец диапазона
+              <input name="to" type="datetime-local" step="1" required
+                min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.end)} disabled={pending} />
+            </label>
+            <button disabled={pending} type="submit">Применить диапазон</button>
+            <button disabled={pending} type="button" onClick={() => {
+              setSelection(null); setDraft(null); setLocalError(null);
+            }}>Весь период</button>
+            <span className="hint range-available">Данные: {sourceLabel(first)} — {sourceLabel(last)}</span>
+          </form>
           <div className="replay-timeline">
             <div className="timeline-labels">
-              <span>{sourceTime(clock?.source_window?.first)}</span>
-              <strong>{pending ? "Применяем команду…" : `Время: ${sourceInput(position).replace("T", " ")}`}</strong>
-              <span>{sourceTime(clock?.source_window?.last)}</span>
+              <span>{sourceLabel(range.start)}</span>
+              <strong>{pending ? "Применяем команду…" : `Время: ${sourceLabel(draft ?? current)}`}</strong>
+              <span>{sourceLabel(range.end)}</span>
             </div>
             <input
               type="range"
               aria-label="Историческая временная шкала"
-              min={first}
-              max={last}
+              min={range.start}
+              max={range.end}
               step={1000}
               value={Number.isFinite(position) ? position : first}
               disabled={pending}
@@ -122,12 +166,17 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
           }}>
             <label htmlFor="replay-time">Перейти к дате и времени</label>
             <div className="replay-exact-fields">
-              <input id="replay-time" name="start_at" key={status?.run_id} type="datetime-local" step="1" required
-                min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(current)} disabled={pending}
+              <input id="replay-time" name="start_at" key={`${status?.run_id}:${range.start}:${range.end}`} type="datetime-local" step="1" required
+                min={sourceInput(range.start)} max={sourceInput(range.end)} defaultValue={sourceInput(current)} disabled={pending}
                 onChange={() => setLocalError(null)} />
               <button disabled={pending} type="submit">Перейти</button>
             </div>
           </form>
+          {current < range.start || current > range.end ? (
+            <span className="hint replay-seek-note">Текущее время вне выбранного диапазона.
+              <button disabled={pending} onClick={() => void seek(range.start)}>К началу диапазона</button>
+            </span>
+          ) : null}
           <span className="hint replay-seek-note">Перемотка очищает прошлый прогон и ставит время на паузу. Время — как в датасете.</span>
         </div>
       ) : null}

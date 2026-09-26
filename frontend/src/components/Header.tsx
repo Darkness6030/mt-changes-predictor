@@ -7,7 +7,7 @@ interface Props {
   ageMs: number | null;
 }
 
-/** Mode, source clock and four numbers that must be readable in about five seconds. */
+/** Dispatcher summary; replay clock and speed are shown in the navigation panel. */
 export function Header({ snapshot, status, ageMs }: Props) {
   const clock = snapshot?.clock ?? status?.clock ?? null;
   const mode = snapshot?.mode ?? status?.mode ?? "—";
@@ -18,11 +18,16 @@ export function Header({ snapshot, status, ageMs }: Props) {
       <div className="header-info">
         <h1>Пульт диспетчера · прогноз задержек</h1>
         <div className="sub">
-          <span>{modeLabel}{clock?.speed && mode === "replay" ? ` · ${clock.speed}×` : ""}
-            {clock?.paused ? " · пауза" : ""}</span>
-          <span title="Время источника; часовой пояс в датасете не установлен">
-            <b>{sourceTime(clock?.source_time)}</b> {sourceDate(clock?.source_time)} · зона не задана
-          </span>
+          {mode === "replay" ? (
+            clock?.paused ? <span className="replay-paused" role="status">Воспроизведение на паузе</span> : null
+          ) : (
+            <>
+              <span>{modeLabel}</span>
+              <span title="Время источника; часовой пояс в датасете не установлен">
+                <b>{sourceTime(clock?.source_time)}</b> {sourceDate(clock?.source_time)} · зона не задана
+              </span>
+            </>
+          )}
           {ageMs !== null ? <span>Обновлено {Math.round(ageMs / 1000)} с назад</span> : null}
         </div>
       </div>

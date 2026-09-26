@@ -21,5 +21,16 @@
       "events_total": 104544
     },
     "run_id": "run-fixture-after-seek"
+  },
+  "ui_navigation": {
+    "default_range": {
+      "first": "2026-01-06 00:00:02",
+      "last": "2026-01-06 23:59:59"
+    },
+    "selected_range": {
+      "first": "2026-01-06 11:00:00",
+      "last": "2026-01-06 12:00:00"
+    },
+    "note": "Настройка диапазона только в UI, не поле ответа API; после seek сохраняется."
   }
 }
