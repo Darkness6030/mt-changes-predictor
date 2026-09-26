@@ -75,6 +75,7 @@ Backend импортирует её, а не пишет вторую верси�
 | `docs/sphinx/` | PyDoc/Sphinx по коду: `python -m sphinx -b html docs/sphinx docs/sphinx/_build/html` |
 | [`docs/RULES.md`](docs/RULES.md), [`docs/PLAN.md`](docs/PLAN.md), [`docs/RESEARCH.md`](docs/RESEARCH.md) | Требования, план, исследование до реализации |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Журнал фактически выполненного |
+| [`docs/HACKATHON_STRATEGY.md`](docs/HACKATHON_STRATEGY.md) | Приоритеты по критериям, вау-фичи и план до дедлайна |
 | [`AGENTS.md`](AGENTS.md) | Правила работы над проектом |
 
 Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис имеет собственный Swagger.

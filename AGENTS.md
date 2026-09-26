@@ -8,6 +8,8 @@
 [docs/PROGRESS.md](docs/PROGRESS.md): там фактическое состояние и конкретные следующие задачи.
 Затем прочитать [RULES](docs/RULES.md), [PLAN](docs/PLAN.md) и [README датасета](dataset/README.md).
 [RESEARCH](docs/RESEARCH.md) и `docs/research-*.md` — обоснование решений, не статус реализации.
+[Стратегия хакатона](docs/HACKATHON_STRATEGY.md) — приоритеты и кандидаты WOW-01–04;
+они не реализованы и не заменяют текущую очередь/статус в PROGRESS.
 При работе с потоком обязательна `dataset/docs/Emulator-and-Telematic-Packets-Specification.md`.
 Первичные требования: `docs/description.md`, `docs/messages.md`, PDF задания в `docs/`.
 
