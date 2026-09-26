@@ -1,6 +1,7 @@
 """Contract tests for the ML HTTP service against the published v2 bundle."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -11,18 +12,24 @@ from transport_ml.features import FeatureBuilder, FeatureConfig
 from transport_ml.model import DelayModel
 from transport_ml.service import app
 
-BUNDLE = "ml/pretrained/v2"
+
+@pytest.fixture(scope="module", params=["v2", "v3"])
+def bundle(request):
+    return f"ml/pretrained/{request.param}"
 
 
 @pytest.fixture(scope="module")
-def client():
-    with TestClient(app) as started:  # Lifespan loads the artifact exactly once.
+def client(bundle):
+    with (
+        patch.dict("os.environ", {"ML_MODEL_DIR": bundle}),
+        TestClient(app) as started,
+    ):  # Lifespan loads the artifact exactly once.
         yield started
 
 
 @pytest.fixture(scope="module")
-def model_features():
-    model = DelayModel(BUNDLE)
+def model_features(bundle):
+    model = DelayModel(bundle)
     points = load_points(Path("dataset"), "validate").head(5)
     traffic = pd.read_csv("dataset/validate/traffic.csv", dtype={"tr_id": str})
     plan = pd.read_csv("dataset/validate/schedule_plan.csv", dtype={"tr_id": str})
@@ -42,7 +49,7 @@ def payload(features: pd.DataFrame, points: pd.DataFrame) -> dict:
                 "features": values,
             }
         )
-    return {"feature_schema_version": "1", "items": items}
+    return {"feature_schema_version": "2" if "arrival_matches" in features else "1", "items": items}
 
 
 def test_health_and_model_metadata(client, model_features):
@@ -52,6 +59,8 @@ def test_health_and_model_metadata(client, model_features):
     assert ready.status_code == 200 and ready.json()["model_version"] == model.version
     info = client.get("/v1/model").json()
     assert info["features"] == model.features
+    assert info["feature_schema_version"] == model.manifest["feature_schema_version"]
+    assert ready.json()["feature_schema_version"] == info["feature_schema_version"]
     assert info["late_threshold_s"] == 120.0
     assert info["calibration"]["status"] == "fitted_on_development"
 

@@ -8,9 +8,9 @@
 Требования, из которых он выведен: [RULES](RULES.md), [PLAN](PLAN.md),
 [README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
 
-Версии: `schema_version = "1"` для Backend snapshot, `feature_schema_version = "1"` для
-признаков (`transport_ml.features.SCHEMA_VERSION`). Несовместимое изменение любой из них —
-новая версия строки, а не молчаливое изменение поля.
+Версии: `schema_version = "1"` для Backend snapshot; признаки — `"1"` у v1/v2 (44 поля)
+и `"2"` у v3 (73 поля). Версию определяет `FeatureConfig.schema_version` и manifest модели.
+Несовместимое изменение — новая версия строки, а не молчаливое изменение поля.
 
 ## 1. Границы ответственности
 
@@ -59,6 +59,16 @@
 | `GET` | `/health/ready` | 200 при загруженной модели, иначе 503 |
 | `GET` | `/v1/model` | Версия, feature schema, упорядоченный список признаков, калибровка |
 | `POST` | `/v1/predict` | Пакетный инференс по готовым признакам |
+
+`GET /v1/model` также возвращает `feature_config`, `hint_policy`, а в `models` —
+`member_count` для каждого режима. Backend строит признаки по полученному config;
+schema/config должны согласовываться. Schema 2 требует окна состояния не меньше 1800 с.
+`hint_policy=gps_estimated` сохраняет поведение v1/v2; `supplied_only` у v3 запрещает
+подстановку GPS-оценки в `cur_dev_s`. Наблюдаемые GPS/плановые оценки входят отдельными
+признаками schema 2. Отсутствующая supplied-подсказка остаётся `null`, источник — `missing`,
+выбирается обученный автономный `fallback`. Неизвестный контракт → `ml_unavailable`.
+Примеры новой версии: `backend/fixtures/model-v3.json`, `prediction-v3.json`.
+Старые примеры запросов ниже относятся к schema 1; клиент всегда берёт текущую версию из API.
 
 `POST /v1/predict` запрос:
 

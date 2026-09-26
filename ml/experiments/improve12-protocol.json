@@ -1,0 +1,15 @@
+{
+  "created": "2026-09-27",
+  "purpose": "Model selection for supplied hints and autonomous telemetry-only inference",
+  "seed": 20260927,
+  "outer_vehicles": ["122613", "130238", "131672"],
+  "outer_rows": 206,
+  "inner_rows": 935,
+  "selection": "Mean of pooled five-fold whole-vehicle MAE and pooled purged forward MAE (12:00-17:00 and 17:00-end). Equal weight of the two protocols.",
+  "purge": "Training T < boundary - 30 minutes AND outcome < boundary. Outcomes used for purge/evaluation only.",
+  "synthetic": "Excluded: families unknown. No synthetic sibling can leak into holdout.",
+  "outer_policy": "Do not read outer labels or metrics during iterative selection. Compare frozen selected candidate with identically refitted v2 recipe once. Do not retune on outer results.",
+  "test_policy": "Test already observed historically; final diagnostic only, no retuning on test. Never read validate answers or schedule facts for features.",
+  "limits": "Single day and only 13 real vehicles. Outer split newly reserved for this task but data previously used in v2 training, not genuinely new external data. Event-time replay is not a delivery-latency benchmark.",
+  "promotion": "Selected candidate should improve both mean selection score and reserved outer MAE over v2 recipe in its respective mode. Final test reported separately, not used to pick alternatives. Otherwise retain current production model for that mode."
+}

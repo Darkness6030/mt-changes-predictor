@@ -72,3 +72,39 @@ def test_signed_submission(tmp_path):
     path = tmp_path / "submission.csv"
     path.write_text("sample_id;prediction\na;-12.5\nb;0.0\n")
     assert validate_submission(path, pd.Series(["a", "b"])).prediction.iloc[0] == -12.5
+
+
+def test_ensemble_weights_residuals_and_fallback_roundtrip(tmp_path):
+    features = pd.DataFrame({"cur_dev_s": np.arange(20, dtype=float), "speed": np.arange(20)})
+    manifest = {"feature_schema_version": "2", "features": list(features), "models": {}}
+    expected = np.zeros(20)
+    members = []
+    for index, weight in enumerate((0.25, 0.75)):
+        model = CatBoostRegressor(iterations=5, depth=2, verbose=False, allow_writing_files=False)
+        model.fit(features[["speed"]], np.arange(20, dtype=float) - (index + 1) * 20)
+        path = tmp_path / f"member-{index}.cbm"
+        model.save_model(str(path))
+        expected += weight * (model.predict(features[["speed"]]) + features.cur_dev_s)
+        members.append(
+            {
+                "file": path.name,
+                "sha256": sha256(path),
+                "features": ["speed"],
+                "weight": weight,
+                "residual": True,
+            }
+        )
+    manifest["models"]["main"] = {"members": members}
+    manifest["models"]["fallback"] = {
+        "members": [{**member, "residual": False} for member in members]
+    }
+    write_json(tmp_path / "manifest.json", manifest)
+    restored = DelayModel(tmp_path)
+    np.testing.assert_allclose(restored.predict(features), expected)
+    missing = features.assign(cur_dev_s=np.nan)
+    np.testing.assert_allclose(restored.predict(missing), expected - features.cur_dev_s)
+    assert (restored.predict(missing) < 0).all()
+    manifest["models"]["main"]["members"][0]["weight"] = 2
+    write_json(tmp_path / "manifest.json", manifest)
+    with pytest.raises(ValueError, match="sum to one"):
+        DelayModel(tmp_path)

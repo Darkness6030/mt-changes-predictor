@@ -1,168 +1,119 @@
-# ML: первая обученная модель
+# ML: прогноз задержки и оценка риска
 
-Реализованы причинные признаки, обучение CatBoost, выбор на temporal development,
-повторная загрузка модели, оценка test и генерация submission. Это offline ML-пакет
-с общей функцией признаков для будущего Backend; HTTP/NDTP-сервис ещё не реализован.
+Текущий комплект — [`pretrained/v3`](pretrained/v3/README.md). Общий FeatureBuilder
+используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
+Обучение выполняется отдельной командой, вне HTTP.
 
-## Быстрая проверка готовой модели после clone
+## Быстрый запуск
 
-Сначала установить окружение командами ниже, затем без обучения:
-
-```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v1 --output artifacts/onboarding/submission.csv
-```
-
-`ml/pretrained/v1/` включён в Git: модели, manifest, метрики, split и готовый
-`submission.csv`. Это неизменяемая исходная версия для команды; свои эксперименты писать
-в `artifacts/<new-run>/`. Команда `evaluate` записывает test_predictions в каталог модели:
-для экспериментов сначала скопировать bundle в новый локальный каталог или обучить новый run.
-
-## Запуск из корня проекта
+Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r ml/requirements.lock
-.venv/bin/python -m pip install --no-deps -e ml
-.venv/bin/python -m transport_ml train --model artifacts/my-run
-.venv/bin/python -m transport_ml evaluate --model artifacts/my-run
-.venv/bin/python -m transport_ml predict --model artifacts/my-run --output artifacts/my-run/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
+  --output artifacts/check-v3/submission.csv
+ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
-У автора также есть локальный `artifacts/ml-v1/`; после clone его не будет.
-Передаваемая команде готовая версия — `ml/pretrained/v1/`. Для нового обучения выбирать новый каталог: CLI не перезаписывает
-существующую модель или submission. Все пути задаются относительно текущей директории;
-`--data` по умолчанию `dataset`. Дополнительные параметры train: `--iterations`,
-`--threads`, `--seed`. Полный вывод — `python -m transport_ml --help`.
+Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
+побайтово совпадает с `ml/pretrained/v3/submission.csv`; все 151 ID проверяются повторным
+чтением. Комплекты v1/v2 сохранены и поддерживаются; default Compose — v3.
 
-## Файлы и интерфейсы
+## Архитектура и контракт
 
-```text
-ml/
-  src/transport_ml/
-    data.py          # allowlist CSV, схемы и время без придуманной timezone
-    features.py      # один FeatureBuilder для полного CSV и causal prefix
-    model.py         # загрузка, checksum/schema, основной и no-hint inference
-    training.py      # temporal selection, refit, отчёт и manifests
-    submission.py    # validate prediction, строгая проверка готового CSV
-    cli.py           # train / evaluate / predict
-  tests/             # существенные свойства данных, модели и файлов
-  reports/           # небольшие результаты первого запуска для Git
-  requirements.lock  # точные версии проверенного окружения
-  Dockerfile         # рабочий CLI-контейнер ML
-```
+- `data.py` — allowlist входных полей; labels загружаются отдельно.
+- `features.py` — один причинный FeatureBuilder, точность времени до наносекунд.
+- `schedule_context.py` — GPS относительно плановых посещений, ограниченное окно 30 минут.
+- `model.py` — native CatBoost, контроль schema/checksum, main/fallback и взвешенные ансамбли.
+- `research.py` — фиксированные group/forward splits, подбор кандидатов, refit рецепта.
+- `training.py`, `group_validation.py` — исходный протокол v1/v2 и прежний group holdout.
+- `service.py` — `/health/live`, `/health/ready`, `/v1/model`, `/v1/predict`.
+- `submission.py` — signed прогноз и строгий двухколоночный CSV.
 
-`FeatureBuilder(traffic, plan).transform(points)` возвращает dataframe признаков.
-`FeatureBuilder.one(point)` выполняет ту же логику для одной точки.
-`DelayModel(model_directory).predict(features)` автоматически выбирает fallback для строк
-с отсутствующим `cur_dev_s`; `no_hint=True` принудительно использует fallback.
-Порядок/имена признаков должны совпадать с manifest, иначе возникает понятная ошибка.
+`FeatureConfig()` сохраняет schema 1 и прежние 44 признака. Опция
+`schedule_context=True` включает schema 2: ещё 29 признаков расстояния до планового
+положения, наблюдаемых прохождений остановок, геометрического прогресса, направления,
+взвешенной по времени скорости и качества наблюдений. Геометрические отрезки — схема,
+не дорожный маршрут. Расстояние до матчинга и пропуски сохраняются явно.
 
-Builder принимает нормализованные табличные входы в схеме датасета; будущий NDTP-адаптер
-должен явно согласовать time basis и unit mapping. В нём пока нет изменяемого streaming
-state/ограничения памяти. Это проверенный причинный интерфейс, а не уже готовый TCP-server.
+`DelayModel(...).predict(features)` выбирает main при известном `cur_dev_s`, fallback
+при NaN; `no_hint=True` принудительно выбирает fallback. Порядок всех признаков должен
+совпадать с manifest. Отрицательные задержки сохраняются.
 
-## Данные и эксперимент
+У v3 `hint_policy=supplied_only`: backend не записывает GPS-оценку в поле CSV-подсказки;
+GPS/плановый контекст рассчитывается общим builder и используется автономной моделью.
+Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
+1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
 
-- Обучение и selection — только 1 141 real-ID точка train (`tr_id < 9000000`).
-  3 293 синтетические точки исключены до выяснения семейств.
-- Development начинается 06.01.2026 в 16:35:00: fit 844, development 287, purged 10.
-  Fit использует только исходы, наступившие до границы; окна истории разделены 10 минутами.
-- Выбор depth=4/6, direct/residual и числа деревьев — только на development, seed=42.
-  После выбора две модели дообучаются на всех 1 141 train-точках. Test не используется
-  для early stopping, выбора параметров или fit.
-- Основная модель: residual к `cur_dev_s`, depth=4, 368 деревьев, MAE loss.
-  Fallback: direct target без `cur_dev_s`, depth=6, 293 дерева.
-- 44 числовых признака: подсказка, горизонт, время суток, целевая геометрия, расстояние,
-  возраст/качество данных, наблюдаемый простой и окна 60/180/300/600 с.
-- Окна `(T−window, T]`; точная граница T в наносекундах. В фактическое расписание builder
-  не заглядывает. IDs/targets/classes не входят в model features.
-- При нескольких посещениях с одинаковым earliest plan time сохраняется target ID из
-  points. При автоматическом выборе без точки — детерминированный порядок по ID.
+## Результаты
 
-Начальная политика очистки: скорость 0…130 км/ч только при valid GPS; (0,0) не считается
-валидной позицией; допустимые координаты проверяются; одинаковые нормализованные события
-удаляются, конфликтующие события одного времени сохраняются в стабильном порядке.
-Средняя скорость/доля стоянок в окнах пока считаются по наблюдениям, не по длительности.
-Простой не продолжается через gap >60 с; stale GPS — >120 с. Все эти пороги —
-конфигурация модели, не норматив перевозчика. NaN остаётся отдельным отсутствующим значением.
+| Проверка | v2 / прежняя логика | v3, MAE с |
+|---|---:|---:|
+| Test, 353 точки, supplied hint | 79,0874 | **71,7707** |
+| Test, 353 точки, без hint | 87,3271 | **83,7950** |
+| Отложенные 3 ТС train, 206 точек, supplied hint | 76,9720 | **74,3725** |
+| Те же отложенные ТС, без hint | 88,3703 | **73,5623** |
+| Периодический replay, 1311 оценённых прогнозов, без supplied hint | 100,4563 (GPS-estimated + fallback) | **91,1775** |
 
-## Результат v1 на test
+Для holdout обе версии заново обучены без отложенных ТС. Для остальных строк — полные
+зафиксированные комплекты. Периодические прогнозы коррелируют внутри посещения;
+MAE с равным весом посещений: 96,4139 → 90,2839 с, покрыто 322/353 известных посещений.
+Test уже был исследован до этой работы, но не использовался для нового подбора.
+Один день и 13 ТС не доказывают перенос на новый день; срезы и ограничения —
+в [отчёте](reports/ml-v3.md). Вероятность и её development-калибровка сохранены из v2.
 
-| Предиктор | MAE, с |
-|---|---:|
-| Нулевой прогноз | 103,3371 |
-| Медиана использованного real train | 101,2011 |
-| Подсказка `cur_dev_s` | 93,3598 |
-| Обученный fallback без подсказки | 87,3271 |
-| Основная обученная модель | **79,0874** |
+## Воспроизведение
 
-Основная модель снижает MAE на 14,2724 с, или 15,29% относительно `cur_dev_s`.
-Test содержит 353 точки / 13 ТС. Это локальный benchmark одного периода с пересечениями
-выборок, а не доказанный перенос на новый день и не score платформы. Development-MAE
-использовался для выбора модели и также не является независимой оценкой.
-[Полный отчёт](reports/ml-v1.md), [метрики](reports/ml-v1-metrics.json).
-
-## Сохранённые артефакты
-
-В `artifacts/ml-v1/`: `main.cbm`, `fallback.cbm`, `manifest.json`, `metrics.json`, `split.csv`,
-важности признаков, `test_predictions.csv`, `submission.csv` и checksum-manifest submission.
-Manifest хранит версии библиотек, feature schema/config, seed, SHA-256 данных/кода/моделей
-и базовый git commit; code hashes отражают в том числе незакоммиченный код запуска.
-
-`artifacts/` исключён из Git. Небольшие копии метрик и manifest сохранены в `ml/reports/`.
-Комплект v1 дополнительно опубликован в `ml/pretrained/v1/`, включая native модели и CSV.
-Новые эксперименты не должны перезаписывать этот зафиксированный комплект.
-
-## Проверки и Docker
+Все каталоги результата должны быть новыми. Обучение использует только 1141 real train
+точку. Синтетические семейства неизвестны и исключены. Исходные CSV неизменны.
 
 ```bash
-.venv/bin/ruff check ml
-.venv/bin/ruff format --check ml
+# Полный поиск 109 конфигураций: пять vehicle folds + два forward folds; без test.
+.venv/bin/python -m transport_ml research \
+  --protocol ml/experiments/improve12-protocol.json \
+  --candidates ml/experiments/improve12-candidates.json \
+  --output artifacts/research-repeat
+
+# Аудит уже замороженного рецепта. Не использовать для дальнейшего подбора.
+.venv/bin/python -m transport_ml validate-recipe \
+  --protocol ml/experiments/improve12-protocol.json \
+  --recipe ml/experiments/improve12-recipe.json \
+  --output artifacts/holdout-repeat
+
+# Итоговый refit без чтения test/validate; далее отдельная оценка и submission.
+.venv/bin/python -m transport_ml train-recipe \
+  --recipe ml/experiments/improve12-recipe.json --model artifacts/v3-repeat
+.venv/bin/python -m transport_ml evaluate --model artifacts/v3-repeat
+.venv/bin/python -m transport_ml predict --model artifacts/v3-repeat \
+  --output artifacts/v3-repeat/submission.csv
+
+# Автономный event-time replay всего дня, periodic 30 с, без points и supplied hints.
+.venv/bin/python -m transport_backend.live_evaluation \
+  --model ml/pretrained/v3 --baseline ml/pretrained/v2 \
+  --output artifacts/autonomous-repeat
+```
+
+`evaluate` записывает `test_predictions.csv` в каталог модели. Для оценки готового bundle
+сначала скопировать его в новый `artifacts/` каталог. Refit-recipe сохраняет неизменённые
+классификаторы v2; это явно зафиксировано в `classifier_provenance` manifest.
+
+Полный поиск сохраняет кандидатов, split, predictions и source/data hashes. В проверке
+воспроизведения совпали предикты main, fallback и экспериментального augmentation-кандидата;
+отдельно воспроизведены все 206 holdout-прогнозов. Дополнительные моменты перед train-target
+тестировались только внутри родительского fold, без новых labels, и не включены в v3.
+
+Исходные команды `train`, `validate-groups` остаются для воспроизведения старой процедуры.
+Они не являются способом обучения v3; используйте `train-recipe`.
+
+## Проверки
+
+```bash
+.venv/bin/ruff check ml backend
+.venv/bin/ruff format --check ml backend
 .venv/bin/python -m pytest -q
-docker build -t mt-changes-ml:0.1 ml
-docker run --rm mt-changes-ml:0.1 --help
+docker compose up -d --build --wait
 ```
 
-Прогноз готовой версии из Git в контейнере (выходной файл должен быть новым):
-
-```bash
-mkdir -p artifacts
-docker run --rm --user "$(id -u):$(id -g)" \
-  -v "$PWD/dataset:/app/dataset:ro" \
-  -v "$PWD/ml/pretrained/v1:/app/model:ro" \
-  -v "$PWD/artifacts:/app/artifacts" \
-  mt-changes-ml:0.1 predict --model model \
-  --output artifacts/submission-docker.csv
-```
-
-Для обучения в Docker вместо `predict ...` передать `train --model artifacts/docker-run`.
-Том artifacts должен существовать и быть доступным указанному UID. Образ не содержит
-датасет и обученную модель. Backend/frontend Dockerfile пока намеренно пусты.
-
-## Групповая проверка ML-02
-
-```bash
-.venv/bin/python -m transport_ml validate-groups \
-  --output artifacts/ml-02-new-run --seed 42 --holdout-fraction 0.25
-```
-
-Команда использует только train, исключает синтетику и целиком откладывает 4 из 13
-реальных ТС. Temporal selection и refit выполняются на оставшихся ТС. В новый каталог
-сохраняются split, модели, manifest с hashes и holdout predictions/metrics; существующий
-каталог не перезаписывается. Готовые v1/v2 не меняются.
-
-На 482 отложенных точках MAE main **99,0957 с**, fallback **103,7797 с**, подсказки
-**91,6494 с**. Преимущество test не подтвердилось на отложенных ТС. Два запуска дали
-одинаковые split, predictions и метрики. [Протокол и ограничения](reports/ml-02-group-holdout.md).
-
-## Следующая итерация
-
-ML-02 завершён; до новых абляций зафиксировать более широкий групповой протокол.
-Семейства и веса синтетики остаются открытыми. В рабочей директории уже есть ML v2,
-калибровка и HTTP-сервис ([отчёт v2](reports/ml-v2.md)); их текущий статус и приоритет
-сквозной проверки Docker указаны в [PROGRESS](../docs/PROGRESS.md). Описания первой
-поставки v1 выше сохраняют исторический контекст и не заменяют текущую таблицу.
-
-Основание выбора MAE/residual и native CatBoost artifact:
-[официальные objectives](https://catboost.ai/docs/en/concepts/loss-functions-regression),
-[CatBoostRegressor](https://catboost.ai/docs/en/concepts/python-reference_catboostregressor).
+Проверяются causal cutoff (включая +1 нс), inert факты/labels, signed delay, горизонт,
+равенство batch/ограниченного streaming prefix, режимы подсказок, ансамбли/checksum,
+совместимость schema 1/2, NDTP, API и submission. Event-time evaluator не измеряет
+доставку TCP, очереди и wall-clock время публикации — это отдельная интеграционная проверка.

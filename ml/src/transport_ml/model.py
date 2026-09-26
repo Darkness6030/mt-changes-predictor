@@ -9,14 +9,14 @@ import pandas as pd
 from catboost import CatBoostClassifier, CatBoostRegressor
 
 from transport_ml.calibration import Platt
-from transport_ml.features import SCHEMA_VERSION
+from transport_ml.features import SUPPORTED_SCHEMAS, FeatureConfig
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def write_json(path: Path, data: dict) -> None:
+def write_json(path: Path, data: dict | list) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
 
 
@@ -26,12 +26,25 @@ class DelayModel:
     def __init__(self, directory: Path):
         self.directory = Path(directory)
         self.manifest = json.loads((self.directory / "manifest.json").read_text())
-        if self.manifest["feature_schema_version"] != SCHEMA_VERSION:
+        schema = self.manifest["feature_schema_version"]
+        if schema not in SUPPORTED_SCHEMAS:
             raise ValueError("Unsupported feature schema")
+        if "feature_config" in self.manifest:
+            if FeatureConfig(**self.manifest["feature_config"]).schema_version != schema:
+                raise ValueError("Feature config does not match schema version")
         self.version = sha256(self.directory / "manifest.json")
         self.models = {}
         for name, spec in self.manifest["models"].items():
-            self.models[name] = self._load(spec, CatBoostRegressor())
+            members = spec.get("members", [spec])
+            weights = [float(member.get("weight", 1.0)) for member in members]
+            if not weights or not np.isfinite(weights).all() or min(weights) <= 0:
+                raise ValueError("Ensemble weights must be positive and finite")
+            if not np.isclose(sum(weights), 1.0):
+                raise ValueError("Ensemble weights must sum to one")
+            self.models[name] = [
+                (member, self._load(member, CatBoostRegressor()), weight)
+                for member, weight in zip(members, weights, strict=True)
+            ]
         # Classifiers are optional: the first published bundle has no probability model.
         self.classifiers = {}
         self.calibration = {}
@@ -89,10 +102,12 @@ class DelayModel:
         for name, mask in (("main", ~fallback), ("fallback", fallback)):
             if not mask.any():
                 continue
-            spec = self.manifest["models"][name]
-            values = self.models[name].predict(features.loc[mask, spec["features"]])
-            if spec["residual"]:
-                values += features.loc[mask, "cur_dev_s"].to_numpy()
+            values = np.zeros(int(mask.sum()))
+            for spec, model, weight in self.models[name]:
+                member = model.predict(features.loc[mask, spec["features"]])
+                if spec["residual"]:
+                    member += features.loc[mask, "cur_dev_s"].to_numpy()
+                values += weight * member
             result[mask] = values
         if not np.isfinite(result).all():
             raise ValueError("Model returned a non-finite prediction")

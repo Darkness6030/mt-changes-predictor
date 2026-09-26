@@ -1,0 +1,135 @@
+{
+  "run_id": "run-20260926T232234Z-fdd1",
+  "performance": {
+    "cycles": 423,
+    "last_cycle_at": "2026-09-26T23:26:43.177Z",
+    "cycle_ms": {
+      "samples": 425,
+      "p50_ms": 77.81412501935847,
+      "p95_ms": 115.912708977703,
+      "max_ms": 246.45187600981444
+    },
+    "history_capture_ms": {
+      "samples": 212,
+      "p50_ms": 26.168666983721778,
+      "p95_ms": 39.9824169871863,
+      "max_ms": 130.3921660000924
+    },
+    "feature_build_ms": {
+      "samples": 423,
+      "p50_ms": 35.03283401369117,
+      "p95_ms": 45.06008297903463,
+      "max_ms": 174.50129200005904
+    },
+    "event_to_prediction_ms": {
+      "samples": 512,
+      "p50_ms": 150.0117919931654,
+      "p95_ms": 312.8769999893848,
+      "max_ms": 1525.2619170059916
+    },
+    "ml_round_trip_ms": {
+      "samples": 423,
+      "p50_ms": 12.396208010613918,
+      "p95_ms": 18.83858398650773,
+      "max_ms": 92.29012500145473
+    },
+    "ml_inference_ms": {
+      "samples": 423,
+      "p50_ms": 6.81250001071021,
+      "p95_ms": 9.624291997170076,
+      "max_ms": 86.13449998665601
+    },
+    "predictions": 2888,
+    "tick_interval_s": 0.5,
+    "predict_interval_s": 30.0
+  },
+  "state": {
+    "vehicles": 23,
+    "events_in_state": 2700,
+    "accepted_events": 21416,
+    "duplicate_events": 17,
+    "rejected_future_events": 0,
+    "unmapped_units": 0,
+    "last_event_at": "2026-01-06 14:07:30",
+    "source_time": "2026-01-06 14:07:30.057056416"
+  },
+  "ndtp": {
+    "connections_total": 29,
+    "connections_open": 22,
+    "rejected_connections": 0,
+    "handshakes": 29,
+    "realtime_frames": 21433,
+    "nav_events": 21433,
+    "crc_errors": 0,
+    "invalid_frames": 0,
+    "unknown_cells": 0,
+    "truncated_frames": 0,
+    "peer_mismatch": 0,
+    "read_timeouts": 0,
+    "disconnects": 7,
+    "bytes_received": 1137196,
+    "last_frame_at": "2026-09-26T23:26:43.615Z",
+    "last_error": null,
+    "units": {
+      "1012706": 2972,
+      "1076894": 1645,
+      "1099984": 1885,
+      "1105498": 712,
+      "1112060": 2,
+      "1118231": 1,
+      "1120670": 2,
+      "1133091": 1339,
+      "1155033": 228,
+      "1174091": 1,
+      "663271": 2,
+      "664030": 2,
+      "666753": 850,
+      "668372": 2,
+      "786201": 1083,
+      "794446": 2,
+      "815631": 1,
+      "890371": 2,
+      "893159": 1216,
+      "894032": 1558,
+      "896671": 10,
+      "902577": 1112,
+      "910085": 2227,
+      "913870": 3263,
+      "914839": 1,
+      "979637": 1,
+      "985940": 1151,
+      "987268": 1,
+      "987380": 191
+    }
+  },
+  "ml": {
+    "url": "http://ml:8001",
+    "ready": true,
+    "model_version": "f96305821910895619287e931b996abe55644592297e3f0a80d02538ce660245",
+    "feature_schema_version": "2",
+    "late_threshold_s": 120.0,
+    "calibration": {
+      "method": "platt",
+      "status": "fitted_on_development",
+      "report": "ml/reports/ml-v2.md",
+      "fit_rows": 287
+    },
+    "requests": 423,
+    "errors": 0,
+    "timeouts": 0,
+    "last_error": null,
+    "round_trip": {
+      "samples": 423,
+      "p50_ms": 12.396208010613918,
+      "p95_ms": 18.83858398650773,
+      "max_ms": 92.29012500145473
+    },
+    "inference": {
+      "samples": 423,
+      "p50_ms": 6.81250001071021,
+      "p95_ms": 9.624291997170076,
+      "max_ms": 86.13449998665601
+    }
+  },
+  "errors": {}
+}

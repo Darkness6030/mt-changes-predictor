@@ -1,0 +1,20 @@
+{
+  "prediction": {
+    "improvement_s": 7.3166709584257,
+    "vehicle_bootstrap_95pct_s": [
+      3.2715183716068443,
+      11.252478093828397
+    ],
+    "improved_vehicles": 10,
+    "vehicles": 13
+  },
+  "no_hint_prediction": {
+    "improvement_s": 3.5321083401172,
+    "vehicle_bootstrap_95pct_s": [
+      -4.014182392623468,
+      10.57955244376796
+    ],
+    "improved_vehicles": 6,
+    "vehicles": 13
+  }
+}

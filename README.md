@@ -6,11 +6,12 @@
 
 | Что | Значение | Где проверить |
 |---|---|---|
-| MAE основной модели на размеченном test | **79,0874 с** | [отчёт ML v2](ml/reports/ml-v2.md) |
+| MAE основной модели на размеченном test | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
+| MAE автономного periodic replay | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
-| Вероятность `P(задержка > 120 с)` | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
-| CSV для Data Science (151 прогноз) | [`ml/pretrained/v2/submission.csv`](ml/pretrained/v2/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 111 (ML, признаки, NDTP, состояние, движок, API, демо, история) | `python -m pytest -q` |
+| Вероятность `P(задержка > 120 с)` (сохранена из v2) | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
+| CSV для Data Science (151 прогноз) | [`ml/pretrained/v3/submission.csv`](ml/pretrained/v3/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
+| Тесты | 131 (ML, признаки, NDTP, состояние, движок, API, демо, история) | `python -m pytest -q` |
 
 ## Запуск за одну команду
 
@@ -75,7 +76,7 @@ Backend импортирует её, а не пишет вторую верси�
 | [`ml/README.md`](ml/README.md) | Признаки, обучение, модели, вероятность, CLI, сервис |
 | [`backend/README.md`](backend/README.md) | NDTP, часы, состояние, инциденты, endpoints |
 | [`frontend/README.md`](frontend/README.md) | Экраны, состояния, пороги, сборка |
-| [`ml/reports/ml-v2.md`](ml/reports/ml-v2.md) | Протокол обучения, метрики, калибровка, ограничения |
+| [`ml/reports/ml-v3.md`](ml/reports/ml-v3.md) | 109 конфигураций, holdout, автономная оценка и ограничения |
 | `docs/sphinx/` | PyDoc/Sphinx по коду: `python -m sphinx -b html docs/sphinx docs/sphinx/_build/html` |
 | [`docs/RULES.md`](docs/RULES.md), [`docs/PLAN.md`](docs/PLAN.md), [`docs/RESEARCH.md`](docs/RESEARCH.md) | Требования, план, исследование до реализации |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Журнал фактически выполненного |
@@ -90,11 +91,11 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 80 тестов
+.venv/bin/python -m pytest -q                                  # 131 тест
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
-ML_MODEL_DIR=ml/pretrained/v2 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
 BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.csv \
   .venv/bin/transport-backend serve --port 8010
 
@@ -105,8 +106,8 @@ cd frontend && npm install && npm run dev
 Готовый CSV для платформы воспроизводится без обучения:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v2 \
-  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v2/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
+  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v3/submission.csv
 ```
 
 ## Что честно, а что ограничено
@@ -118,13 +119,14 @@ cd frontend && npm install && npm run dev
   `warming_up`, `ml_unavailable`, …), а не нулевой задержкой.
 - Вероятность опоздания калибрована на development-фолде того же дня; статус
   `fitted_on_development` виден в API и в UI. Это не проверка на независимом дне.
-- Онлайн-подсказка `cur_dev_s` в потоке **оценивается** по GPS и плану: MAE к выданной
-  подсказке 56,3 с, покрытие 86,4 % на test (параметры подобраны на train,
-  `transport-backend check-hint`). Если оценки нет — модель без подсказки и явный статус.
+- V3 отделяет supplied `cur_dev_s` от шумных оценок GPS/плана. В потоке без supplied
+  подсказки работает обученная автономная модель с отдельными признаками matching.
+  Старые v1/v2 сохраняют GPS-estimated hint; сравнение — в отчёте v3.
 - Официальный эмулятор двигает ТС случайно и ставит свои timestamp: он доказывает приём
   NDTP и живую цепочку, но не качество прогноза по маршруту. Для качества используется
-  размеченный replay; автономный NDTP-replayer проверяет сквозную цепочку,
-  но ещё не имеет отдельного отчёта качества. NDTP по умолчанию не читает forecast points.
+  размеченный replay; [автономный event-time отчёт](ml/reports/ml-v3-autonomous.json)
+  отделён от проверки TCP/HTTP и реального времени публикации. NDTP по умолчанию
+  не читает forecast points.
 - Линии на карте — схема плановых посещений и пройденный трек, не дорожный маршрут.
   Маршрутного графа, дверей, ДТП и пассажиропотока в раздаче нет.
 - `test`/`validate` делят телеметрию и один день: локальные метрики — benchmark, а не

@@ -191,13 +191,18 @@ curl -s localhost:8010/api/v1/metrics/quality | python3 -m json.tool   # кач�
 curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # задержки/счётчики
 ```
 
-- `offline` — измеренный benchmark комплекта модели: MAE 79,0874 с против baseline
+- `offline` — измеренный benchmark комплекта v3: MAE 71,7707 с против baseline
   `cur_dev_s` 93,3598 с на 353 размеченных точках, плюс отчёт вероятности.
 - `replay_sidecar` — метрика **этого** прогона: считается только после наступления
   фактического времени цели, разметка в инференс не попадает. Там же распределение
   фактического lead time.
 - `performance` — p50/p95 инференса, обращения к ML, цикла Backend и полного пути
   «событие → опубликованный прогноз». Подробности и условия — [`PERFORMANCE.md`](PERFORMANCE.md).
+
+Автономная оценка v3 без forecast points запускается отдельно:
+`python -m transport_backend.live_evaluation --model ml/pretrained/v3 --output artifacts/live-eval`.
+Это event-time эксперимент с bounded state; результаты и границы проверки —
+[отчёт v3](../ml/reports/ml-v3.md).
 
 ## 6. Проверка деградации
 
@@ -212,13 +217,13 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 ## 7. CSV для Data Science
 
-Готовый файл — `ml/pretrained/v2/submission.csv` (151 строка, `sample_id;prediction`).
+Готовый файл — `ml/pretrained/v3/submission.csv` (151 строка, `sample_id;prediction`).
 Воспроизведение без обучения и без Docker:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v2 \
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
   --output artifacts/check/submission.csv
-shasum -a 256 artifacts/check/submission.csv ml/pretrained/v2/submission.csv
+shasum -a 256 artifacts/check/submission.csv ml/pretrained/v3/submission.csv
 ```
 
 В Docker:
