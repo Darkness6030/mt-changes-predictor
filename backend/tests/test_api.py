@@ -53,6 +53,14 @@ def test_snapshot_shape_and_filters(client):
     filtered = client.get("/api/v1/snapshot", params={"only_attention": True}).json()
     assert len(filtered["vehicles"]) <= len(snapshot["vehicles"])
     assert client.get("/api/v1/snapshot", params={"risk": "nonsense"}).status_code == 422
+    history = client.get(
+        "/api/v1/history",
+        params={
+            "run_id": snapshot["run_id"],
+            "at": snapshot["clock"]["source_time"],
+        },
+    )
+    assert history.status_code == 409 and history.json()["detail"]["code"] == "history_disabled"
 
 
 def test_vehicle_detail_and_unknown_vehicle(client):

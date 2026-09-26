@@ -1,5 +1,6 @@
 """Environment-driven settings. Every threshold is configuration, not a carrier norm."""
 
+import math
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -92,6 +93,12 @@ class Settings:
     alert_retention_s: float = 1800.0
     track_points: int = 60
 
+    # UI publication journal, separate from the telemetry window used by ML.
+    view_history_window_s: float = 7200.0
+    view_history_interval_s: float = 1.0
+    view_history_max_frames: int = 7200
+    view_history_max_bytes: int = 64 * 1024 * 1024
+
     plan_shift_s: float = 0.0
     plan_shift_auto: bool = False
 
@@ -115,6 +122,14 @@ class Settings:
             raise ValueError("Current deviation max age must be positive")
         if self.history_window_s < 600:
             raise ValueError("History window must cover the 600 s feature windows")
+        for value in (
+            self.view_history_window_s,
+            self.view_history_interval_s,
+            self.view_history_max_frames,
+            self.view_history_max_bytes,
+        ):
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError("View history limits must be finite and positive")
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -143,6 +158,10 @@ class Settings:
             replay_control_enabled=_bool("BACKEND_REPLAY_CONTROL", True),
             history_window_s=_float("BACKEND_HISTORY_WINDOW_S", 1800.0),
             history_max_events=_int("BACKEND_HISTORY_MAX_EVENTS", 900),
+            view_history_window_s=_float("BACKEND_VIEW_HISTORY_WINDOW_S", 7200.0),
+            view_history_interval_s=_float("BACKEND_VIEW_HISTORY_INTERVAL_S", 1.0),
+            view_history_max_frames=_int("BACKEND_VIEW_HISTORY_MAX_FRAMES", 7200),
+            view_history_max_bytes=_int("BACKEND_VIEW_HISTORY_MAX_BYTES", 64 * 1024 * 1024),
             stale_after_s=_float("BACKEND_STALE_AFTER_S", 120.0),
             current_deviation_max_age_s=_float("BACKEND_CURRENT_DEVIATION_MAX_AGE_S", 300.0),
             predict_interval_s=_float("BACKEND_PREDICT_INTERVAL_S", 30.0),

@@ -116,5 +116,19 @@
   "predict_interval_s": 30.0
  },
  "errors": {},
- "unmapped_units": {}
+ "unmapped_units": {},
+ "history": {
+  "enabled": false,
+  "first": null,
+  "last": null,
+  "frames": 0,
+  "bytes": 0,
+  "window_s": 7200.0,
+  "sample_interval_s": 1.0,
+  "max_frames": 7200,
+  "max_bytes": 67108864,
+  "evicted_frames": 0,
+  "skipped_clock_samples": 0,
+  "oversized_frames": 0
+ }
 }

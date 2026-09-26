@@ -295,6 +295,8 @@ a { color: var(--accent); }
 .range-shortcuts button.active { border-color: var(--accent); background: #1d2f45; }
 .replay-playback { margin-left: auto; }
 .replay-playback select { width: 70px; }
+.history-view-note { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.return-live { color: var(--accent); border-color: var(--accent); white-space: nowrap; }
 .time-editor { position: absolute; bottom: calc(100% + 14px); left: 0; width: min(420px, calc(100vw - 28px)); padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 36px #0008; z-index: 1100; color: var(--text); }
 .time-editor-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .time-editor-heading button { padding: 2px 7px; }

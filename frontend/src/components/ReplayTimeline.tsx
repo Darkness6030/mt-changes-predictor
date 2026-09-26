@@ -11,13 +11,14 @@ interface Props {
   disabled: boolean;
   onRange: (start: number, end: number) => Promise<void>;
   onSeek: (time: number) => Promise<void>;
+  onInteractionStart?: () => void;
 }
 
 type Drag = { mode: "start" | "end" | "move" | "seek"; origin: number; start: number; end: number; moved: boolean };
 const STEPS = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 1800000, 3600000, 7200000, 21600000, 43200000, 86400000];
 
 /** Ruler, editable selection, and an independent source-time playhead. */
-export function ReplayTimeline({ first, last, start, end, current, disabled, onRange, onSeek }: Props) {
+export function ReplayTimeline({ first, last, start, end, current, disabled, onRange, onSeek, onInteractionStart }: Props) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const [draft, setDraft] = useState<{start: number; end: number} | null>(null);
@@ -29,9 +30,9 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
   useEffect(() => {
     setView(fitWindow((start + end) / 2, (end - start) / 0.8));
     setDraft(null);
-  }, [first, last, start, end]);
+  }, [start, end]);
   useEffect(() => {
-    if (!Number.isFinite(current)) return;
+    if (!Number.isFinite(current) || drag.current) return;
     setView((previous) => current < previous.start || current > previous.end
       ? fitWindow(current, previous.end - previous.start) : previous);
   }, [current]);
@@ -55,13 +56,14 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
     const minor = Math.max(1000, major / 5);
     const items = [];
     for (let time = Math.ceil(view.start / minor) * minor; time <= view.end; time += minor) {
-      items.push({ time, major: time % major === 0 });
+      items.push({ time, major: time % major === 0, seconds: major < 60000 });
     }
     return items;
   }, [span, width, view.start, view.end]);
 
   const begin = (event: PointerEvent<HTMLDivElement>) => {
     if (disabled || event.button !== 0) return;
+    onInteractionStart?.();
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-drag]");
     const mode = (target?.dataset.drag ?? "seek") as Drag["mode"];
     drag.current = { mode, origin: atPointer(event), start, end, moved: false };
@@ -128,7 +130,7 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
         {ticks.map((tick) => (
           <span key={tick.time} className={`ruler-tick${tick.major ? " major" : ""}`}
             style={{ left: `${percent(tick.time)}%` }}>
-            {tick.major ? <span>{span >= 86400000 ? sourceLabel(tick.time).slice(5, 16) : span <= 120000 ? timeLabel(tick.time) : timeLabel(tick.time).slice(0, 5)}</span> : null}
+            {tick.major ? <span>{span >= 86400000 ? sourceLabel(tick.time).slice(5, 16) : tick.seconds ? timeLabel(tick.time) : timeLabel(tick.time).slice(0, 5)}</span> : null}
           </span>
         ))}
         {(["start", "end"] as const).map((edge) => {
@@ -145,7 +147,8 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
         {visible ? <span className="ruler-playhead" title={`Текущее время: ${sourceLabel(playhead)}`}
           style={{ left: `${percent(playhead)}%` }} /> : null}
       </div>
-      <div className="ruler-zoom" role="group" aria-label="Масштаб временной шкалы">
+      <div className="ruler-zoom" role="group" aria-label="Масштаб временной шкалы"
+        onPointerDown={onInteractionStart} onKeyDown={onInteractionStart}>
         <button disabled={disabled} aria-label="Уменьшить масштаб времени" onClick={() => setView(fitWindow((view.start + view.end) / 2, span * 2))}>−</button>
         <button disabled={disabled || span <= 60000} aria-label="Увеличить масштаб времени" onClick={() => setView(fitWindow((view.start + view.end) / 2, Math.max(60000, span / 2)))}>+</button>
         <button disabled={disabled} aria-label="Показать более раннее время" onClick={() => setView(fitWindow((view.start + view.end) / 2 - span / 2, span))}>‹</button>

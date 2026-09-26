@@ -1,0 +1,646 @@
+{
+  "snapshot": {
+    "schema_version": "1",
+    "run_id": "run-20260926T221047Z-6f27",
+    "revision": 1,
+    "mode": "ndtp",
+    "server_sent_at": "2026-09-26T22:11:11.023Z",
+    "clock": {
+      "time_basis": "dataset_naive_ns",
+      "mode": "follow",
+      "source_time": "2026-09-26 22:11:10.968078208",
+      "wall_time": "2026-09-26T22:11:11.023Z",
+      "speed": 1.0,
+      "paused": false,
+      "plan_shift_s": 22723200.0,
+      "plan_shift_note": "Демонстрационное выравнивание даты плана; исходные времена данных не изменены"
+    },
+    "summary": {
+      "vehicles": 2,
+      "with_prediction": 0,
+      "attention": 0,
+      "red": 0,
+      "no_prediction": 2,
+      "stale": 0,
+      "unmapped": 0,
+      "alerts_active": 0
+    },
+    "risk_policy": {
+      "green_max_delay_s": 60.0,
+      "red_min_delay_s": 120.0,
+      "early_yellow_s": -60.0,
+      "late_probability_red": 0.5,
+      "note": "Продуктовые пороги UI, не официальная разметка target_class"
+    },
+    "vehicles": [
+      {
+        "tr_id": "132430",
+        "unit_id": "1012706",
+        "mapped": true,
+        "position": {
+          "lon": 37.5707778,
+          "lat": 55.7704433,
+          "speed_kmh": 19.0,
+          "heading_deg": 140.0,
+          "event_at": "2026-09-26 22:11:09",
+          "age_s": 1.968078208
+        },
+        "last_event_at": "2026-09-26 22:11:09",
+        "telemetry_age_s": 1.968078208,
+        "position_age_s": 1.968078208,
+        "stale": false,
+        "events_in_window": 8,
+        "invalid_gps_fraction": 0.0,
+        "quality_flags": [],
+        "has_schedule": true,
+        "next_visit": {
+          "target_stop_id": "53698549723",
+          "planned_at": "2026-09-26 22:31:00",
+          "address": "Новоясеневский просп., д.4",
+          "lon": 37.50973549,
+          "lat": 55.61565746
+        },
+        "prediction": {
+          "prediction_id": "p-000000",
+          "run_id": "run-20260926T221047Z-6f27",
+          "tr_id": "132430",
+          "sample_id": null,
+          "status": "warming_up",
+          "cutoff_t": "2026-09-26 22:10:48.049714833",
+          "computed_at": "2026-09-26T22:10:48.418Z",
+          "target_stop_id": null,
+          "target_planned_at": null,
+          "horizon_s": null,
+          "delay_s": null,
+          "risk_level": null,
+          "risk_basis": null,
+          "late_probability": null,
+          "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+          "data_age_s": 0.049714833,
+          "prediction_age_s": 22.918363375,
+          "stale": false,
+          "cur_dev_source": null,
+          "cur_dev_s": null,
+          "detail": null,
+          "evidence": [],
+          "recommendation": null,
+          "quality_flags": []
+        },
+        "current_deviation": {
+          "status": "unavailable",
+          "delay_s": null,
+          "risk_level": null,
+          "source": null,
+          "observed_at": null,
+          "age_s": null,
+          "max_age_s": 300.0,
+          "visit_id": null,
+          "match_distance_m": null,
+          "reason": "no_match",
+          "visit_address": null
+        },
+        "segment": null
+      },
+      {
+        "tr_id": "133300",
+        "unit_id": "1076894",
+        "mapped": true,
+        "position": {
+          "lon": 37.5892569,
+          "lat": 55.789584,
+          "speed_kmh": 12.0,
+          "heading_deg": 298.0,
+          "event_at": "2026-09-26 22:11:09",
+          "age_s": 1.968078208
+        },
+        "last_event_at": "2026-09-26 22:11:09",
+        "telemetry_age_s": 1.968078208,
+        "position_age_s": 1.968078208,
+        "stale": false,
+        "events_in_window": 8,
+        "invalid_gps_fraction": 0.0,
+        "quality_flags": [],
+        "has_schedule": true,
+        "next_visit": null,
+        "prediction": {
+          "prediction_id": "p-000000",
+          "run_id": "run-20260926T221047Z-6f27",
+          "tr_id": "133300",
+          "sample_id": null,
+          "status": "warming_up",
+          "cutoff_t": "2026-09-26 22:10:48.049714833",
+          "computed_at": "2026-09-26T22:10:48.418Z",
+          "target_stop_id": null,
+          "target_planned_at": null,
+          "horizon_s": null,
+          "delay_s": null,
+          "risk_level": null,
+          "risk_basis": null,
+          "late_probability": null,
+          "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+          "data_age_s": 0.049714833,
+          "prediction_age_s": 22.918363375,
+          "stale": false,
+          "cur_dev_source": null,
+          "cur_dev_s": null,
+          "detail": null,
+          "evidence": [],
+          "recommendation": null,
+          "quality_flags": []
+        },
+        "current_deviation": {
+          "status": "unavailable",
+          "delay_s": null,
+          "risk_level": null,
+          "source": null,
+          "observed_at": null,
+          "age_s": null,
+          "max_age_s": 300.0,
+          "visit_id": null,
+          "match_distance_m": null,
+          "reason": "no_match",
+          "visit_address": null
+        },
+        "segment": null
+      }
+    ],
+    "alerts": [],
+    "fixture": true
+  },
+  "details": {
+    "132430": {
+      "tr_id": "132430",
+      "unit_id": "1012706",
+      "mapped": true,
+      "position": {
+        "lon": 37.5707778,
+        "lat": 55.7704433,
+        "speed_kmh": 19.0,
+        "heading_deg": 140.0,
+        "event_at": "2026-09-26 22:11:09",
+        "age_s": 1.968078208
+      },
+      "last_event_at": "2026-09-26 22:11:09",
+      "telemetry_age_s": 1.968078208,
+      "position_age_s": 1.968078208,
+      "stale": false,
+      "events_in_window": 8,
+      "invalid_gps_fraction": 0.0,
+      "quality_flags": [],
+      "has_schedule": true,
+      "next_visit": {
+        "target_stop_id": "53698549723",
+        "planned_at": "2026-09-26 22:31:00",
+        "address": "Новоясеневский просп., д.4",
+        "lon": 37.50973549,
+        "lat": 55.61565746
+      },
+      "prediction": {
+        "prediction_id": "p-000000",
+        "run_id": "run-20260926T221047Z-6f27",
+        "tr_id": "132430",
+        "sample_id": null,
+        "status": "warming_up",
+        "cutoff_t": "2026-09-26 22:10:48.049714833",
+        "computed_at": "2026-09-26T22:10:48.418Z",
+        "target_stop_id": null,
+        "target_planned_at": null,
+        "horizon_s": null,
+        "delay_s": null,
+        "risk_level": null,
+        "risk_basis": null,
+        "late_probability": null,
+        "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+        "data_age_s": 0.049714833,
+        "prediction_age_s": 22.918363375,
+        "stale": false,
+        "cur_dev_source": null,
+        "cur_dev_s": null,
+        "detail": null,
+        "evidence": [],
+        "recommendation": null,
+        "quality_flags": []
+      },
+      "current_deviation": {
+        "status": "unavailable",
+        "delay_s": null,
+        "risk_level": null,
+        "source": null,
+        "observed_at": null,
+        "age_s": null,
+        "max_age_s": 300.0,
+        "visit_id": null,
+        "match_distance_m": null,
+        "reason": "no_match",
+        "visit_address": null
+      },
+      "segment": null,
+      "run_id": "run-20260926T221047Z-6f27",
+      "revision": 1,
+      "track": [
+        {
+          "lon": 37.5706185,
+          "lat": 55.7705764,
+          "speed_kmh": 18.0,
+          "event_at": "2026-09-26 22:10:48"
+        },
+        {
+          "lon": 37.5706408,
+          "lat": 55.7705563,
+          "speed_kmh": 19.0,
+          "event_at": "2026-09-26 22:10:51"
+        },
+        {
+          "lon": 37.5706675,
+          "lat": 55.7705427,
+          "speed_kmh": 16.0,
+          "event_at": "2026-09-26 22:10:54"
+        },
+        {
+          "lon": 37.570694,
+          "lat": 55.7705286,
+          "speed_kmh": 16.0,
+          "event_at": "2026-09-26 22:10:57"
+        },
+        {
+          "lon": 37.5707179,
+          "lat": 55.7705105,
+          "speed_kmh": 14.0,
+          "event_at": "2026-09-26 22:11:00"
+        },
+        {
+          "lon": 37.570738,
+          "lat": 55.7704882,
+          "speed_kmh": 13.0,
+          "event_at": "2026-09-26 22:11:03"
+        },
+        {
+          "lon": 37.5707585,
+          "lat": 55.7704663,
+          "speed_kmh": 14.0,
+          "event_at": "2026-09-26 22:11:06"
+        },
+        {
+          "lon": 37.5707778,
+          "lat": 55.7704433,
+          "speed_kmh": 19.0,
+          "event_at": "2026-09-26 22:11:09"
+        }
+      ],
+      "plan": [
+        {
+          "target_stop_id": "53698549723",
+          "planned_at": "2026-09-26 22:31:00",
+          "address": "Новоясеневский просп., д.4",
+          "lon": 37.50973549,
+          "lat": 55.61565746,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549721",
+          "planned_at": "2026-09-26 22:32:00",
+          "address": "Профсоюзная ул., д.129А",
+          "lon": 37.50609591,
+          "lat": 55.61883676,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549722",
+          "planned_at": "2026-09-26 22:36:00",
+          "address": "ул. Генерала Тюленева, д.41А",
+          "lon": 37.49621223,
+          "lat": 55.61368189,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549719",
+          "planned_at": "2026-09-26 22:38:00",
+          "address": null,
+          "lon": 37.48485317,
+          "lat": 55.60382879,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549720",
+          "planned_at": "2026-09-26 22:39:00",
+          "address": null,
+          "lon": 37.48264457,
+          "lat": 55.60110563,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549717",
+          "planned_at": "2026-09-26 22:40:00",
+          "address": null,
+          "lon": 37.48084183,
+          "lat": 55.5988636,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549718",
+          "planned_at": "2026-09-26 22:41:00",
+          "address": null,
+          "lon": 37.47350586,
+          "lat": 55.58810001,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549707",
+          "planned_at": "2026-09-26 22:42:00",
+          "address": null,
+          "lon": 37.46767098,
+          "lat": 55.58218224,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549708",
+          "planned_at": "2026-09-26 22:44:00",
+          "address": "ул. Сосенский Стан, д.3",
+          "lon": 37.46536666,
+          "lat": 55.5753388,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549705",
+          "planned_at": "2026-09-26 22:45:00",
+          "address": null,
+          "lon": 37.46062525,
+          "lat": 55.57165508,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549706",
+          "planned_at": "2026-09-26 22:46:00",
+          "address": null,
+          "lon": 37.4585214,
+          "lat": 55.56996253,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549703",
+          "planned_at": "2026-09-26 22:47:00",
+          "address": null,
+          "lon": 37.45462635,
+          "lat": 55.56708353,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549704",
+          "planned_at": "2026-09-26 22:49:00",
+          "address": null,
+          "lon": 37.44417688,
+          "lat": 55.56522224,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549701",
+          "planned_at": "2026-09-26 22:50:00",
+          "address": null,
+          "lon": 37.44035423,
+          "lat": 55.56251751,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549702",
+          "planned_at": "2026-09-26 22:51:00",
+          "address": null,
+          "lon": 37.43517018,
+          "lat": 55.55867531,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549715",
+          "planned_at": "2026-09-26 22:53:00",
+          "address": null,
+          "lon": 37.43345406,
+          "lat": 55.55340871,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549716",
+          "planned_at": "2026-09-26 22:55:00",
+          "address": null,
+          "lon": 37.44224272,
+          "lat": 55.54821053,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549713",
+          "planned_at": "2026-09-26 22:57:00",
+          "address": null,
+          "lon": 37.44539678,
+          "lat": 55.5421406,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549714",
+          "planned_at": "2026-09-26 22:59:00",
+          "address": null,
+          "lon": 37.4479462,
+          "lat": 55.53533119,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549711",
+          "planned_at": "2026-09-26 23:00:00",
+          "address": null,
+          "lon": 37.4465586,
+          "lat": 55.53251809,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549712",
+          "planned_at": "2026-09-26 23:01:00",
+          "address": null,
+          "lon": 37.44567435,
+          "lat": 55.53012365,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549709",
+          "planned_at": "2026-09-26 23:02:00",
+          "address": null,
+          "lon": 37.44686015,
+          "lat": 55.52596176,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549710",
+          "planned_at": "2026-09-26 23:03:00",
+          "address": null,
+          "lon": 37.4485497,
+          "lat": 55.52309839,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549699",
+          "planned_at": "2026-09-26 23:04:00",
+          "address": null,
+          "lon": 37.45096292,
+          "lat": 55.52110388,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549700",
+          "planned_at": "2026-09-26 23:05:00",
+          "address": null,
+          "lon": 37.45171769,
+          "lat": 55.51808043,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549790",
+          "planned_at": "2026-09-26 23:07:00",
+          "address": null,
+          "lon": 37.45171769,
+          "lat": 55.51808043,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549791",
+          "planned_at": "2026-09-26 23:09:00",
+          "address": null,
+          "lon": 37.45179411,
+          "lat": 55.51923605,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549788",
+          "planned_at": "2026-09-26 23:10:00",
+          "address": null,
+          "lon": 37.45079254,
+          "lat": 55.5226414,
+          "passed": false
+        },
+        {
+          "target_stop_id": "53698549789",
+          "planned_at": "2026-09-26 23:11:00",
+          "address": null,
+          "lon": 37.44769379,
+          "lat": 55.52392004,
+          "passed": false
+        }
+      ],
+      "prediction_history": []
+    },
+    "133300": {
+      "tr_id": "133300",
+      "unit_id": "1076894",
+      "mapped": true,
+      "position": {
+        "lon": 37.5892569,
+        "lat": 55.789584,
+        "speed_kmh": 12.0,
+        "heading_deg": 298.0,
+        "event_at": "2026-09-26 22:11:09",
+        "age_s": 1.968078208
+      },
+      "last_event_at": "2026-09-26 22:11:09",
+      "telemetry_age_s": 1.968078208,
+      "position_age_s": 1.968078208,
+      "stale": false,
+      "events_in_window": 8,
+      "invalid_gps_fraction": 0.0,
+      "quality_flags": [],
+      "has_schedule": true,
+      "next_visit": null,
+      "prediction": {
+        "prediction_id": "p-000000",
+        "run_id": "run-20260926T221047Z-6f27",
+        "tr_id": "133300",
+        "sample_id": null,
+        "status": "warming_up",
+        "cutoff_t": "2026-09-26 22:10:48.049714833",
+        "computed_at": "2026-09-26T22:10:48.418Z",
+        "target_stop_id": null,
+        "target_planned_at": null,
+        "horizon_s": null,
+        "delay_s": null,
+        "risk_level": null,
+        "risk_basis": null,
+        "late_probability": null,
+        "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+        "data_age_s": 0.049714833,
+        "prediction_age_s": 22.918363375,
+        "stale": false,
+        "cur_dev_source": null,
+        "cur_dev_s": null,
+        "detail": null,
+        "evidence": [],
+        "recommendation": null,
+        "quality_flags": []
+      },
+      "current_deviation": {
+        "status": "unavailable",
+        "delay_s": null,
+        "risk_level": null,
+        "source": null,
+        "observed_at": null,
+        "age_s": null,
+        "max_age_s": 300.0,
+        "visit_id": null,
+        "match_distance_m": null,
+        "reason": "no_match",
+        "visit_address": null
+      },
+      "segment": null,
+      "run_id": "run-20260926T221047Z-6f27",
+      "revision": 1,
+      "track": [
+        {
+          "lon": 37.5893927,
+          "lat": 55.7894291,
+          "speed_kmh": 29.0,
+          "event_at": "2026-09-26 22:10:48"
+        },
+        {
+          "lon": 37.5893787,
+          "lat": 55.7894556,
+          "speed_kmh": 22.0,
+          "event_at": "2026-09-26 22:10:51"
+        },
+        {
+          "lon": 37.5893606,
+          "lat": 55.7894796,
+          "speed_kmh": 17.0,
+          "event_at": "2026-09-26 22:10:54"
+        },
+        {
+          "lon": 37.589338,
+          "lat": 55.7894992,
+          "speed_kmh": 20.0,
+          "event_at": "2026-09-26 22:10:57"
+        },
+        {
+          "lon": 37.5893221,
+          "lat": 55.7895247,
+          "speed_kmh": 24.0,
+          "event_at": "2026-09-26 22:11:00"
+        },
+        {
+          "lon": 37.5893057,
+          "lat": 55.7895498,
+          "speed_kmh": 19.0,
+          "event_at": "2026-09-26 22:11:03"
+        },
+        {
+          "lon": 37.5892834,
+          "lat": 55.7895699,
+          "speed_kmh": 16.0,
+          "event_at": "2026-09-26 22:11:06"
+        },
+        {
+          "lon": 37.5892569,
+          "lat": 55.789584,
+          "speed_kmh": 12.0,
+          "event_at": "2026-09-26 22:11:09"
+        }
+      ],
+      "plan": [],
+      "prediction_history": []
+    }
+  },
+  "requested_at": "2026-09-26 22:11:10.968078208",
+  "recorded_at": "2026-09-26 22:11:10.968078208",
+  "lag_s": 0.0
+}

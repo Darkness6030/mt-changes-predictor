@@ -13,6 +13,7 @@ import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
+  readOnly?: boolean;
   detail: VehicleDetail | null;
   alerts: Alert[];
   policy: RiskPolicy | null;
@@ -41,7 +42,7 @@ function Timeline({ horizon }: { horizon: number }) {
   );
 }
 
-export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
+export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = false }: Props) {
   if (!detail) {
     return (
       <section className="card">
@@ -162,8 +163,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
             <div className="advice">{prediction!.recommendation}</div>
             {alert && ok ? (
               <div className="ack-actions">
-                <button onClick={() => onAcknowledge(alert.alert_id)} disabled={!!alert.acknowledged_at}>
-                  {alert.acknowledged_at ? "Принято в работу" : "Отметить «принято в работу»"}
+                <button onClick={() => onAcknowledge(alert.alert_id)} disabled={readOnly || !!alert.acknowledged_at}>
+                  {alert.acknowledged_at ? "Принято в работу" : readOnly ? "История · только просмотр" : "Отметить «принято в работу»"}
                 </button>
                 <span className="hint">
                   алерт с {sourceTime(alert.first_alert_at)} · обновлений {alert.updates}

@@ -22,7 +22,7 @@ export function SystemPanel({ status, quality }: Props) {
   const offline = quality?.offline;
   return (
     <section className="card system" aria-label="Система и измерения">
-      <h2>Система</h2>
+      <h2>Система · сейчас</h2>
       <div className="hint">
         Backend {status?.backend_version ?? "—"} · run {status?.run_id ?? "—"} · режим{" "}
         {status?.mode ?? "—"} · выборка {status?.split ?? "—"}
@@ -124,6 +124,18 @@ export function SystemPanel({ status, quality }: Props) {
           </tbody>
         </table>
       </div>
+
+      {status?.history?.enabled ? <div className="section">
+        <h3>Журнал просмотра</h3>
+        <table><tbody>
+          <Row label="Записанных снимков" value={String(status.history.frames)} />
+          <Row label="Память / предел, МиБ" value={`${number(status.history.bytes / 1048576, 1)} / ${number(status.history.max_bytes / 1048576, 0)}`} />
+          <Row label="Запись p50 / p95, мс" value={`${number(performance?.history_capture_ms?.p50_ms, 1)} / ${number(performance?.history_capture_ms?.p95_ms, 1)}`} />
+          <Row label="Удалено старых снимков" value={String(status.history.evicted_frames)} />
+          <Row label="Пропущено: часы / размер" value={`${status.history.skipped_clock_samples} / ${status.history.oversized_frames}`} />
+        </tbody></table>
+        <div className="hint">До {Math.round(status.history.window_s / 60)} мин. времени источника; запись не чаще раза в {status.history.sample_interval_s} с реального времени. Новый прогон очищает журнал.</div>
+      </div> : null}
 
       <div className="section">
         <h3>Измеренное качество</h3>

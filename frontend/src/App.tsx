@@ -9,6 +9,7 @@ import { SystemPanel } from "./components/SystemPanel";
 import { VehicleCard } from "./components/VehicleCard";
 import { sourceMs } from "./replayTime";
 import { usePolling } from "./usePolling";
+import { useHistoryView } from "./useHistoryView";
 import type { DemoSource, DemoState, Snapshot, Status, VehicleDetail } from "./types";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   const [demo, setDemo] = useState<DemoState | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [lastStatus, setLastStatus] = useState<Status | null>(null);
+  const historyView = useHistoryView(snapshot);
 
   const demoPoll = usePolling((signal) => api.demo(signal), 5000, !commandPending, String(pollKey));
   const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000, !commandPending, String(pollKey));
@@ -31,7 +33,7 @@ export default function App() {
   const detailPoll = usePolling<VehicleDetail>(
     (signal) => api.vehicle(selected as string, signal),
     2000,
-    selected !== null && !commandPending,
+    selected !== null && !commandPending && !historyView.active,
     `${snapshot?.run_id ?? ""}:${selected ?? ""}`,
   );
 
@@ -55,13 +57,15 @@ export default function App() {
     sourceNow < sourceMs(sourceClock?.source_window?.first) ||
     sourceNow > sourceMs(sourceClock?.source_window?.last)
   );
-  const displaySnapshot = useMemo(() => noReplayData && snapshot ? {
+  const viewedSnapshot = historyView.active ? historyView.frame?.snapshot ?? null : snapshot;
+  const displaySnapshot = useMemo(() => !noReplayData && viewedSnapshot ? viewedSnapshot : snapshot ? {
     ...snapshot, vehicles: [], alerts: [],
     summary: { vehicles: 0, with_prediction: 0, attention: 0, red: 0,
       no_prediction: 0, stale: 0, unmapped: 0, alerts_active: 0 },
-  } : snapshot, [snapshot, noReplayData]);
+  } : null, [viewedSnapshot, snapshot, noReplayData]);
 
   const detail = useMemo(() => {
+    if (historyView.active) return selected ? historyView.frame?.details[selected] ?? null : null;
     const current = displaySnapshot?.vehicles.find((item) => item.tr_id === selected);
     if (!current || !displaySnapshot) return null;
     const loaded = detailPoll.data;
@@ -71,16 +75,17 @@ export default function App() {
     }
     return { ...current, run_id: displaySnapshot.run_id, revision: displaySnapshot.revision,
       track: [], plan: [], prediction_history: [] } as VehicleDetail;
-  }, [detailPoll.data, detailPoll.error, displaySnapshot, selected]);
+  }, [detailPoll.data, detailPoll.error, displaySnapshot, selected, historyView.active, historyView.frame]);
 
   const acknowledge = useCallback(async (alertId: string) => {
+    if (historyView.active) return;
     try {
       await api.acknowledge(alertId);
       setCommandError(null);
     } catch (error) {
       setCommandError(error instanceof Error ? error.message : String(error));
     }
-  }, []);
+  }, [historyView.active]);
 
   const command = useCallback(
     async (action: ReplayAction, speed?: number, startAt?: string) => {
@@ -129,7 +134,8 @@ export default function App() {
   return (
     <div className="app">
       <Header snapshot={displaySnapshot} status={statusPoll.data} ageMs={ageMs}
-        error={commandError ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
+        historical={historyView.active}
+        error={commandError ?? historyView.error ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
       {connectionLost ? (
         <div className="banner">
           Связь с Backend потеряна: {snapshotPoll.error ?? "состояние давно не обновлялось"}. Показано последнее полученное состояние
@@ -146,7 +152,7 @@ export default function App() {
       {snapshot?.fixture ? (
         <div className="banner warn">Демонстрационные фикстуры, не живой поток.</div>
       ) : null}
-      {selected && detailPoll.error ? <div className="banner warn">
+      {selected && detailPoll.error && !historyView.active ? <div className="banner warn">
         История ТС недоступна: {detailPoll.error}. Основные данные обновляются из общей очереди.
       </div> : null}
       <div className="body">
@@ -169,11 +175,16 @@ export default function App() {
             alerts={displaySnapshot?.alerts ?? []}
             policy={snapshot?.risk_policy ?? null}
             onAcknowledge={acknowledge}
+            readOnly={historyView.active}
           />
         )}
       </div>
       <ReplayControls
-        status={navigationStatus ? { ...navigationStatus, clock: snapshot?.run_id === navigationStatus.run_id ? snapshot.clock : navigationStatus.clock } : null}
+        status={navigationStatus ? { ...navigationStatus,
+          clock: snapshot?.run_id === navigationStatus.run_id ? snapshot.clock : navigationStatus.clock,
+          history: snapshot?.run_id === navigationStatus.run_id ? snapshot.history : navigationStatus.history,
+        } : null}
+        historyView={historyView}
         pending={commandPending}
         onCommand={command}
         showSystem={showSystem}

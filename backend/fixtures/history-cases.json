@@ -1,0 +1,26 @@
+{
+  "ui": {
+    "sources": ["ndtp_replay", "emulator", "external_ndtp"],
+    "cursor_scope": "browser",
+    "source_keeps_running": true,
+    "history_ack_disabled": true,
+    "live_vehicle_detail_poll_disabled": true,
+    "range_width_fraction": 0.8,
+    "range_kept_while_history_head_grows": true,
+    "outside_history": {
+      "cursor_moves": true,
+      "vehicles": [],
+      "alerts": [],
+      "error_location": "reserved_header_line"
+    },
+    "expired_frame": "empty_map_with_header_message",
+    "future_cursor": "load_once_when_recorded_history_covers_it",
+    "return_to_stream": "local_cursor_clear_without_post_or_run_reset"
+  },
+  "errors": [
+    {"condition": "different_run_id", "http": 409, "code": "run_changed"},
+    {"condition": "csv_mode", "http": 409, "code": "history_disabled"},
+    {"condition": "invalid_or_zoned_time", "http": 400, "code": "bad_request"},
+    {"condition": "empty_or_outside_retained_history", "http": 404, "code": "history_unavailable"}
+  ]
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ReplayAction } from "../api";
 import { fitWindow, sourceInput, sourceLabel, sourceMs, timeLabel } from "../replayTime";
 import type { Status } from "../types";
+import type { useHistoryView } from "../useHistoryView";
 import { ReplayTimeline } from "./ReplayTimeline";
 
 interface Props {
@@ -11,21 +12,27 @@ interface Props {
   showSystem: boolean;
   onToggleSystem: () => void;
   sourceControl?: ReactNode;
+  historyView: ReturnType<typeof useHistoryView>;
 }
-interface NavigationRange { sourceFirst: number; sourceLast: number; start: number; end: number }
+interface NavigationRange { key: string; start: number; end: number }
 const SPEEDS = [1, 10, 30, 60, 120, 300];
 const PRESETS = [{ label: "15м", span: 900000 }, { label: "1ч", span: 3600000 }, { label: "6ч", span: 21600000 }];
 
 /** Compact time toolbar and ruler. All timestamps retain dataset calendar fields. */
-export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, sourceControl }: Props) {
+export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, sourceControl, historyView }: Props) {
   const replay = status?.mode === "replay" && status.replay?.control_enabled;
+  const live = status?.mode === "ndtp";
   const clock = status?.clock;
-  const first = Math.ceil(sourceMs(clock?.source_window?.first) / 1000) * 1000;
-  const last = Math.floor(sourceMs(clock?.source_window?.last) / 1000) * 1000;
-  const current = sourceMs(clock?.source_time);
-  const hasPeriod = Number.isFinite(first) && Number.isFinite(last) && first < last;
+  const first = sourceMs(live ? status?.history?.first : clock?.source_window?.first);
+  const last = sourceMs(live ? status?.history?.last : clock?.source_window?.last);
+  const current = sourceMs(live && historyView.active ? historyView.at : clock?.source_time);
+  const hasPeriod = Number.isFinite(first) && Number.isFinite(last) && first <= last;
+  const rangeKey = live ? status.run_id : `${first}:${last}`;
   const [selection, setSelection] = useState<NavigationRange | null>(null);
-  const range = selection?.sourceFirst === first && selection.sourceLast === last ? selection : { start: first, end: last };
+  const range = selection?.key === rangeKey ? selection : {
+    start: Math.floor(first / 1000) * 1000,
+    end: Math.max(Math.ceil(last / 1000) * 1000, Math.floor(first / 1000) * 1000 + 60000),
+  };
   const [editor, setEditor] = useState<"range" | "time" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const editorRoot = useRef<HTMLDivElement>(null);
@@ -44,16 +51,22 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
     }
     setLocalError(null);
     setEditor(null);
-    await onCommand("seek", undefined, sourceLabel(value));
+    if (live) {
+      setSelection({ key: rangeKey, ...range });
+      historyView.select(sourceLabel(value));
+    } else await onCommand("seek", undefined, sourceLabel(value));
   };
   const applyRange = async (start: number, end: number) => {
     if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
       setLocalError("Начало диапазона должно быть раньше конца"); return;
     }
-    setSelection({ sourceFirst: first, sourceLast: last, start, end });
+    setSelection({ key: rangeKey, start, end });
     setLocalError(null);
     setEditor(null);
-    if (current < start || current > end) await onCommand("seek", undefined, sourceLabel(start));
+    if (current < start || current > end) {
+      if (live) historyView.select(sourceLabel(start));
+      else await onCommand("seek", undefined, sourceLabel(start));
+    }
   };
   const shiftRange = (direction: number) => {
     const size = range.end - range.start;
@@ -64,15 +77,21 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
   return (
     <footer className="footer replay-footer">
       <div className="replay-toolbar">
-        {replay && hasPeriod ? (
+        {(replay || live) && hasPeriod ? (
           <>
             <div className="time-editor-root" ref={editorRoot} onKeyDown={(event) => { if (event.key === "Escape") setEditor(null); }}>
               <button className="time-range-button" aria-label="Выбрать диапазон даты и времени" aria-expanded={editor === "range"}
-                disabled={pending} onClick={() => { setLocalError(null); setEditor(editor === "range" ? null : "range"); }}>
+                disabled={pending} onClick={() => {
+                  if (live) setSelection({ key: rangeKey, ...range });
+                  setLocalError(null); setEditor(editor === "range" ? null : "range");
+                }}>
                 <span>{sourceLabel(range.start)} — {sourceLabel(range.end)}</span><span className="chevron">⌄</span>
               </button>
               <button className="current-time-button" aria-label="Перейти к точному времени" aria-expanded={editor === "time"}
-                disabled={pending} onClick={() => { setLocalError(null); setEditor(editor === "time" ? null : "time"); }}>
+                disabled={pending} onClick={() => {
+                  if (live) setSelection({ key: rangeKey, ...range });
+                  setLocalError(null); setEditor(editor === "time" ? null : "time");
+                }}>
                 <span className="playhead-dot" />{timeLabel(current)}
               </button>
               {editor ? (
@@ -102,6 +121,7 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
                   )}
                   {localError ? <p className="risk-red" role="alert">{localError}</p> : null}
                   <p className="hint">Данные: {sourceLabel(first)} — {sourceLabel(last)}</p>
+                  {live ? <p className="hint">Записанные снимки текущего прогона. Храним до {Math.round((status?.history?.window_s ?? 7200) / 60)} мин. времени источника в пределах памяти. Часовой пояс источника не преобразуется.</p> : null}
                 </div>
               ) : null}
             </div>
@@ -111,12 +131,28 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
               {PRESETS.map((preset) => <button key={preset.label} disabled={pending}
                 className={range.end - range.start === preset.span ? "active" : ""}
                 onClick={() => { const next = fitWindow(current, preset.span); void applyRange(next.start, next.end); }}>{preset.label}</button>)}
-              <button disabled={pending} className={range.start === first && range.end === last ? "active" : ""}
-                onClick={() => void applyRange(first, last)}>Всё</button>
+              <button disabled={pending} className={!selection || selection.key !== rangeKey ? "active" : ""}
+                onClick={() => live ? setSelection(null) : void applyRange(first, last)}>Всё</button>
             </div>
           </>
-        ) : <span className="hint">{status?.mode === "ndtp" ? "Живой NDTP · перемотка недоступна" : "Загрузка исторического периода…"}</span>}
+        ) : <span className="hint">{live ? "NDTP · ждём первые данные для истории…" : "Загрузка исторического периода…"}</span>}
         <div className="replay-playback">
+          {live ? <>
+            <span className="history-view-note" role="status" title={historyView.frame
+              ? `Снимок ${historyView.frame.recorded_at}; отставание от выбранного момента ${historyView.frame.lag_s.toFixed(1)} с. Без интерполяции и пересчёта прогнозов.`
+              : historyView.active ? historyView.error ?? "Загрузка сохранённого снимка"
+                : "Перемотка не останавливает приём и прогнозы; система показывает текущий поток"}>
+              {historyView.active ? historyView.loading ? "Загрузка снимка…" : historyView.frame
+                ? `Снимок ${timeLabel(sourceMs(historyView.frame.recorded_at))}` : "История · нет снимка" : "● В потоке"}
+            </span>
+            {historyView.active ? <button className="return-live" disabled={pending} onClick={() => {
+              historyView.follow(); setSelection(null);
+            }}>К потоку →</button> : <button disabled={pending || !status?.history?.last}
+              title="Зафиксировать снимок для просмотра; приём потока продолжается" onClick={() => {
+              setSelection({ key: rangeKey, ...range });
+              historyView.select(status!.history!.last!);
+            }}>Ⅱ Просмотр</button>}
+          </> : null}
           {replay ? <>
             <button disabled={pending} onClick={() => onCommand(clock?.paused ? "start" : "pause")}>
               {clock?.paused ? "▷ Продолжить" : "Ⅱ Пауза"}</button>
@@ -131,7 +167,8 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
           <button onClick={onToggleSystem} aria-pressed={showSystem}>{showSystem ? "Скрыть систему" : "Система"}</button>
         </div>
       </div>
-      {replay && hasPeriod ? <ReplayTimeline first={first} last={last} start={range.start} end={range.end}
+      {(replay || live) && hasPeriod ? <ReplayTimeline key={live ? status.run_id : "csv"} first={first} last={last} start={range.start} end={range.end}
+        onInteractionStart={live ? () => setSelection({ key: rangeKey, ...range }) : undefined}
         current={current} disabled={pending} onRange={applyRange} onSeek={seek} /> : null}
     </footer>
   );

@@ -13,9 +13,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from transport_backend import SCHEMA_VERSION, __version__
+from transport_backend.clock import parse_source
 from transport_backend.config import Settings
 from transport_backend.demo import DemoController, DemoError, DemoSource
 from transport_backend.engine import Engine
+from transport_backend.view_history import HistoryUnavailable
 
 
 class ReplayCommand(BaseModel):
@@ -132,6 +134,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except KeyError as missing:
             raise error(404, "unknown_vehicle", f"No state or plan for {tr_id}") from missing
 
+    @app.get("/api/v1/history", tags=["dispatcher"])
+    def history(
+        engine: EngineDep,
+        run_id: Annotated[str, Query(min_length=1, max_length=80)],
+        at: Annotated[str, Query(min_length=1, max_length=64)],
+    ) -> dict:
+        if run_id != engine.run_id:
+            raise error(
+                409, "run_changed", "Начался новый прогон. История прошлого прогона очищена"
+            )
+        if not engine.view_history.enabled:
+            raise error(409, "history_disabled", "Журнал доступен только для NDTP-потока")
+        try:
+            at_ns = parse_source(at)
+        except (ValueError, OverflowError) as exc:
+            raise error(
+                400, "bad_request", "Укажите корректное время источника без часового пояса"
+            ) from exc
+        try:
+            return engine.view_history.view(at_ns)
+        except HistoryUnavailable as exc:
+            raise error(404, "history_unavailable", str(exc)) from exc
+
     @app.get("/api/v1/predictions", tags=["dispatcher"])
     def predictions(
         engine: EngineDep,
@@ -152,7 +177,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"run_id": engine.run_id, "rows": len(items), "alerts": items}
 
     @app.post("/api/v1/alerts/{alert_id}/ack", tags=["dispatcher"])
-    def acknowledge(alert_id: str, engine: EngineDep) -> dict:
+    async def acknowledge(alert_id: str, engine: EngineDep) -> dict:
         try:
             alert = engine.acknowledge(alert_id)
         except KeyError as missing:

@@ -178,6 +178,7 @@ export interface RiskPolicy {
 }
 
 export interface Snapshot {
+  history?: ViewHistory;
   schema_version: string;
   run_id: string;
   revision: number;
@@ -201,6 +202,7 @@ export interface Snapshot {
 }
 
 export interface Status {
+  history?: ViewHistory;
   backend_version: string;
   run_id: string;
   mode: string;
@@ -230,6 +232,7 @@ export interface Status {
     control_enabled: boolean;
   } | null;
   performance: {
+    history_capture_ms?: Percentiles;
     cycles: number;
     cycle_ms: Percentiles;
     feature_build_ms: Percentiles;
@@ -243,6 +246,29 @@ export interface Status {
   errors: Record<string, number>;
   unmapped_units: Record<string, number>;
   fixture?: boolean;
+}
+
+export interface ViewHistory {
+  enabled: boolean;
+  first: string | null;
+  last: string | null;
+  frames: number;
+  bytes: number;
+  window_s: number;
+  sample_interval_s: number;
+  max_frames: number;
+  max_bytes: number;
+  evicted_frames: number;
+  skipped_clock_samples: number;
+  oversized_frames: number;
+}
+
+export interface HistoryFrame {
+  requested_at: string;
+  recorded_at: string;
+  lag_s: number;
+  snapshot: Snapshot;
+  details: Record<string, VehicleDetail>;
 }
 
 export type DemoSource = "replay" | "ndtp_replay" | "emulator";

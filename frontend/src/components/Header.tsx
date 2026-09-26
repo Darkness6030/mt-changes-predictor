@@ -1,7 +1,8 @@
-import { duration, sourceDate, sourceTime } from "../format";
+import { duration } from "../format";
 import type { Snapshot, Status } from "../types";
 
 interface Props {
+  historical?: boolean;
   snapshot: Snapshot | null;
   status: Status | null;
   ageMs: number | null;
@@ -9,10 +10,9 @@ interface Props {
 }
 
 /** Dispatcher summary; replay clock and speed are shown in the navigation panel. */
-export function Header({ snapshot, status, ageMs, error }: Props) {
+export function Header({ snapshot, status, ageMs, error, historical = false }: Props) {
   const clock = snapshot?.clock ?? status?.clock ?? null;
   const mode = snapshot?.mode ?? status?.mode ?? "—";
-  const modeLabel = mode === "ndtp" ? "Живой NDTP" : "Исторический replay";
   const summary = snapshot?.summary;
   return (
     <header className="header">
@@ -22,14 +22,11 @@ export function Header({ snapshot, status, ageMs, error }: Props) {
           {mode === "replay" ? (
             clock?.paused ? <span className="replay-paused" role="status">Воспроизведение на паузе</span> : null
           ) : (
-            <>
-              <span>{modeLabel}</span>
-              <span title="Время источника; часовой пояс в датасете не установлен">
-                <b>{sourceTime(clock?.source_time)}</b> {sourceDate(clock?.source_time)} · зона не задана
-              </span>
-            </>
+            <span title={historical ? "Просмотр истории; приём NDTP и новые прогнозы продолжаются" : undefined}>
+              {historical ? "История · приём идёт" : "Живой NDTP"}
+            </span>
           )}
-          {ageMs !== null ? <span>Обновлено {Math.round(ageMs / 1000)} с назад</span> : null}
+          {ageMs !== null ? <span>{historical ? "Связь" : "Обновлено"} {Math.round(ageMs / 1000)} с назад</span> : null}
         </div>
         <div className="header-data-status" role={error ? "alert" : undefined} title={error ?? undefined}>{error}</div>
       </div>
@@ -52,9 +49,9 @@ export function Header({ snapshot, status, ageMs, error }: Props) {
         </div>
         <div className="kpi">
           <b>{summary?.vehicles ?? "—"}</b>
-          <span>ТС в потоке</span>
+          <span>{historical ? "ТС в снимке" : "ТС в потоке"}</span>
         </div>
-        {status?.performance ? (
+        {!historical && status?.performance ? (
           <div className="kpi" title="p95 полного обращения Backend → ML → Backend">
             <b>{status.performance.ml_round_trip_ms.p95_ms?.toFixed(0) ?? "—"}</b>
             <span>p95 ML, мс</span>
@@ -66,7 +63,7 @@ export function Header({ snapshot, status, ageMs, error }: Props) {
             <span>период пройден</span>
           </div>
         ) : null}
-        {status?.points ? (
+        {!historical && status?.points ? (
           <div className="kpi" title="Официальные прогнозные точки, обработанные в потоке">
             <b>{status.points.predicted}</b>
             <span>точек посчитано</span>
@@ -75,7 +72,7 @@ export function Header({ snapshot, status, ageMs, error }: Props) {
         {status?.ndtp ? (
           <div className="kpi" title="Принятые NDTP-пакеты телематики">
             <b>{String(status.ndtp.realtime_frames ?? 0)}</b>
-            <span>NDTP-пакетов</span>
+            <span>{historical ? "пакетов сейчас" : "NDTP-пакетов"}</span>
           </div>
         ) : null}
         {ageMs !== null && ageMs > 5000 ? (

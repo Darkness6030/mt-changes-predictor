@@ -1,6 +1,6 @@
 /** One thin API layer. The UI never computes risk or picks a target: it renders Backend data. */
 
-import type { DemoSource, DemoState, Quality, Snapshot, Status, VehicleDetail } from "./types";
+import type { DemoSource, DemoState, HistoryFrame, Quality, Snapshot, Status, VehicleDetail } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -20,7 +20,10 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 5000);
   try {
     const response = await fetch(path, { signal: controller.signal, headers: { Accept: "application/json" } });
-    if (!response.ok) throw new ApiError(`${response.status} ${response.statusText}`, response.status);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(body?.detail?.detail ?? `${response.status} ${response.statusText}`, response.status);
+    }
     return (await response.json()) as T;
   } catch (error) {
     if (timedOut) throw new ApiError("Ответ сервера не получен за 5 секунд");
@@ -34,6 +37,8 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 export type ReplayAction = "start" | "pause" | "reset" | "speed" | "seek";
 
 export const api = {
+  history: (runId: string, at: string, signal?: AbortSignal) =>
+    request<HistoryFrame>(`/api/v1/history?${new URLSearchParams({ run_id: runId, at })}`, signal),
   demo: (signal?: AbortSignal) => request<DemoState>("/api/v1/demo/sources", signal),
   async source(source: DemoSource, speed: number): Promise<DemoState> {
     const controller = new AbortController();

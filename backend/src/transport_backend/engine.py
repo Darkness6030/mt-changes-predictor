@@ -38,6 +38,7 @@ from transport_backend.mlclient import Latency, MlClient
 from transport_backend.ndtp_server import NdtpServer
 from transport_backend.replay import PointSchedule, ReplaySource, load_mapping
 from transport_backend.state import FleetState, PlanStore
+from transport_backend.view_history import ViewHistory
 
 STATUS_NO_TARGET = "no_target_in_horizon"
 
@@ -172,6 +173,8 @@ class Engine:
         self.revision = 0
         self.started_wall = wall_iso()
         self.run_id = self._new_run_id()
+        self.view_history = ViewHistory(settings)
+        self.history_latency = Latency()
         self.ml = MlClient(settings.ml_url, settings.ml_timeout_s, settings.ml_batch_size)
         self.cycle_latency = Latency()
         self.feature_latency = Latency()
@@ -303,6 +306,8 @@ class Engine:
     async def reset(self, start_at: str | None = None) -> None:
         """A new run: new run_id, empty state, cleared incidents and clocks."""
         self.run_id = self._new_run_id()
+        self.view_history = ViewHistory(self.settings)
+        self.history_latency = Latency()
         self.current_deviation.clear()
         self.predictions.clear()
         self.prediction_log.clear()
@@ -412,6 +417,32 @@ class Engine:
             await self._predict(requests, now_ns)
         if run_id == self.run_id:
             self._expire_alerts(now_ns)
+            self._record_view(not_before_ns=now_ns)
+
+    def _record_view(self, *, not_before_ns: int = 0) -> None:
+        # No await: capture one consistent publication, after ML has returned. Ingestion
+        # and alert acknowledgement also run on the event loop; no historical backfill.
+        if not self.view_history.enabled:
+            return
+        now_ns = self.clock.now_ns()
+        # A follow clock may step back when a delayed packet arrives during the ML
+        # await. Never date that result before either its cutoff or this cycle's time.
+        cutoff_floor = max(
+            (item.get("cutoff_ns", 0) for item in self.predictions.values()), default=0
+        )
+        if now_ns is None or not self.view_history.due(
+            now_ns, not_before_ns=max(not_before_ns, cutoff_floor)
+        ):
+            return
+        started = perf_counter()
+        snapshot = self.snapshot(now_ns=now_ns)
+        snapshot.pop("history", None)
+        details = {
+            view["tr_id"]: self.vehicle_detail(view["tr_id"], now_ns=now_ns, view=view)
+            for view in snapshot["vehicles"]
+        }
+        self.view_history.append(now_ns, snapshot, details)
+        self.history_latency.add((perf_counter() - started) * 1000)
 
     # ------------------------------------------------------------------ predictions
 
@@ -827,8 +858,9 @@ class Engine:
         only_attention: bool = False,
         stale: bool | None = None,
         limit: int | None = None,
+        now_ns: int | None = None,
     ) -> dict:
-        now_ns = self.clock.now_ns() or 0
+        now_ns = (self.clock.now_ns() or 0) if now_ns is None else now_ns
         vehicles = [
             self._vehicle_view(tr_id, now_ns)
             for tr_id in sorted(set(self.state.tracks) | set(self.predictions))
@@ -876,7 +908,8 @@ class Engine:
             "revision": self.revision,
             "mode": self.settings.mode,
             "server_sent_at": wall_iso(),
-            "clock": self.clock_view(),
+            "clock": self.clock_view(now_ns),
+            "history": self.view_history.metadata(),
             "summary": summary,
             "risk_policy": self.settings.risk.to_dict(),
             "vehicles": filtered,
@@ -893,8 +926,10 @@ class Engine:
             items = active + closed
         return [alert.to_dict() for alert in items]
 
-    def clock_view(self) -> dict:
+    def clock_view(self, now_ns: int | None = None) -> dict:
         view = self.clock.to_dict()
+        if now_ns is not None and view["source_time"] is not None:
+            view["source_time"] = format_source(now_ns)
         view["plan_shift_s"] = self._plan_shift_s
         if self._plan_shift_s:
             view["plan_shift_note"] = (
@@ -910,11 +945,13 @@ class Engine:
             view["events_total"] = len(self.replay)
         return view
 
-    def vehicle_detail(self, tr_id: str) -> dict:
+    def vehicle_detail(
+        self, tr_id: str, *, now_ns: int | None = None, view: dict | None = None
+    ) -> dict:
         if tr_id not in self.state.tracks and tr_id not in self.plan.visits:
             raise KeyError(tr_id)
-        now_ns = self.clock.now_ns() or 0
-        view = self._vehicle_view(tr_id, now_ns)
+        now_ns = (self.clock.now_ns() or 0) if now_ns is None else now_ns
+        view = dict(view) if view is not None else self._vehicle_view(tr_id, now_ns)
         track = self.state.tracks.get(tr_id)
         track_points = []
         if track is not None:
@@ -976,6 +1013,7 @@ class Engine:
             "started_at": self.started_wall,
             "revision": self.revision,
             "clock": self.clock_view(),
+            "history": self.view_history.metadata(),
             "split": self.settings.split,
             "plan": {
                 "file": str(self._plan_path()),
@@ -1010,6 +1048,7 @@ class Engine:
                 "cycles": self.cycles,
                 "last_cycle_at": self.last_cycle_at,
                 "cycle_ms": self.cycle_latency.to_dict(),
+                "history_capture_ms": self.history_latency.to_dict(),
                 "feature_build_ms": self.feature_latency.to_dict(),
                 "event_to_prediction_ms": self.publish_latency.to_dict(),
                 "ml_round_trip_ms": self.ml.latency.to_dict(),
