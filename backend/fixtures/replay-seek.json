@@ -61,6 +61,10 @@
   },
   "ui_map": {
     "queue_double_click": "fit_selected_plan_segment_and_position",
-    "hover_tooltip": "preserved_during_polling_until_pointer_leaves_or_object_removed"
+    "hover_tooltip": "preserved_during_polling_until_pointer_leaves_or_object_removed",
+    "vehicle_shape": "heading_arrow",
+    "unknown_heading_shape": "diamond",
+    "heading_field": "position.heading_deg",
+    "heading_basis": "north_clockwise_degrees"
   }
 }

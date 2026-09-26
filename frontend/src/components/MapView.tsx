@@ -224,7 +224,8 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
         </div>
         <div className="legend-note">Серая пунктирная обводка — оценка отсутствует или устарела.
           Белый внешний ореол — выбранное ТС. Текущее отклонение оценено на последней
-          распознанной остановке, возраст указан в подсказке.</div>
+          распознанной остановке, возраст указан в подсказке. Стрелка ТС показывает курс
+          телеметрии; ромб — курс неизвестен.</div>
         <div className="item">
           <span className="risk-red" aria-hidden="true">
             ■
