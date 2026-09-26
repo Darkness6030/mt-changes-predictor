@@ -63,8 +63,9 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
   return (
     <section className="card" aria-label={`Карточка ТС ${detail.tr_id}`}>
       <h2>ТС {detail.tr_id}</h2>
-      <div className="hint">
-        устройство {detail.unit_id ?? "не сопоставлено"} · {detail.events_in_window} событий в окне ·{" "}
+      <div className="hint card-meta">
+        <span>Устройство {detail.unit_id ?? "не сопоставлено"}</span>
+        <span>{detail.events_in_window} событий</span>
         <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
       </div>
 
@@ -102,7 +103,10 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
           <div className="section">
             <h3>Участок подхода к цели</h3>
             {detail.segment ? <>
-              <p>{detail.segment.from.address ?? detail.segment.from.target_stop_id} → {detail.segment.to.address ?? detail.segment.to.target_stop_id}</p>
+              <div className="segment-stops">
+                <div><span className="segment-label">От</span><span>{detail.segment.from.address ?? detail.segment.from.target_stop_id}</span></div>
+                <div><span className="segment-label">До</span><span>{detail.segment.to.address ?? detail.segment.to.target_stop_id}</span></div>
+              </div>
               <div className="hint">Схема двух последовательных плановых посещений; цвет линии соответствует риску ТС.</div>
             </> : <div className="hint">Участок не определён: нет предыдущего посещения либо разрыв плана больше 30 минут.</div>}
           </div>
@@ -154,7 +158,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
             <h3>Предлагаемое действие</h3>
             <div className="advice">{prediction!.recommendation}</div>
             {alert && ok ? (
-              <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="ack-actions">
                 <button onClick={() => onAcknowledge(alert.alert_id)} disabled={!!alert.acknowledged_at}>
                   {alert.acknowledged_at ? "Принято в работу" : "Отметить «принято в работу»"}
                 </button>
@@ -210,7 +214,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge }: Props) {
       {detail.prediction_history.length > 1 ? (
         <div className="section">
           <h3>История прогнозов</h3>
-          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+          <table className="prediction-history">
             <tbody>
               {detail.prediction_history
                 .slice()

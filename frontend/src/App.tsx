@@ -78,7 +78,7 @@ export default function App() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const ageMs = snapshotPoll.updatedAt ? now - snapshotPoll.updatedAt : null;
+  const ageMs = snapshotPoll.updatedAt ? Math.max(0, now - snapshotPoll.updatedAt) : null;
   const connectionLost = snapshotPoll.error !== null || (ageMs !== null && ageMs > 6000);
   const clock = snapshot?.clock;
 

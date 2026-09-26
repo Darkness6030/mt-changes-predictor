@@ -54,7 +54,11 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
     });
     overlay.current = L.layerGroup().addTo(instance);
     map.current = instance;
+    // The panel also changes size at layout breakpoints, without a window resize.
+    const resize = new ResizeObserver(() => instance.invalidateSize({ pan: false }));
+    resize.observe(container.current);
     return () => {
+      resize.disconnect();
       instance.remove();
       map.current = null;
       markers.current.clear();
@@ -222,7 +226,9 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
           на схему без подложки.
         </div>
       ) : null}
-      <div className="legend">
+      <details className="legend">
+        <summary>Обозначения карты</summary>
+        <div className="legend-content">
         <div className="item">
           <span className="risk-red" aria-hidden="true">
             ■
@@ -247,10 +253,11 @@ export function MapView({ snapshot, detail, selected, onSelect }: Props) {
           </span>
           <span>Нет прогноза / данные устарели (пунктир)</span>
         </div>
-        <div className="item" style={{ color: "var(--muted)" }}>
-          Цветные линии — риск на участке подхода к цели. Геометрия схематичная, не дорожный маршрут
+        <div className="legend-note">
+          Линии показывают риск на участке подхода к цели. Геометрия схематичная.
         </div>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

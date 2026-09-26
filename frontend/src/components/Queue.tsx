@@ -130,8 +130,10 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                 <div className="meta">
                   <span>{ok ? RISK_LABEL[risk!] : STATUS_LABEL[prediction?.status ?? ""] ?? "—"}</span>
                   {ok && prediction!.target_planned_at ? (
-                    <span>цель {sourceTime(prediction!.target_planned_at)}</span>
+                    <span className="target-time">цель {sourceTime(prediction!.target_planned_at)}</span>
                   ) : null}
+                </div>
+                <div className="row-badges">
                   <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
                   {ok &&
                   prediction!.late_probability !== null &&

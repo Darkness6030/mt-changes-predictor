@@ -15,16 +15,15 @@ export function Header({ snapshot, status, ageMs }: Props) {
   const summary = snapshot?.summary;
   return (
     <header className="header">
-      <div>
+      <div className="header-info">
         <h1>Пульт диспетчера · прогноз задержек</h1>
         <div className="sub">
-          {modeLabel}
-          {clock?.speed && mode === "replay" ? ` · ${clock.speed}×` : ""}
-          {clock?.paused ? " · пауза" : ""}
-          {" · время источника "}
-          <b>{sourceTime(clock?.source_time)}</b> {sourceDate(clock?.source_time)}
-          {" (зона не установлена)"}
-          {ageMs !== null ? ` · обновлено ${Math.round(ageMs / 1000)} с назад` : ""}
+          <span>{modeLabel}{clock?.speed && mode === "replay" ? ` · ${clock.speed}×` : ""}
+            {clock?.paused ? " · пауза" : ""}</span>
+          <span title="Время источника; часовой пояс в датасете не установлен">
+            <b>{sourceTime(clock?.source_time)}</b> {sourceDate(clock?.source_time)} · зона не задана
+          </span>
+          {ageMs !== null ? <span>Обновлено {Math.round(ageMs / 1000)} с назад</span> : null}
         </div>
       </div>
       <div className="kpis">
