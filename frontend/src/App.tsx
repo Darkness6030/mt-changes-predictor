@@ -7,7 +7,7 @@ import { ReplayControls } from "./components/ReplayControls";
 import { SystemPanel } from "./components/SystemPanel";
 import { VehicleCard } from "./components/VehicleCard";
 import { usePolling } from "./usePolling";
-import type { Snapshot, VehicleDetail } from "./types";
+import type { Snapshot, Status, VehicleDetail } from "./types";
 
 export default function App() {
   const [filter, setFilter] = useState<Filter>("attention");
@@ -19,6 +19,7 @@ export default function App() {
   const [commandError, setCommandError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [lastStatus, setLastStatus] = useState<Status | null>(null);
 
   const snapshotPoll = usePolling((signal) => api.snapshot(signal), 1000, true, String(pollKey));
   const statusPoll = usePolling((signal) => api.status(signal), 4000, true, String(pollKey));
@@ -29,6 +30,9 @@ export default function App() {
     selected !== null,
     `${snapshot?.run_id ?? ""}:${selected ?? ""}`,
   );
+
+  useEffect(() => { if (statusPoll.data) setLastStatus(statusPoll.data); }, [statusPoll.data]);
+  const navigationStatus = statusPoll.data ?? lastStatus;
 
   // A stale answer must never overwrite a newer snapshot revision.
   useEffect(() => {
@@ -134,7 +138,7 @@ export default function App() {
         )}
       </div>
       <ReplayControls
-        status={statusPoll.data ? { ...statusPoll.data, clock: snapshot?.run_id === statusPoll.data.run_id ? snapshot.clock : statusPoll.data.clock } : null}
+        status={navigationStatus ? { ...navigationStatus, clock: snapshot?.run_id === navigationStatus.run_id ? snapshot.clock : navigationStatus.clock } : null}
         pending={commandPending}
         onCommand={command}
         showSystem={showSystem}

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReplayAction } from "../api";
+import { fitWindow, sourceInput, sourceLabel, sourceMs, timeLabel } from "../replayTime";
 import type { Status } from "../types";
+import { ReplayTimeline } from "./ReplayTimeline";
 
 interface Props {
   status: Status | null;
@@ -10,176 +12,130 @@ interface Props {
   onToggleSystem: () => void;
   error: string | null;
 }
+interface NavigationRange { sourceFirst: number; sourceLast: number; start: number; end: number }
+const SPEEDS = [1, 10, 30, 60, 120, 300];
+const PRESETS = [{ label: "15м", span: 900000 }, { label: "1ч", span: 3600000 }, { label: "6ч", span: 21600000 }];
 
-const SPEEDS = [1, 10, 30, 120, 300];
-
-// UTC is used only as a numeric encoding of naive calendar fields. No local timezone
-// conversion is applied, and the timestamp sent to Backend has no offset or Z suffix.
-function sourceMs(value: string | null | undefined): number {
-  return value ? Date.parse(value.replace(" ", "T").slice(0, 23) + "Z") : NaN;
-}
-
-function sourceInput(value: number): string {
-  return Number.isFinite(value) ? new Date(value).toISOString().slice(0, 19) : "";
-}
-
-function sourceLabel(value: number): string {
-  return sourceInput(value).replace("T", " ");
-}
-
-interface NavigationRange {
-  sourceFirst: number;
-  sourceLast: number;
-  start: number;
-  end: number;
-}
-
-/** Historical navigation rebuilds the causal prefix and leaves the clock paused. */
+/** Compact time toolbar and ruler. All timestamps retain dataset calendar fields. */
 export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, error }: Props) {
-  const replay = status?.mode === "replay" && status?.replay?.control_enabled;
+  const replay = status?.mode === "replay" && status.replay?.control_enabled;
   const clock = status?.clock;
   const first = Math.ceil(sourceMs(clock?.source_window?.first) / 1000) * 1000;
   const last = Math.floor(sourceMs(clock?.source_window?.last) / 1000) * 1000;
   const current = sourceMs(clock?.source_time);
-  const hasPeriod = Number.isFinite(first) && Number.isFinite(last) && first <= last;
+  const hasPeriod = Number.isFinite(first) && Number.isFinite(last) && first < last;
   const [selection, setSelection] = useState<NavigationRange | null>(null);
-  const range = selection?.sourceFirst === first && selection?.sourceLast === last
-    ? selection : { start: first, end: last };
-  const [draft, setDraft] = useState<number | null>(null);
+  const range = selection?.sourceFirst === first && selection.sourceLast === last ? selection : { start: first, end: last };
+  const [editor, setEditor] = useState<"range" | "time" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  const position = hasPeriod ? Math.max(range.start, Math.min(range.end, draft ?? current)) : 0;
-
+  const editorRoot = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setDraft(null);
-    setLocalError(null);
-  }, [status?.run_id]);
+    if (!editor) return;
+    const outside = (event: PointerEvent) => {
+      if (!editorRoot.current?.contains(event.target as Node)) setEditor(null);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [editor]);
 
   const seek = async (value: number) => {
-    if (!Number.isFinite(value) || !hasPeriod || value < range.start || value > range.end) {
-      setLocalError("Выберите время внутри выбранного диапазона");
-      return;
+    if (!hasPeriod || !Number.isFinite(value) || value < range.start || value > range.end) {
+      setLocalError("Выберите время внутри выбранного диапазона"); return;
     }
     setLocalError(null);
-    await onCommand("seek", undefined, sourceInput(value).replace("T", " "));
-    setDraft(null);
+    setEditor(null);
+    await onCommand("seek", undefined, sourceLabel(value));
   };
-
   const applyRange = async (start: number, end: number) => {
-    if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end)
-      || start < first || end > last || start >= end) {
-      setLocalError("Начало должно быть раньше конца, обе границы — внутри доступного периода");
-      return;
+    if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end) || start < first || end > last || start >= end) {
+      setLocalError("Начало должно быть раньше конца, обе границы — внутри доступного периода"); return;
     }
     setSelection({ sourceFirst: first, sourceLast: last, start, end });
-    setDraft(null);
     setLocalError(null);
-    // A new navigation interval should display the real position, not a clamped fiction.
-    if (current < start || current > end) {
-      await onCommand("seek", undefined, sourceLabel(start));
-    }
+    setEditor(null);
+    if (current < start || current > end) await onCommand("seek", undefined, sourceLabel(start));
+  };
+  const shiftRange = (direction: number) => {
+    const size = range.end - range.start;
+    const shifted = fitWindow((range.start + range.end) / 2 + direction * size, size, first, last);
+    void applyRange(shifted.start, shifted.end);
   };
 
   return (
-    <footer className="footer">
-      <span className="footer-mode">
-        {status?.mode === "ndtp"
-          ? "Живой приём NDTP: виртуальные часы следуют за потоком"
-          : "Исторический replay по времени источника"}
-      </span>
-      {replay ? (
-        <div className="replay-actions">
-          <button disabled={pending} onClick={() => onCommand(clock?.paused ? "start" : "pause")}>
-            {clock?.paused ? "Продолжить" : "Пауза"}
-          </button>
-          <div className="speed-buttons" role="group" aria-label="Скорость воспроизведения">
-            {SPEEDS.map((speed) => (
-              <button
-                key={speed}
-                disabled={pending}
-                className={clock?.speed === speed ? "active" : ""}
-                onClick={() => onCommand("speed", speed)}
-              >
-                {speed}×
+    <footer className="footer replay-footer">
+      <div className="replay-toolbar">
+        {replay && hasPeriod ? (
+          <>
+            <div className="time-editor-root" ref={editorRoot} onKeyDown={(event) => { if (event.key === "Escape") setEditor(null); }}>
+              <button className="time-range-button" aria-label="Выбрать диапазон даты и времени" aria-expanded={editor === "range"}
+                disabled={pending} onClick={() => { setLocalError(null); setEditor(editor === "range" ? null : "range"); }}>
+                <span>{sourceLabel(range.start)} — {sourceLabel(range.end)}</span><span className="chevron">⌄</span>
               </button>
-            ))}
-          </div>
-          <button disabled={pending} onClick={() => onCommand("reset")}>Сброс прогона</button>
+              <button className="current-time-button" aria-label="Перейти к точному времени" aria-expanded={editor === "time"}
+                disabled={pending} onClick={() => { setLocalError(null); setEditor(editor === "time" ? null : "time"); }}>
+                <span className="playhead-dot" />{timeLabel(current)}
+              </button>
+              {editor ? (
+                <div className="time-editor" role="dialog" aria-label={editor === "range" ? "Выбор диапазона" : "Точное время"}>
+                  <div className="time-editor-heading"><strong>{editor === "range" ? "Диапазон навигации" : "Перейти к моменту"}</strong>
+                    <button aria-label="Закрыть выбор времени" onClick={() => setEditor(null)}>×</button></div>
+                  {editor === "range" ? (
+                    <form key={`${range.start}:${range.end}`} onSubmit={(event) => {
+                      event.preventDefault(); const values = new FormData(event.currentTarget);
+                      void applyRange(sourceMs(String(values.get("from"))), sourceMs(String(values.get("to"))));
+                    }}>
+                      <label>Начало диапазона<input name="from" type="datetime-local" step="1" required
+                        min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.start)} /></label>
+                      <label>Конец диапазона<input name="to" type="datetime-local" step="1" required
+                        min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.end)} /></label>
+                      <button type="submit">Применить диапазон</button>
+                    </form>
+                  ) : (
+                    <form key={`${status?.run_id}:${range.start}:${range.end}`} onSubmit={(event) => {
+                      event.preventDefault(); const values = new FormData(event.currentTarget);
+                      void seek(sourceMs(String(values.get("start_at"))));
+                    }}>
+                      <label>Перейти к дате и времени<input name="start_at" type="datetime-local" step="1" required
+                        min={sourceInput(range.start)} max={sourceInput(range.end)} defaultValue={sourceInput(current)} /></label>
+                      <button type="submit">Перейти</button>
+                    </form>
+                  )}
+                  {localError ? <p className="risk-red" role="alert">{localError}</p> : null}
+                  <p className="hint">Данные: {sourceLabel(first)} — {sourceLabel(last)}</p>
+                </div>
+              ) : null}
+            </div>
+            <div className="range-shortcuts" role="group" aria-label="Навигация по диапазонам">
+              <button disabled={pending || range.start <= first} aria-label="Предыдущий диапазон" onClick={() => shiftRange(-1)}>‹</button>
+              <button disabled={pending || range.end >= last} aria-label="Следующий диапазон" onClick={() => shiftRange(1)}>›</button>
+              {PRESETS.map((preset) => <button key={preset.label} disabled={pending}
+                className={range.end - range.start === preset.span ? "active" : ""}
+                onClick={() => { const next = fitWindow(current, preset.span, first, last); void applyRange(next.start, next.end); }}>{preset.label}</button>)}
+              <button disabled={pending} className={range.start === first && range.end === last ? "active" : ""}
+                onClick={() => void applyRange(first, last)}>Всё</button>
+            </div>
+          </>
+        ) : <span className="hint">{status?.mode === "ndtp" ? "Живой NDTP · перемотка недоступна" : "Загрузка исторического периода…"}</span>}
+        <div className="replay-playback">
+          {replay ? <>
+            <button disabled={pending} onClick={() => onCommand(clock?.paused ? "start" : "pause")}>
+              {clock?.paused ? "▷ Продолжить" : "Ⅱ Пауза"}</button>
+            <select aria-label="Скорость воспроизведения" value={clock?.speed ?? 60} disabled={pending}
+              onChange={(event) => onCommand("speed", Number(event.target.value))}>
+              {!SPEEDS.includes(clock?.speed ?? 60) ? <option value={clock?.speed}>{clock?.speed}×</option> : null}
+              {SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}×</option>)}
+            </select>
+            <button disabled={pending} aria-label="Сброс прогона" title="Сброс прогона" onClick={() => onCommand("reset")}>↺</button>
+          </> : null}
+          <button onClick={onToggleSystem} aria-pressed={showSystem}>{showSystem ? "Скрыть систему" : "Система"}</button>
         </div>
-      ) : (
-        <span className="hint">управление replay недоступно в этом режиме</span>
-      )}
-      <div className="footer-status">
-        {error || localError ? <span role="alert" className="risk-red">{localError ?? error}</span> : null}
-        <button onClick={onToggleSystem} aria-pressed={showSystem}>
-          {showSystem ? "Скрыть панель системы" : "Панель системы"}
-        </button>
       </div>
-      {replay && hasPeriod ? (
-        <div className="replay-navigation" aria-label="Перемотка исторического времени">
-          <form className="replay-range" key={`${first}:${last}:${range.start}:${range.end}`} onSubmit={(event) => {
-            event.preventDefault();
-            const fields = new FormData(event.currentTarget);
-            void applyRange(sourceMs(String(fields.get("from"))), sourceMs(String(fields.get("to"))));
-          }}>
-            <label>Начало диапазона
-              <input name="from" type="datetime-local" step="1" required
-                min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.start)} disabled={pending} />
-            </label>
-            <label>Конец диапазона
-              <input name="to" type="datetime-local" step="1" required
-                min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.end)} disabled={pending} />
-            </label>
-            <button disabled={pending} type="submit">Применить диапазон</button>
-            <button disabled={pending} type="button" onClick={() => {
-              setSelection(null); setDraft(null); setLocalError(null);
-            }}>Весь период</button>
-            <span className="hint range-available">Данные: {sourceLabel(first)} — {sourceLabel(last)}</span>
-          </form>
-          <div className="replay-timeline">
-            <div className="timeline-labels">
-              <span>{sourceLabel(range.start)}</span>
-              <strong>{pending ? "Применяем команду…" : `Время: ${sourceLabel(draft ?? current)}`}</strong>
-              <span>{sourceLabel(range.end)}</span>
-            </div>
-            <input
-              type="range"
-              aria-label="Историческая временная шкала"
-              min={range.start}
-              max={range.end}
-              step={1000}
-              value={Number.isFinite(position) ? position : first}
-              disabled={pending}
-              onChange={(event) => { setDraft(Number(event.target.value)); setLocalError(null); }}
-              onPointerUp={(event) => { if (!pending) void seek(Number(event.currentTarget.value)); }}
-              onPointerCancel={() => setDraft(null)}
-              onKeyUp={(event) => {
-                if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
-                  void seek(Number(event.currentTarget.value));
-                }
-              }}
-            />
-          </div>
-          <form className="replay-exact" onSubmit={(event) => {
-            event.preventDefault();
-            const value = new FormData(event.currentTarget).get("start_at");
-            void seek(sourceMs(typeof value === "string" ? value : ""));
-          }}>
-            <label htmlFor="replay-time">Перейти к дате и времени</label>
-            <div className="replay-exact-fields">
-              <input id="replay-time" name="start_at" key={`${status?.run_id}:${range.start}:${range.end}`} type="datetime-local" step="1" required
-                min={sourceInput(range.start)} max={sourceInput(range.end)} defaultValue={sourceInput(current)} disabled={pending}
-                onChange={() => setLocalError(null)} />
-              <button disabled={pending} type="submit">Перейти</button>
-            </div>
-          </form>
-          {current < range.start || current > range.end ? (
-            <span className="hint replay-seek-note">Текущее время вне выбранного диапазона.
-              <button disabled={pending} onClick={() => void seek(range.start)}>К началу диапазона</button>
-            </span>
-          ) : null}
-          <span className="hint replay-seek-note">Перемотка очищает прошлый прогон и ставит время на паузу. Время — как в датасете.</span>
-        </div>
-      ) : null}
+      {replay && hasPeriod ? <ReplayTimeline first={first} last={last} start={range.start} end={range.end}
+        current={current} disabled={pending} onRange={applyRange} onSeek={seek} /> : null}
+      {error || (localError && !editor) ? <span className="risk-red" role="alert">{error ?? localError}</span> : null}
+      {hasPeriod && (current < range.start || current > range.end) ? <div className="hint timeline-warning">
+        Текущее время вне выбранного диапазона. <button disabled={pending} onClick={() => void seek(range.start)}>К началу диапазона</button>
+      </div> : null}
     </footer>
   );
 }

@@ -59,7 +59,7 @@ export function Header({ snapshot, status, ageMs }: Props) {
           </div>
         ) : null}
         {clock?.source_progress !== undefined ? (
-          <div className="kpi" title="Доставлено событий из выбранного периода">
+          <div className="kpi" title="Доставлено событий из всего периода данных">
             <b>{Math.round((clock.source_progress ?? 0) * 100)}%</b>
             <span>период пройден</span>
           </div>

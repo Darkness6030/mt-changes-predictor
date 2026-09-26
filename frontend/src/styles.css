@@ -281,33 +281,49 @@ a { color: var(--accent); }
   .banner { padding: 8px 12px; }
 }
 
-.replay-navigation { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
-.replay-timeline { flex: 1 1 340px; min-width: 0; }
-.timeline-labels { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.timeline-labels strong { color: var(--text); font-variant-numeric: tabular-nums; }
-.replay-timeline input { width: 100%; margin: 8px 0 0; cursor: pointer; accent-color: var(--accent); }
-.replay-exact { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.replay-exact-fields { display: flex; flex-wrap: wrap; gap: 6px; }
-.replay-exact input { min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
-.replay-seek-note { flex-basis: 100%; }
-button:disabled, input:disabled { opacity: .55; cursor: wait; }
-@media (max-width: 640px) {
-  .replay-timeline, .replay-exact { flex-basis: 100%; }
-  .replay-exact-fields input { flex: 1 1 200px; }
-}
 
 .header .sub .replay-paused { color: var(--yellow); font-weight: 600; }
-.replay-range { flex-basis: 100%; display: flex; align-items: end; flex-wrap: wrap; gap: 8px 12px; }
-.replay-range label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.replay-range input { min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
-.range-available { flex-basis: 100%; }
+.replay-footer { display: block; padding: 0; position: relative; }
+.replay-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 9px 14px; }
+.time-editor-root { display: flex; align-items: center; gap: 8px; position: relative; min-width: 0; }
+.time-range-button { display: flex; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
+.time-range-button .chevron { color: var(--muted); }
+.current-time-button { display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; }
+.playhead-dot { width: 5px; height: 12px; background: var(--red); border-radius: 2px; }
+.range-shortcuts, .replay-playback { display: flex; align-items: center; gap: 5px; }
+.range-shortcuts button { background: transparent; border-color: transparent; padding: 5px 8px; }
+.range-shortcuts button.active { border-color: var(--accent); background: #1d2f45; }
+.replay-playback { margin-left: auto; }
+.replay-playback select { width: 70px; }
+.time-editor { position: absolute; bottom: calc(100% + 14px); left: 0; width: min(420px, calc(100vw - 28px)); padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 36px #0008; z-index: 1100; color: var(--text); }
+.time-editor-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.time-editor-heading button { padding: 2px 7px; }
+.time-editor form { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.time-editor label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); }
+.time-editor input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); color: var(--text); font: inherit; color-scheme: dark; }
+.time-editor p { margin: 12px 0 0; }
+.ruler-row { display: flex; align-items: stretch; border-top: 1px solid var(--line); }
+.time-ruler { height: 42px; flex: 1; min-width: 0; position: relative; overflow: hidden; cursor: crosshair; touch-action: none; user-select: none; background: var(--bg); }
+.ruler-selection { position: absolute; inset-block: 0; background: #4da3ff22; border-block: 1px solid #4da3ff33; cursor: grab; }
+.ruler-selection:active { cursor: grabbing; }
+.ruler-tick { position: absolute; bottom: 8px; height: 4px; width: 1px; background: #68788c80; pointer-events: none; }
+.ruler-tick.major { height: 8px; background: #8798ad; }
+.ruler-tick > span { position: absolute; bottom: 12px; transform: translateX(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ruler-handle { width: 5px; height: 32px; position: absolute; top: 5px; transform: translateX(-50%); background: var(--accent); border-radius: 3px; cursor: ew-resize; z-index: 3; touch-action: none; }
+.ruler-handle::before { content: ""; position: absolute; inset: -5px -7px; }
+.ruler-playhead { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--red); pointer-events: none; z-index: 4; }
+.ruler-playhead::before { content: ""; position: absolute; top: 0; left: -3px; width: 8px; height: 5px; background: var(--red); clip-path: polygon(0 0,100% 0,50% 100%); }
+.ruler-zoom { display: flex; align-items: center; gap: 1px; border-left: 1px solid var(--line); padding: 0 5px; }
+.ruler-zoom button { padding: 4px 8px; background: transparent; border-color: transparent; }
+.time-ruler.is-disabled { opacity: .6; cursor: wait; }
+.replay-footer > [role="alert"], .timeline-warning { display: block; padding: 6px 14px; }
 @media (max-width: 640px) {
-  .replay-range label { flex: 1 1 160px; }
-  .timeline-labels > span { font-size: 11px; }
+  .replay-toolbar { padding: 8px 10px; gap: 8px; }
+  .time-editor-root { flex-wrap: wrap; width: 100%; }
+  .time-range-button { width: 100%; justify-content: space-between; font-size: 11px; gap: 4px; }
+  .replay-playback { margin-left: 0; flex-wrap: wrap; }
+  .ruler-zoom button { padding: 4px 6px; }
+  .ruler-zoom button:last-child { font-size: 11px; max-width: 70px; white-space: normal; }
 }
-@media (max-width: 640px) {
-  .timeline-labels { display: grid; grid-template-columns: 1fr 1fr; }
-  .timeline-labels strong { grid-column: 1 / -1; grid-row: 1; text-align: center; }
-  .timeline-labels > span { grid-row: 2; }
-  .timeline-labels > span:last-child { text-align: right; }
-}
+.ruler-seek-control { position: absolute; inset: 0; pointer-events: none; }
+.ruler-seek-control:focus-visible { outline-offset: -2px; }
