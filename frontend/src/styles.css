@@ -140,6 +140,9 @@ input[type="search"], select {
 
 .map-wrap { position: relative; flex: 1; min-width: 0; }
 #map { position: absolute; inset: 0; background: #0b1016; }
+/* API 2.1 can retain these links despite suppressMapOpenBlock. Keep copyright/terms. */
+#map [class$="-gotoymaps"],
+#map [class$="-gototech"] { display: none !important; }
 .map-note {
   position: absolute;
   z-index: 500;

@@ -75,7 +75,9 @@
     "heading_field": "position.heading_deg",
     "heading_basis": "north_clockwise_degrees",
     "provider": "yandex_maps_js_api_2_1",
-    "vehicle_renderer": "persistent_placemark_svg"
+    "vehicle_renderer": "persistent_placemark_svg",
+    "suppress_map_open_block": true,
+    "terms_link_visible": true
   },
   "ui_demo": {
     "placement": "time_toolbar_before_system",
