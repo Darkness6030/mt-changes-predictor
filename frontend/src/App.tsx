@@ -130,7 +130,6 @@ export default function App() {
     <div className="app">
       <Header snapshot={displaySnapshot} status={statusPoll.data} ageMs={ageMs}
         error={commandError ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
-      <DemoPanel state={demo} pending={commandPending} error={demoPoll.error} onSwitch={switchSource} />
       {connectionLost ? (
         <div className="banner">
           Связь с Backend потеряна: {snapshotPoll.error ?? "состояние давно не обновлялось"}. Показано последнее полученное состояние
@@ -179,6 +178,7 @@ export default function App() {
         onCommand={command}
         showSystem={showSystem}
         onToggleSystem={() => setShowSystem((value) => !value)}
+        sourceControl={<DemoPanel state={demo} pending={commandPending} error={demoPoll.error} onSwitch={switchSource} />}
       />
     </div>
   );

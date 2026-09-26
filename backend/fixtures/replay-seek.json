@@ -66,5 +66,14 @@
     "unknown_heading_shape": "diamond",
     "heading_field": "position.heading_deg",
     "heading_basis": "north_clockwise_degrees"
+  },
+  "ui_demo": {
+    "placement": "time_toolbar_before_system",
+    "presentation": "source_button_with_popover",
+    "close": [
+      "escape",
+      "outside_pointer"
+    ],
+    "switch_clears_selection": true
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ReplayAction } from "../api";
 import { fitWindow, sourceInput, sourceLabel, sourceMs, timeLabel } from "../replayTime";
 import type { Status } from "../types";
@@ -10,13 +10,14 @@ interface Props {
   pending: boolean;
   showSystem: boolean;
   onToggleSystem: () => void;
+  sourceControl?: ReactNode;
 }
 interface NavigationRange { sourceFirst: number; sourceLast: number; start: number; end: number }
 const SPEEDS = [1, 10, 30, 60, 120, 300];
 const PRESETS = [{ label: "15м", span: 900000 }, { label: "1ч", span: 3600000 }, { label: "6ч", span: 21600000 }];
 
 /** Compact time toolbar and ruler. All timestamps retain dataset calendar fields. */
-export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem }: Props) {
+export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, sourceControl }: Props) {
   const replay = status?.mode === "replay" && status.replay?.control_enabled;
   const clock = status?.clock;
   const first = Math.ceil(sourceMs(clock?.source_window?.first) / 1000) * 1000;
@@ -126,6 +127,7 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
             </select>
             <button disabled={pending} aria-label="Сброс прогона" title="Сброс прогона" onClick={() => onCommand("reset")}>↺</button>
           </> : null}
+          {sourceControl}
           <button onClick={onToggleSystem} aria-pressed={showSystem}>{showSystem ? "Скрыть систему" : "Система"}</button>
         </div>
       </div>
