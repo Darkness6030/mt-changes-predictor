@@ -1,0 +1,473 @@
+{
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 71.77069485584455,
+    "no_hint_mae_s": 83.79501440953037,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "train_median_mae_s": 101.20113314447592,
+    "absolute_error_p50_s": 56.05504733091351,
+    "absolute_error_p90_s": 149.98015267524315,
+    "slices": {
+      "vehicle:122048": {
+        "rows": 24,
+        "mae_s": 120.40551576550462
+      },
+      "vehicle:122613": {
+        "rows": 25,
+        "mae_s": 38.115433156148676
+      },
+      "vehicle:122658": {
+        "rows": 17,
+        "mae_s": 109.84391418649663
+      },
+      "vehicle:129964": {
+        "rows": 26,
+        "mae_s": 65.09069550701987
+      },
+      "vehicle:130072": {
+        "rows": 2,
+        "mae_s": 10.931488207983703
+      },
+      "vehicle:130238": {
+        "rows": 7,
+        "mae_s": 36.26714521052159
+      },
+      "vehicle:131672": {
+        "rows": 38,
+        "mae_s": 62.509738982969196
+      },
+      "vehicle:132430": {
+        "rows": 32,
+        "mae_s": 108.01043529536261
+      },
+      "vehicle:133300": {
+        "rows": 28,
+        "mae_s": 59.78539512786432
+      },
+      "vehicle:133957": {
+        "rows": 41,
+        "mae_s": 68.95895552624224
+      },
+      "vehicle:134040": {
+        "rows": 52,
+        "mae_s": 63.65145153214065
+      },
+      "vehicle:134494": {
+        "rows": 6,
+        "mae_s": 0.6515189927207047
+      },
+      "vehicle:135081": {
+        "rows": 55,
+        "mae_s": 72.91277481830035
+      },
+      "early": {
+        "rows": 49,
+        "mae_s": 99.75518801784443
+      },
+      "ontime": {
+        "rows": 218,
+        "mae_s": 43.43624103709385
+      },
+      "late": {
+        "rows": 86,
+        "mae_s": 127.65058750177083
+      }
+    },
+    "feature_build_seconds": 0.8244936669943854,
+    "batch_predict_seconds": 0.013201082998421043,
+    "late_probability": {
+      "threshold_s": 120.0,
+      "calibration": {
+        "method": "platt",
+        "status": "fitted_on_development",
+        "report": "ml/reports/ml-v2.md",
+        "fit_rows": 287
+      },
+      "with_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.13950472496942737,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.42763842817202147,
+        "roc_auc": 0.8176552565107569,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 178,
+            "mean_predicted": 0.08554395317162229,
+            "observed_rate": 0.07303370786516854
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 71,
+            "mean_predicted": 0.29296760601790767,
+            "observed_rate": 0.323943661971831
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 66,
+            "mean_predicted": 0.4891523357303237,
+            "observed_rate": 0.3333333333333333
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 29,
+            "mean_predicted": 0.6879352445136049,
+            "observed_rate": 0.7241379310344828
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 9,
+            "mean_predicted": 0.853048514348655,
+            "observed_rate": 0.7777777777777778
+          }
+        ],
+        "status": "validated"
+      },
+      "no_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.17631862440732882,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.5250707209571354,
+        "roc_auc": 0.6934500479052348,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 108,
+            "mean_predicted": 0.12626235396616894,
+            "observed_rate": 0.08333333333333333
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 151,
+            "mean_predicted": 0.29012076331235026,
+            "observed_rate": 0.2582781456953642
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 78,
+            "mean_predicted": 0.48114429219749355,
+            "observed_rate": 0.41025641025641024
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 14,
+            "mean_predicted": 0.695713080719077,
+            "observed_rate": 0.2857142857142857
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 2,
+            "mean_predicted": 0.8360505714510232,
+            "observed_rate": 1.0
+          }
+        ],
+        "status": "validated"
+      }
+    }
+  },
+  "holdout": {
+    "rows": 206,
+    "vehicles": [
+      "122613",
+      "130238",
+      "131672"
+    ],
+    "metrics": {
+      "main": {
+        "mae_s": 74.37249193342619,
+        "p50_s": 45.13386993139715,
+        "p90_s": 171.59475922071022
+      },
+      "v2_main": {
+        "mae_s": 76.97200747049806,
+        "p50_s": 46.24113327972609,
+        "p90_s": 179.83960461369367
+      },
+      "fallback": {
+        "mae_s": 73.56227288243907,
+        "p50_s": 47.244689915148086,
+        "p90_s": 179.16576748550835
+      },
+      "v2_fallback": {
+        "mae_s": 88.37030593476653,
+        "p50_s": 57.37611582205194,
+        "p90_s": 196.96319500094847
+      },
+      "cur_dev": {
+        "mae_s": 83.83980582524272,
+        "p50_s": 52.0,
+        "p90_s": 196.5
+      },
+      "zero": {
+        "mae_s": 74.0,
+        "p50_s": 47.0,
+        "p90_s": 169.0
+      }
+    },
+    "by_vehicle": {
+      "122613": {
+        "main": 54.51305887699888,
+        "v2_main": 65.79525290799526,
+        "fallback": 57.46410706340885,
+        "v2_fallback": 80.97156758310585,
+        "cur_dev": 48.84905660377358,
+        "zero": 46.60377358490566
+      },
+      "130238": {
+        "main": 58.514451374362224,
+        "v2_main": 59.29920213129714,
+        "fallback": 60.24600958499488,
+        "v2_fallback": 61.6174618212794,
+        "cur_dev": 63.84415584415584,
+        "zero": 51.81818181818182
+      },
+      "131672": {
+        "main": 104.28853239446,
+        "v2_main": 102.67166540380225,
+        "fallback": 98.28010264969966,
+        "v2_fallback": 120.63480763708924,
+        "cur_dev": 128.5,
+        "zero": 115.57894736842105
+      }
+    }
+  },
+  "selection": {
+    "protocol": "ml/experiments/improve12-protocol.json",
+    "main_mae_s": 75.967991501075,
+    "fallback_mae_s": 84.72612506966439
+  },
+  "autonomous": {
+    "scored_rows": 1311,
+    "scored_visits": 322,
+    "labelled_visits": 353,
+    "visit_coverage": 0.9121813031161473,
+    "metrics": {
+      "candidate": {
+        "mae_s": 91.1775231305251,
+        "visit_weighted_mae_s": 90.2839175708939,
+        "p90_s": 189.09088776283946
+      },
+      "baseline_estimated": {
+        "mae_s": 100.45629108996629,
+        "visit_weighted_mae_s": 96.41386686008481,
+        "p90_s": 212.51523011589643
+      },
+      "baseline_no_hint": {
+        "mae_s": 94.79429411857498,
+        "visit_weighted_mae_s": 93.6434024114997,
+        "p90_s": 210.5588948139849
+      },
+      "zero": {
+        "mae_s": 107.73150266971777,
+        "visit_weighted_mae_s": 111.2919254658385,
+        "p90_s": 262.0
+      }
+    },
+    "by_vehicle": {
+      "122048": {
+        "candidate": 218.14412462461647,
+        "baseline_estimated": 226.26390963352983,
+        "baseline_no_hint": 220.8927962297797,
+        "zero": 231.52830188679246
+      },
+      "122613": {
+        "candidate": 97.50804549157739,
+        "baseline_estimated": 103.79533246406459,
+        "baseline_no_hint": 89.05918889318484,
+        "zero": 109.72727272727273
+      },
+      "122658": {
+        "candidate": 90.10467488369135,
+        "baseline_estimated": 183.19060452698545,
+        "baseline_no_hint": 70.58597715867532,
+        "zero": 83.34146341463415
+      },
+      "129964": {
+        "candidate": 68.43623054597522,
+        "baseline_estimated": 76.34096789114464,
+        "baseline_no_hint": 66.19101285742113,
+        "zero": 65.70588235294117
+      },
+      "130072": {
+        "candidate": 113.57002752878098,
+        "baseline_estimated": 191.47076239771022,
+        "baseline_no_hint": 16.132139633438445,
+        "zero": 0.0
+      },
+      "130238": {
+        "candidate": 39.58596787609104,
+        "baseline_estimated": 90.68177420533145,
+        "baseline_no_hint": 34.68170285810147,
+        "zero": 34.94736842105263
+      },
+      "131672": {
+        "candidate": 71.45669096851556,
+        "baseline_estimated": 75.90077515886213,
+        "baseline_no_hint": 92.22802309838498,
+        "zero": 92.37931034482759
+      },
+      "132430": {
+        "candidate": 122.70364042493759,
+        "baseline_estimated": 125.52542890796862,
+        "baseline_no_hint": 113.79318223858024,
+        "zero": 152.7962962962963
+      },
+      "133300": {
+        "candidate": 74.10926859586448,
+        "baseline_estimated": 83.03997482603431,
+        "baseline_no_hint": 91.35947117884335,
+        "zero": 57.83606557377049
+      },
+      "133957": {
+        "candidate": 76.44339944772624,
+        "baseline_estimated": 70.24036486750373,
+        "baseline_no_hint": 82.9977223719313,
+        "zero": 104.8695652173913
+      },
+      "134040": {
+        "candidate": 73.98424916685946,
+        "baseline_estimated": 77.81718534147902,
+        "baseline_no_hint": 74.20618444301626,
+        "zero": 111.17209302325581
+      },
+      "135081": {
+        "candidate": 83.47435330659901,
+        "baseline_estimated": 74.28970840743179,
+        "baseline_no_hint": 91.19161374388234,
+        "zero": 108.13131313131314
+      }
+    },
+    "late_probability": {
+      "rows": 1311,
+      "positive_rate": 0.23646071700991608,
+      "brier": 0.1792379653355501,
+      "base_rate_brier": 0.18054704632107246,
+      "log_loss": 0.5361005678181469,
+      "roc_auc": 0.6638297186684283,
+      "bins": [
+        {
+          "range": [
+            0.0,
+            0.2
+          ],
+          "rows": 335,
+          "mean_predicted": 0.14244440135816122,
+          "observed_rate": 0.08358208955223881
+        },
+        {
+          "range": [
+            0.2,
+            0.4
+          ],
+          "rows": 616,
+          "mean_predicted": 0.2885569176996299,
+          "observed_rate": 0.2435064935064935
+        },
+        {
+          "range": [
+            0.4,
+            0.6000000000000001
+          ],
+          "rows": 304,
+          "mean_predicted": 0.4847503452183349,
+          "observed_rate": 0.35526315789473684
+        },
+        {
+          "range": [
+            0.6000000000000001,
+            0.8
+          ],
+          "rows": 50,
+          "mean_predicted": 0.67948736523741,
+          "observed_rate": 0.4
+        },
+        {
+          "range": [
+            0.8,
+            1.0
+          ],
+          "rows": 6,
+          "mean_predicted": 0.8338645487574858,
+          "observed_rate": 0.6666666666666666
+        }
+      ],
+      "status": "validated"
+    },
+    "lead_from_cutoff_s": {
+      "min": 354.0,
+      "median": 737.0,
+      "p10": 579.0,
+      "fraction_at_least_600s": 0.8642257818459191,
+      "note": "Observed arrival minus source cutoff, not wall-clock publication time."
+    },
+    "predictions": 15077,
+    "opportunities": 16472,
+    "stale": 1361,
+    "warming_up": 34,
+    "runtime_s": 114.53707929200027,
+    "feature_and_three_model_batch_ms": {
+      "p50": 35.27989599388093,
+      "p95": 43.21282739838352
+    },
+    "limitations": [
+      "Event-time cadence, not a TCP/HTTP/delivery-latency benchmark.",
+      "Repeated cutoffs for the same target are dependent; visit-weighted MAE is also given.",
+      "Only labelled visits can be scored; unlabelled predictions remain in the archive.",
+      "One day shared with training telemetry; not a new-day external benchmark."
+    ]
+  },
+  "uncertainty": {
+    "prediction": {
+      "improvement_s": 7.3166709584257,
+      "vehicle_bootstrap_95pct_s": [
+        3.2715183716068443,
+        11.252478093828397
+      ],
+      "improved_vehicles": 10,
+      "vehicles": 13
+    },
+    "no_hint_prediction": {
+      "improvement_s": 3.5321083401172,
+      "vehicle_bootstrap_95pct_s": [
+        -4.014182392623468,
+        10.57955244376796
+      ],
+      "improved_vehicles": 6,
+      "vehicles": 13
+    }
+  }
+}

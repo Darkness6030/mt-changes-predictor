@@ -18,7 +18,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from transport_ml import __version__
-from transport_ml.features import SCHEMA_VERSION
 from transport_ml.model import DelayModel
 
 MAX_ITEMS = int(os.environ.get("ML_MAX_ITEMS", "256"))
@@ -75,6 +74,7 @@ class ModelInfo(BaseModel):
     train_rows: int | None
     training_group: str | None
     max_items: int
+    hint_policy: str = "gps_estimated"
 
 
 def load_model(directory: Path) -> DelayModel:
@@ -84,7 +84,7 @@ def load_model(directory: Path) -> DelayModel:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the artifact once at startup; readiness stays false if it cannot be loaded."""
-    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v2"))
+    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v3"))
     app.state.model_dir = directory
     app.state.model = None
     app.state.load_error = None
@@ -134,7 +134,7 @@ def ready(request: Request) -> JSONResponse:
         content={
             "status": "ready",
             "model_version": model.version,
-            "feature_schema_version": SCHEMA_VERSION,
+            "feature_schema_version": model.manifest["feature_schema_version"],
             "model_dir": str(request.app.state.model_dir),
         }
     )
@@ -151,7 +151,10 @@ def model_info(request: Request) -> ModelInfo:
         features=model.features,
         feature_config=manifest["feature_config"],
         models={
-            name: {key: spec[key] for key in ("depth", "iterations", "residual") if key in spec}
+            name: {
+                **{key: spec[key] for key in ("depth", "iterations", "residual") if key in spec},
+                "member_count": len(spec.get("members", [spec])),
+            }
             for name, spec in manifest["models"].items()
         },
         classifiers={
@@ -168,6 +171,7 @@ def model_info(request: Request) -> ModelInfo:
         train_rows=manifest.get("train_rows"),
         training_group=manifest.get("training_group"),
         max_items=MAX_ITEMS,
+        hint_policy=manifest.get("hint_policy", "gps_estimated"),
     )
 
 

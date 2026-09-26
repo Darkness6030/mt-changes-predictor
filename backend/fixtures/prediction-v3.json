@@ -1,0 +1,49 @@
+{
+  "fixture": true,
+  "prediction_id": "p-000629",
+  "run_id": "run-20260926T232008Z-5e43",
+  "tr_id": "122048",
+  "sample_id": null,
+  "status": "ok",
+  "cutoff_t": "2026-01-06 08:52:54.785338919",
+  "computed_at": "2026-09-26T23:21:02.506Z",
+  "trigger": "periodic",
+  "target_stop_id": "53699018594",
+  "target_planned_at": "2026-01-06 09:03:00",
+  "target_address": "Борисовский пр., д.5",
+  "target_lon": 37.71613097,
+  "target_lat": 55.62501066,
+  "horizon_s": 605.214661081,
+  "delay_s": 24.07737500432505,
+  "expected_arrival_at": "2026-01-06 09:03:24.077375004",
+  "risk_level": "green",
+  "risk_basis": "в пределах допустимого отклонения",
+  "late_probability": 0.22132838702629726,
+  "late_threshold_s": 120.0,
+  "calibration": {
+    "method": "platt",
+    "status": "fitted_on_development",
+    "report": "ml/reports/ml-v2.md",
+    "fit_rows": 287
+  },
+  "model_version": "f96305821910895619287e931b996abe55644592297e3f0a80d02538ce660245",
+  "model_used": "fallback",
+  "feature_schema_version": "2",
+  "cur_dev_s": null,
+  "cur_dev_source": "missing",
+  "cur_dev_age_s": null,
+  "data_age_s": 8.785338919,
+  "prediction_age_s": 7.37851254,
+  "stale": false,
+  "evidence": [
+    {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 3,7 км",
+      "value": 3742.3622808769182
+    }
+  ],
+  "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+  "quality_flags": [
+    "invalid_gps"
+  ]
+}

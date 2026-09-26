@@ -371,3 +371,55 @@ async def test_current_deviation_survives_missing_ml_and_seek_but_not_reset():
         assert not engine.current_deviation.estimates
     finally:
         await engine.stop()
+
+
+async def test_context_contract_and_autonomous_prefix_match_offline():
+    points = load_points(DATA, "test")
+    traffic, plan = load_inputs(DATA, "test")
+    config = FeatureConfig(schedule_context=True)
+    builder = FeatureBuilder(traffic, plan, config)
+    engine = make_engine()
+    engine.ml.model.update(
+        feature_schema_version="2", feature_config=config.to_dict(), hint_policy="supplied_only"
+    )
+    chosen = points.iloc[[10, 40, 120, 250]].copy()
+    chosen["cur_dev_s"] = np.nan
+    expected = builder.transform(chosen)
+    for position, row in enumerate(chosen.itertuples()):
+        at = int(row.T.value)
+        engine.clock.start(at)
+        engine.clock.paused = True
+        engine.replay.reset(at - 1800 * SECOND_NS)
+        engine.state.tracks.clear()
+        for event in engine.replay.due(at):
+            engine.state.add(event, at)
+        request = {
+            "tr_id": row.tr_id,
+            "cutoff_ns": at,
+            "target_stop_id": row.target_stop_id,
+            "target_planned_ns": int(row.target_time_begin.value),
+            "cur_dev_s": None,
+            "cur_dev_source": "missing",
+            "sample_id": None,
+            "trigger": "periodic",
+        }
+        await engine._predict([request], at)
+        # No supplied point/hint enters this periodic request even when GPS can be matched.
+        actual = engine.ml.seen[-1]["features"]
+        assert actual["cur_dev_s"] is None
+        assert_series_equal(
+            pd.Series(actual, dtype=float), expected.iloc[position], check_names=False
+        )
+        prediction = engine.predictions[row.tr_id]
+        assert prediction["feature_schema_version"] == "2"
+        assert prediction["model_used"] == "fallback"
+        assert prediction["cur_dev_source"] == "missing"
+
+
+async def test_incompatible_model_contract_cannot_send_wrong_features():
+    engine = make_engine()
+    engine.ml.model.update(feature_schema_version="2", feature_config={"schedule_context": False})
+    await engine._predict([], 0)
+    assert not engine.ml.ready
+    assert "disagree" in engine.ml.last_error
+    assert engine.ml.seen == []

@@ -19,7 +19,7 @@ from pathlib import Path
 from time import perf_counter
 
 import numpy as np
-from transport_ml.features import SCHEMA_VERSION, FeatureBuilder, FeatureConfig
+from transport_ml.features import FeatureBuilder, FeatureConfig
 
 from transport_backend import __version__
 from transport_backend.clock import (
@@ -408,7 +408,7 @@ class Engine:
         self.last_cycle_at = wall_iso()
         if self.sidecar is not None:
             self.sidecar.mature(now_ns)
-        if self.ml.model is None:
+        if self.ml.model is None or not self.ml.ready:
             await self.ml.refresh_model()
         if run_id != self.run_id:
             return
@@ -511,6 +511,25 @@ class Engine:
 
     async def _predict(self, requests: list[dict], now_ns: int) -> None:
         run_id = self.run_id
+        try:
+            info = self.ml.model or {}
+            config = FeatureConfig(**info.get("feature_config", {}))
+            if info.get("feature_schema_version", config.schema_version) != config.schema_version:
+                raise ValueError("ML feature schema and config disagree")
+            if config.max_speed_kmh != FeatureConfig().max_speed_kmh:
+                raise ValueError("ML speed cleaning differs from ingestion")
+            if config.schedule_context and self.settings.history_window_s < 1800:
+                raise ValueError("Schedule context requires 1800 seconds of retained history")
+            if info.get("hint_policy", "gps_estimated") not in {"supplied_only", "gps_estimated"}:
+                raise ValueError("Unknown ML hint policy")
+            self.feature_config = config
+        except (TypeError, ValueError) as error:
+            self.ml.ready = False
+            self.ml.last_error = f"Invalid ML contract: {error}"
+            for request in requests:
+                self._publish(request, status="ml_unavailable")
+            self.revision += 1
+            return
         prepared: list[dict] = []
         skipped: list[dict] = []
         for request in requests:
@@ -561,7 +580,7 @@ class Engine:
             )
             request["_features"] = row
             request["_request_id"] = str(len(items) - 1)
-        results = await self.ml.predict(items, SCHEMA_VERSION) if items else {}
+        results = await self.ml.predict(items, self.feature_config.schema_version) if items else {}
         if run_id != self.run_id:
             return  # A reset invalidates all in-flight results of the previous run.
         for request in prepared:
@@ -589,7 +608,11 @@ class Engine:
         for request in requests:
             hint = request["cur_dev_s"]
             source = request["cur_dev_source"]
-            if hint is None:
+            if hint is None and (self.ml.model or {}).get("hint_policy") == "supplied_only":
+                # V3 learns noisy GPS/plan matches as separate features, never as the
+                # supplied cur_dev_s input on which the main regressor was trained.
+                source = "missing"
+            elif hint is None:
                 estimated = self.state.estimate_deviation(request["tr_id"], request["cutoff_ns"])
                 if estimated is not None:
                     hint = estimated.seconds
@@ -705,7 +728,7 @@ class Engine:
             "calibration": result.get("calibration"),
             "model_version": result.get("model_version"),
             "model_used": result.get("model_used"),
-            "feature_schema_version": SCHEMA_VERSION,
+            "feature_schema_version": self.feature_config.schema_version,
             "cur_dev_s": request.get("cur_dev_s"),
             "cur_dev_source": request.get("cur_dev_source"),
             "cur_dev_age_s": request.get("cur_dev_age_s"),

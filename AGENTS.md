@@ -27,11 +27,11 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v2 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v2/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v3/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
@@ -43,7 +43,7 @@ Ruff ML/Backend, TypeScript/Vite build, три healthy Docker-сервиса. Э
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | 44 общих признака; main/fallback CatBoost; v2 с классификаторами и Platt; group holdout | LIVE-EVAL-01: автономная оценка; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/`, `ml/pretrained/v2/` |
+| ML | v3: 73 причинных признака, main/fallback ансамбли; train-only подбор, periodic event-time оценка; классификаторы v2 | LIVE-EVAL-01: доставка/публикация; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/ml-v3.md`, `ml/pretrained/v3/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
 | Backend | CSV replay, NDTP TCP, state, GPS-hint, alerts/ack, snapshot, runtime metrics | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
 | Frontend | React/Vite/TS/Leaflet; очередь, карта, участки, карточка, системная панель, адаптивная вёрстка | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
@@ -122,6 +122,15 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
+- Обновление 27.09: v3 использует schema 2 / 73 признака и `hint_policy=supplied_only`.
+  Backend получает config из ML API; GPS-оценки входят отдельными признаками, а не
+  подставляются в `cur_dev_s`. V1/v2 сохраняют schema 1 и старую политику.
+- Подбор v3: 109 конфигураций на 5 group + 2 forward folds, test не участвовал. Test
+  MAE 71,7707 с supplied / 83,7950 с no-hint. Bounded periodic replay без points:
+  91,1775 с (1311 прогнозов, 322 размеченных посещения). Это event-time оценка одного
+  дня, не полный benchmark доставки/публикации. Рецепт, ограничения: `ml/reports/ml-v3.md`.
+- Старые численные ориентиры v2 ниже сохранены для сравнения; текущий default — v3.
+
 - `BACKEND_MODE=ndtp` по умолчанию отключает forecast points; пустой
   `BACKEND_USE_POINTS` выбирает режимный default, `true` — явная offline-диагностика.
 - GPS-estimated hint не равен supplied hint. Test MAE 79,0874 с относится к supplied;
@@ -160,8 +169,8 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 ## Git, артефакты и прогресс
 
 Не коммитить `.env`, токены, `.venv`, IDE, кэши, Docker-слои и большие модели.
-Исключение для передачи команде: небольшие `ml/pretrained/v1/` и `ml/pretrained/v2/`
-хранят модели, manifests и CSV. По умолчанию используется v2. Не менять эти комплекты
+Исключение для передачи команде: небольшие `ml/pretrained/v1/`, `ml/pretrained/v2/` и
+`ml/pretrained/v3/` хранят модели, manifests и CSV. По умолчанию используется v3. Не менять эти комплекты
 на месте; эксперименты писать в `artifacts/<run>/`.
 Исходные CSV включены в приватный репозиторий для воспроизводимости; OCI-образ остаётся
 локальным. Не менять публичность репозитория и не удалять исходные файлы по собственной
