@@ -27,7 +27,7 @@ export function ReplayTimeline({ first, last, start, end, current, disabled, onR
   const selected = draft ?? { start, end };
 
   useEffect(() => {
-    setView(fitWindow((start + end) / 2, (end - start) * 3));
+    setView(fitWindow((start + end) / 2, (end - start) / 0.8));
     setDraft(null);
   }, [first, last, start, end]);
   useEffect(() => {

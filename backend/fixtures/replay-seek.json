@@ -39,7 +39,8 @@
       21600
     ],
     "playhead_at": "2026-01-06 11:30:15",
-    "unrestricted": true
+    "unrestricted": true,
+    "selection_width_fraction": 0.8
   },
   "outside_data_example": {
     "request": {
