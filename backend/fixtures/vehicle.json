@@ -1,0 +1,1066 @@
+{
+ "fixture": true,
+ "captured_at": "2026-09-26T14:01:25.696Z",
+ "note": "Снимок работающего replay-стенда; используется в dev-режиме UI и тестах",
+ "tr_id": "122048",
+ "unit_id": "893159",
+ "mapped": true,
+ "position": {
+  "lon": 37.625313,
+  "lat": 55.72919,
+  "speed_kmh": 54.0,
+  "heading_deg": 143.0,
+  "event_at": "2026-01-06 10:50:22",
+  "age_s": 92.05625001
+ },
+ "last_event_at": "2026-01-06 10:51:20",
+ "telemetry_age_s": 34.05625001,
+ "position_age_s": 92.05625001,
+ "stale": false,
+ "events_in_window": 150,
+ "invalid_gps_fraction": 0.14666666666666667,
+ "quality_flags": [
+  "invalid_gps",
+  "conflicting_event_times"
+ ],
+ "has_schedule": true,
+ "next_visit": {
+  "target_stop_id": "53699019206",
+  "planned_at": "2026-01-06 10:52:00",
+  "address": "Люсиновская ул., д.27",
+  "lon": 37.62262505,
+  "lat": 55.72531559
+ },
+ "prediction": {
+  "prediction_id": "p-000384",
+  "run_id": "run-20260926T140051Z-6fdc",
+  "tr_id": "122048",
+  "sample_id": null,
+  "status": "ok",
+  "cutoff_t": "2026-01-06 10:51:32.295487504",
+  "computed_at": "2026-09-26T14:01:25.661Z",
+  "trigger": "periodic",
+  "target_stop_id": "53699019214",
+  "target_planned_at": "2026-01-06 11:03:00",
+  "target_address": "Большая Тульская ул., д.10",
+  "target_lon": 37.62090917,
+  "target_lat": 55.70700843,
+  "horizon_s": 687.704512496,
+  "delay_s": 28.82366099230265,
+  "expected_arrival_at": "2026-01-06 11:03:28.823660992",
+  "risk_level": "green",
+  "risk_basis": "в пределах допустимого отклонения",
+  "late_probability": 0.10747008395408483,
+  "late_threshold_s": 120.0,
+  "calibration": {
+   "method": "platt",
+   "status": "fitted_on_development",
+   "report": "ml/reports/ml-v2.md",
+   "fit_rows": 287
+  },
+  "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+  "model_used": "main",
+  "feature_schema_version": "1",
+  "cur_dev_s": -86.0,
+  "cur_dev_source": "estimated",
+  "cur_dev_age_s": 298.295487504,
+  "data_age_s": 70.295487504,
+  "prediction_age_s": 21.760762506,
+  "stale": false,
+  "evidence": [
+   {
+    "kind": "current_deviation",
+    "text": "На последней пройденной остановке опережение 86 с",
+    "value": -86.0
+   },
+   {
+    "kind": "distance_to_target",
+    "text": "До целевой остановки по прямой 2,5 км",
+    "value": 2481.8524402663093
+   }
+  ],
+  "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+  "quality_flags": [
+   "invalid_gps",
+   "conflicting_event_times"
+  ]
+ },
+ "track": [
+  {
+   "lon": 37.625412,
+   "lat": 55.725903,
+   "speed_kmh": 14.0,
+   "event_at": "2026-01-06 10:36:48"
+  },
+  {
+   "lon": 37.625546,
+   "lat": 55.72668,
+   "speed_kmh": 20.0,
+   "event_at": "2026-01-06 10:37:04"
+  },
+  {
+   "lon": 37.626286,
+   "lat": 55.727253,
+   "speed_kmh": 19.0,
+   "event_at": "2026-01-06 10:37:18"
+  },
+  {
+   "lon": 37.625298,
+   "lat": 55.72783,
+   "speed_kmh": 14.0,
+   "event_at": "2026-01-06 10:37:30"
+  },
+  {
+   "lon": 37.624817,
+   "lat": 55.728096,
+   "speed_kmh": 6.0,
+   "event_at": "2026-01-06 10:37:40"
+  },
+  {
+   "lon": 37.624256,
+   "lat": 55.728794,
+   "speed_kmh": 7.0,
+   "event_at": "2026-01-06 10:37:54"
+  },
+  {
+   "lon": 37.62455,
+   "lat": 55.728832,
+   "speed_kmh": 4.0,
+   "event_at": "2026-01-06 10:38:08"
+  },
+  {
+   "lon": 37.62457,
+   "lat": 55.728897,
+   "speed_kmh": 6.0,
+   "event_at": "2026-01-06 10:38:24"
+  },
+  {
+   "lon": 37.624413,
+   "lat": 55.7288,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:38:40"
+  },
+  {
+   "lon": 37.624367,
+   "lat": 55.728783,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:38:54"
+  },
+  {
+   "lon": 37.62436,
+   "lat": 55.728672,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:39:10"
+  },
+  {
+   "lon": 37.62429,
+   "lat": 55.728672,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:39:18"
+  },
+  {
+   "lon": 37.62434,
+   "lat": 55.728825,
+   "speed_kmh": 2.0,
+   "event_at": "2026-01-06 10:39:32"
+  },
+  {
+   "lon": 37.62428,
+   "lat": 55.728786,
+   "speed_kmh": 1.0,
+   "event_at": "2026-01-06 10:39:46"
+  },
+  {
+   "lon": 37.62428,
+   "lat": 55.728786,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:40:02"
+  },
+  {
+   "lon": 37.624226,
+   "lat": 55.72876,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:40:16"
+  },
+  {
+   "lon": 37.624287,
+   "lat": 55.72876,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:40:22"
+  },
+  {
+   "lon": 37.624344,
+   "lat": 55.7288,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:40:36"
+  },
+  {
+   "lon": 37.624344,
+   "lat": 55.7288,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:40:52"
+  },
+  {
+   "lon": 37.624264,
+   "lat": 55.72876,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:41:06"
+  },
+  {
+   "lon": 37.624264,
+   "lat": 55.72876,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:41:22"
+  },
+  {
+   "lon": 37.624264,
+   "lat": 55.72876,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:41:36"
+  },
+  {
+   "lon": 37.624134,
+   "lat": 55.728703,
+   "speed_kmh": 3.0,
+   "event_at": "2026-01-06 10:41:38"
+  },
+  {
+   "lon": 37.62417,
+   "lat": 55.72868,
+   "speed_kmh": 8.0,
+   "event_at": "2026-01-06 10:41:46"
+  },
+  {
+   "lon": 37.624317,
+   "lat": 55.72882,
+   "speed_kmh": 1.0,
+   "event_at": "2026-01-06 10:42:00"
+  },
+  {
+   "lon": 37.624317,
+   "lat": 55.728813,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:42:16"
+  },
+  {
+   "lon": 37.624317,
+   "lat": 55.728813,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:42:30"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:42:46"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:43:00"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:43:16"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:43:30"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:43:46"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:44:00"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:44:16"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:44:30"
+  },
+  {
+   "lon": 37.62438,
+   "lat": 55.72884,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:44:44"
+  },
+  {
+   "lon": 37.624336,
+   "lat": 55.728756,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:44:52"
+  },
+  {
+   "lon": 37.624138,
+   "lat": 55.72814,
+   "speed_kmh": 15.0,
+   "event_at": "2026-01-06 10:45:06"
+  },
+  {
+   "lon": 37.624344,
+   "lat": 55.72866,
+   "speed_kmh": 3.0,
+   "event_at": "2026-01-06 10:45:20"
+  },
+  {
+   "lon": 37.624336,
+   "lat": 55.728683,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:45:36"
+  },
+  {
+   "lon": 37.624424,
+   "lat": 55.728626,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:45:50"
+  },
+  {
+   "lon": 37.624405,
+   "lat": 55.728634,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:46:04"
+  },
+  {
+   "lon": 37.62432,
+   "lat": 55.728645,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:46:20"
+  },
+  {
+   "lon": 37.624363,
+   "lat": 55.728664,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:46:34"
+  },
+  {
+   "lon": 37.624363,
+   "lat": 55.728664,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:46:50"
+  },
+  {
+   "lon": 37.62431,
+   "lat": 55.728756,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:47:04"
+  },
+  {
+   "lon": 37.62425,
+   "lat": 55.728775,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:47:20"
+  },
+  {
+   "lon": 37.62428,
+   "lat": 55.72875,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:47:34"
+  },
+  {
+   "lon": 37.62428,
+   "lat": 55.72875,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:47:50"
+  },
+  {
+   "lon": 37.62428,
+   "lat": 55.72875,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:48:04"
+  },
+  {
+   "lon": 37.624306,
+   "lat": 55.728767,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:48:20"
+  },
+  {
+   "lon": 37.624306,
+   "lat": 55.728775,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:48:34"
+  },
+  {
+   "lon": 37.62426,
+   "lat": 55.72886,
+   "speed_kmh": 0.0,
+   "event_at": "2026-01-06 10:48:50"
+  },
+  {
+   "lon": 37.62422,
+   "lat": 55.728985,
+   "speed_kmh": 4.0,
+   "event_at": "2026-01-06 10:49:04"
+  },
+  {
+   "lon": 37.624207,
+   "lat": 55.729153,
+   "speed_kmh": 6.0,
+   "event_at": "2026-01-06 10:49:20"
+  },
+  {
+   "lon": 37.624126,
+   "lat": 55.729248,
+   "speed_kmh": 1.0,
+   "event_at": "2026-01-06 10:49:34"
+  },
+  {
+   "lon": 37.623825,
+   "lat": 55.729378,
+   "speed_kmh": 6.0,
+   "event_at": "2026-01-06 10:49:50"
+  },
+  {
+   "lon": 37.624344,
+   "lat": 55.72904,
+   "speed_kmh": 4.0,
+   "event_at": "2026-01-06 10:50:04"
+  },
+  {
+   "lon": 37.62494,
+   "lat": 55.72769,
+   "speed_kmh": 42.0,
+   "event_at": "2026-01-06 10:50:18"
+  },
+  {
+   "lon": 37.625313,
+   "lat": 55.72919,
+   "speed_kmh": 54.0,
+   "event_at": "2026-01-06 10:50:22"
+  }
+ ],
+ "plan": [
+  {
+   "target_stop_id": "53699019168",
+   "planned_at": "2026-01-06 10:22:00",
+   "address": "Варшавское ш., д.49, к.1",
+   "lon": 37.62551736,
+   "lat": 55.67798058,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019181",
+   "planned_at": "2026-01-06 10:22:00",
+   "address": null,
+   "lon": 37.62630689,
+   "lat": 55.67573588,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019165",
+   "planned_at": "2026-01-06 10:23:00",
+   "address": "Нагатинская ул., д.2А",
+   "lon": 37.6244507,
+   "lat": 55.6810098,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019166",
+   "planned_at": "2026-01-06 10:25:00",
+   "address": "Варшавское ш., д.39",
+   "lon": 37.62357841,
+   "lat": 55.68441771,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019171",
+   "planned_at": "2026-01-06 10:27:00",
+   "address": null,
+   "lon": 37.62232668,
+   "lat": 55.68954077,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019172",
+   "planned_at": "2026-01-06 10:29:00",
+   "address": "Варшавское ш., д.19",
+   "lon": 37.62106257,
+   "lat": 55.69640401,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019169",
+   "planned_at": "2026-01-06 10:31:00",
+   "address": "Варшавское ш., д.3",
+   "lon": 37.6218884,
+   "lat": 55.7023698,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019170",
+   "planned_at": "2026-01-06 10:32:00",
+   "address": "Большая Тульская ул., д.44",
+   "lon": 37.62172582,
+   "lat": 55.70546135,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019184",
+   "planned_at": "2026-01-06 10:34:00",
+   "address": "Большая Тульская ул., д.13",
+   "lon": 37.62215703,
+   "lat": 55.71026532,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019173",
+   "planned_at": "2026-01-06 10:37:00",
+   "address": "Подольское ш., д.8",
+   "lon": 37.62458854,
+   "lat": 55.71387425,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019174",
+   "planned_at": "2026-01-06 10:38:00",
+   "address": "Большая Серпуховская ул., д.35",
+   "lon": 37.62570327,
+   "lat": 55.71544578,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019179",
+   "planned_at": "2026-01-06 10:39:00",
+   "address": "Павловская ул., д.7",
+   "lon": 37.62780194,
+   "lat": 55.71942783,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019180",
+   "planned_at": "2026-01-06 10:40:00",
+   "address": "Большая Серпуховская ул., д.31, к.1",
+   "lon": 37.62770898,
+   "lat": 55.72210574,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019177",
+   "planned_at": "2026-01-06 10:41:00",
+   "address": "Большая Серпуховская ул., д.27",
+   "lon": 37.62622664,
+   "lat": 55.72499391,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019167",
+   "planned_at": "2026-01-06 10:43:00",
+   "address": "Большая Серпуховская ул., д.6",
+   "lon": 37.62428644,
+   "lat": 55.72911193,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019178",
+   "planned_at": "2026-01-06 10:43:00",
+   "address": "Большая Серпуховская ул., д.14",
+   "lon": 37.62477717,
+   "lat": 55.72807443,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019208",
+   "planned_at": "2026-01-06 10:48:00",
+   "address": "Большая Серпуховская ул., д.6",
+   "lon": 37.62428644,
+   "lat": 55.72911193,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019209",
+   "planned_at": "2026-01-06 10:50:00",
+   "address": "Люсиновская ул., д.9",
+   "lon": 37.62329099,
+   "lat": 55.72852104,
+   "passed": true
+  },
+  {
+   "target_stop_id": "53699019206",
+   "planned_at": "2026-01-06 10:52:00",
+   "address": "Люсиновская ул., д.27",
+   "lon": 37.62262505,
+   "lat": 55.72531559,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019207",
+   "planned_at": "2026-01-06 10:53:00",
+   "address": "Люсиновская ул., д.39",
+   "lon": 37.62219435,
+   "lat": 55.72263741,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019222",
+   "planned_at": "2026-01-06 10:55:00",
+   "address": "ул. Павла Андреева, д.23",
+   "lon": 37.62217293,
+   "lat": 55.72010465,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019223",
+   "planned_at": "2026-01-06 10:56:00",
+   "address": "Люсиновская ул., д.64",
+   "lon": 37.62217293,
+   "lat": 55.71725319,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019220",
+   "planned_at": "2026-01-06 10:57:00",
+   "address": "Люсиновская ул., д.68",
+   "lon": 37.62212588,
+   "lat": 55.71560333,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019216",
+   "planned_at": "2026-01-06 10:59:00",
+   "address": "Люсиновская ул., д.72",
+   "lon": 37.62210127,
+   "lat": 55.71315627,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019217",
+   "planned_at": "2026-01-06 11:01:00",
+   "address": "Большая Тульская ул., д.2",
+   "lon": 37.62151148,
+   "lat": 55.71032494,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019214",
+   "planned_at": "2026-01-06 11:03:00",
+   "address": "Большая Тульская ул., д.10",
+   "lon": 37.62090917,
+   "lat": 55.70700843,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019215",
+   "planned_at": "2026-01-06 11:04:00",
+   "address": "Большая Тульская ул., д.50",
+   "lon": 37.6212862,
+   "lat": 55.70457157,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019204",
+   "planned_at": "2026-01-06 11:05:00",
+   "address": "Варшавское ш., д.2",
+   "lon": 37.62082122,
+   "lat": 55.70109375,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019205",
+   "planned_at": "2026-01-06 11:06:00",
+   "address": "Варшавское ш., д.12",
+   "lon": 37.62028972,
+   "lat": 55.69676373,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019202",
+   "planned_at": "2026-01-06 11:08:00",
+   "address": "Варшавское ш., д.37",
+   "lon": 37.62171054,
+   "lat": 55.68969014,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019203",
+   "planned_at": "2026-01-06 11:10:00",
+   "address": "Варшавское ш., д.26",
+   "lon": 37.62293301,
+   "lat": 55.68423237,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019196",
+   "planned_at": "2026-01-06 11:11:00",
+   "address": "Варшавское ш., д.32",
+   "lon": 37.62379262,
+   "lat": 55.68127848,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019197",
+   "planned_at": "2026-01-06 11:12:00",
+   "address": "Варшавское ш., д.36",
+   "lon": 37.62474332,
+   "lat": 55.67861735,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019194",
+   "planned_at": "2026-01-06 11:15:00",
+   "address": "Каширское ш., д.6, к.1",
+   "lon": 37.62867244,
+   "lat": 55.66747492,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019195",
+   "planned_at": "2026-01-06 11:17:00",
+   "address": "Каширское ш., д.16, к.1, стр. 8",
+   "lon": 37.6344226,
+   "lat": 55.6614063,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019212",
+   "planned_at": "2026-01-06 11:18:00",
+   "address": "Каширское ш., д.22, к.3, стр. 17",
+   "lon": 37.63866084,
+   "lat": 55.65947273,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019210",
+   "planned_at": "2026-01-06 11:20:00",
+   "address": "Каширское ш., д.24",
+   "lon": 37.64702216,
+   "lat": 55.65562314,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019213",
+   "planned_at": "2026-01-06 11:20:00",
+   "address": "Каширское ш., д.24",
+   "lon": 37.64521533,
+   "lat": 55.65642892,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019211",
+   "planned_at": "2026-01-06 11:22:00",
+   "address": "Каширское ш., д.26, к.1",
+   "lon": 37.65028579,
+   "lat": 55.65416756,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019198",
+   "planned_at": "2026-01-06 11:25:00",
+   "address": "Каширское ш., д.40, к.2",
+   "lon": 37.66179779,
+   "lat": 55.64930766,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019201",
+   "planned_at": "2026-01-06 11:26:00",
+   "address": "Каширское ш., д.52",
+   "lon": 37.66813929,
+   "lat": 55.64687338,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019199",
+   "planned_at": "2026-01-06 11:28:00",
+   "address": "Каширское ш., д.64, к.1",
+   "lon": 37.67508731,
+   "lat": 55.64410956,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019200",
+   "planned_at": "2026-01-06 11:29:00",
+   "address": "Каширское ш., д.76, к.1",
+   "lon": 37.67991653,
+   "lat": 55.64239201,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019192",
+   "planned_at": "2026-01-06 11:30:00",
+   "address": "Каспийская ул., д.2А",
+   "lon": 37.68557563,
+   "lat": 55.64008922,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019193",
+   "planned_at": "2026-01-06 11:32:00",
+   "address": "Каширское ш., д.80Г",
+   "lon": 37.69326865,
+   "lat": 55.63690212,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019190",
+   "planned_at": "2026-01-06 11:34:00",
+   "address": "Каширское ш., д.80А",
+   "lon": 37.70368217,
+   "lat": 55.631689,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019191",
+   "planned_at": "2026-01-06 11:35:00",
+   "address": "Каширское ш., д.80, к.1",
+   "lon": 37.70933248,
+   "lat": 55.62636354,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019230",
+   "planned_at": "2026-01-06 11:39:00",
+   "address": "Борисовский пр., д.5",
+   "lon": 37.71613097,
+   "lat": 55.62501066,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019231",
+   "planned_at": "2026-01-06 11:40:00",
+   "address": "Борисовский пр., д.14, к.1",
+   "lon": 37.72195426,
+   "lat": 55.62592666,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019228",
+   "planned_at": "2026-01-06 11:42:00",
+   "address": "Борисовский пр., д.24, к.1",
+   "lon": 37.7270813,
+   "lat": 55.62515248,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019229",
+   "planned_at": "2026-01-06 11:43:00",
+   "address": null,
+   "lon": 37.72760869,
+   "lat": 55.62266121,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019221",
+   "planned_at": "2026-01-06 11:46:00",
+   "address": "Шипиловская ул., д.44",
+   "lon": 37.73105229,
+   "lat": 55.62153676,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019226",
+   "planned_at": "2026-01-06 11:47:00",
+   "address": "Шипиловская ул., д.48, к.1",
+   "lon": 37.73692685,
+   "lat": 55.62167273,
+   "passed": false
+  },
+  {
+   "target_stop_id": "53699019227",
+   "planned_at": "2026-01-06 11:50:00",
+   "address": "ул. Мусы Джалиля, д.26, к.1",
+   "lon": 37.74298017,
+   "lat": 55.62113006,
+   "passed": false
+  }
+ ],
+ "prediction_history": [
+  {
+   "prediction_id": "p-000273",
+   "cutoff_t": "2026-01-06 09:59:49.410499809",
+   "delay_s": -70.277413702444,
+   "risk_level": "yellow",
+   "late_probability": 0.054740940492351446,
+   "target_stop_id": "53699019185",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000280",
+   "cutoff_t": "2026-01-06 10:02:33.753449977",
+   "delay_s": -80.87835923972764,
+   "risk_level": "yellow",
+   "late_probability": 0.08017017810525365,
+   "target_stop_id": "53699019183",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000285",
+   "cutoff_t": "2026-01-06 10:05:18.453037482",
+   "delay_s": -88.40636664047771,
+   "risk_level": "yellow",
+   "late_probability": 0.04136625177494297,
+   "target_stop_id": "53699019188",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000289",
+   "cutoff_t": "2026-01-06 10:08:01.908637471",
+   "delay_s": -87.8719774277965,
+   "risk_level": "yellow",
+   "late_probability": 0.037695574026082916,
+   "target_stop_id": "53699019187",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000293",
+   "cutoff_t": "2026-01-06 10:10:44.815187389",
+   "delay_s": -98.61241780364931,
+   "risk_level": "yellow",
+   "late_probability": 0.036559161015928744,
+   "target_stop_id": "53699019168",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000298",
+   "cutoff_t": "2026-01-06 10:13:27.830587495",
+   "delay_s": -83.09269714090328,
+   "risk_level": "yellow",
+   "late_probability": 0.03768794532756755,
+   "target_stop_id": "53699019166",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000303",
+   "cutoff_t": "2026-01-06 10:16:11.453512483",
+   "delay_s": -73.87129434076897,
+   "risk_level": "yellow",
+   "late_probability": 0.03228344561702479,
+   "target_stop_id": "53699019171",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000308",
+   "cutoff_t": "2026-01-06 10:18:49.385749809",
+   "delay_s": -84.67370336655217,
+   "risk_level": "yellow",
+   "late_probability": 0.0421592876693916,
+   "target_stop_id": "53699019172",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000313",
+   "cutoff_t": "2026-01-06 10:21:33.748712399",
+   "delay_s": -69.89281439157664,
+   "risk_level": "yellow",
+   "late_probability": 0.03264589667214742,
+   "target_stop_id": "53699019170",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000318",
+   "cutoff_t": "2026-01-06 10:24:15.148524907",
+   "delay_s": -98.68014631265748,
+   "risk_level": "yellow",
+   "late_probability": 0.0347299620600152,
+   "target_stop_id": "53699019173",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000325",
+   "cutoff_t": "2026-01-06 10:26:59.661824963",
+   "delay_s": -127.99921081389279,
+   "risk_level": "yellow",
+   "late_probability": 0.02895633579769014,
+   "target_stop_id": "53699019173",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000330",
+   "cutoff_t": "2026-01-06 10:29:43.154574874",
+   "delay_s": -131.32812734417212,
+   "risk_level": "yellow",
+   "late_probability": 0.03772603129309819,
+   "target_stop_id": "53699019180",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000337",
+   "cutoff_t": "2026-01-06 10:32:27.551274904",
+   "delay_s": -127.87768914561946,
+   "risk_level": "yellow",
+   "late_probability": 0.036935229089902086,
+   "target_stop_id": "53699019167",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000345",
+   "cutoff_t": "2026-01-06 10:35:11.399662471",
+   "delay_s": -142.3357189627984,
+   "risk_level": "yellow",
+   "late_probability": 0.0488271020538538,
+   "target_stop_id": "53699019208",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000350",
+   "cutoff_t": "2026-01-06 10:37:56.415812387",
+   "delay_s": -121.69079886351105,
+   "risk_level": "yellow",
+   "late_probability": 0.03870966806738666,
+   "target_stop_id": "53699019208",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000358",
+   "cutoff_t": "2026-01-06 10:40:40.664387354",
+   "delay_s": -78.74711959154124,
+   "risk_level": "yellow",
+   "late_probability": 0.17451435845664637,
+   "target_stop_id": "53699019206",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000363",
+   "cutoff_t": "2026-01-06 10:43:23.741987398",
+   "delay_s": -6.346785178466064,
+   "risk_level": "green",
+   "late_probability": 0.09104874459562479,
+   "target_stop_id": "53699019222",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000371",
+   "cutoff_t": "2026-01-06 10:46:05.439375001",
+   "delay_s": 62.71427876890155,
+   "risk_level": "yellow",
+   "late_probability": 0.3739707003018013,
+   "target_stop_id": "53699019220",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000376",
+   "cutoff_t": "2026-01-06 10:48:48.303212416",
+   "delay_s": 20.32243401534285,
+   "risk_level": "green",
+   "late_probability": 0.09711293504852683,
+   "target_stop_id": "53699019216",
+   "trigger": "periodic"
+  },
+  {
+   "prediction_id": "p-000384",
+   "cutoff_t": "2026-01-06 10:51:32.295487504",
+   "delay_s": 28.82366099230265,
+   "risk_level": "green",
+   "late_probability": 0.10747008395408483,
+   "target_stop_id": "53699019214",
+   "trigger": "periodic"
+  }
+ ]
+}

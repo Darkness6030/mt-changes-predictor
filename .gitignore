@@ -29,3 +29,10 @@ dataset/*.tar
 *.egg-info/
 build/
 dist/
+
+# Generated code documentation
+docs/sphinx/_build/
+
+# Frontend dependencies and local Vite cache
+node_modules/
+.vite/

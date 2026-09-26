@@ -1,0 +1,332 @@
+# Контракт API и snapshot, версия 1
+
+Дата фиксации: 26.09.2026. Источник истины для схем — OpenAPI работающего Backend
+(`/openapi.json`, Swagger `/docs`) и OpenAPI ML-сервиса. Этот файл описывает согласованные
+имена, единицы, статусы и правила времени, чтобы Backend, ML и UI не расходились.
+Требования, из которых он выведен: [RULES](RULES.md), [PLAN](PLAN.md),
+[README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
+
+Версии: `schema_version = "1"` для Backend snapshot, `feature_schema_version = "1"` для
+признаков (`transport_ml.features.SCHEMA_VERSION`). Несовместимое изменение любой из них —
+новая версия строки, а не молчаливое изменение поля.
+
+## 1. Границы ответственности
+
+| Компонент | Владеет | Не делает |
+|---|---|---|
+| `transport_ml` | Признаки, модели, обучение, submission | Не читает NDTP, не хранит состояние потока |
+| ML service | Загрузка артефакта, проверка schema/checksum, predict, вероятность | Не строит признаки, не получает labels, не обучает в запросе |
+| Backend | NDTP/CSV приём, состояние, часы, план, признаки через `FeatureBuilder`, инциденты, API | Не обучает модель, не считает вторую версию признаков |
+| UI | Отображение серверных чисел и статусов | Не считает риск, не выбирает target, не округляет время |
+
+Признаки строит **только** `transport_ml.features.FeatureBuilder`; Backend передаёт ML
+готовую строку признаков. ML принимает признаки, а не сырую телеметрию.
+
+## 2. Время и идентификаторы
+
+- `time_basis = "dataset_naive_ns"`: времена данных и `cutoff_t` — строки вида
+  `YYYY-MM-DD HH:MM:SS[.fffffffff]` без суффикса зоны. UI не трактует их как UTC/МСК.
+- Настенное время (`computed_at`, `server_sent_at`, `first_alert_at_wall`) — ISO-8601 UTC
+  с `Z`. Это разные оси: не сравнивать их напрямую с временем источника.
+- Наносекундная точность сохраняется в строке; целые наносекунды в JSON не передаются
+  числом. Длительности — секунды с плавающей точкой, суффикс `_s`.
+- `tr_id`, `unit_id`, `target_stop_id`, `sample_id`, `run_id` — **строки**.
+- `unit_id != tr_id`. Маппинг приходит из явного файла/CSV; неизвестный unit не получает
+  случайный `tr_id`, он публикуется со статусом `no_mapping`.
+- Соответствие naive-времени CSV и Unix-времени NDTP объявляется параметром демонстрации
+  (`NDTP_TIME_BASIS_OFFSET_S`, по умолчанию 0 = naive трактуется как UTC). Основание
+  гипотезы: `sample_id` всех 151 точки validate равен `f"{tr_id}_{unix(T, UTC)}"`.
+  Это обратимое соглашение для бинарного replay, а не подтверждённая организаторами зона.
+
+## 3. Целевое посещение и горизонт
+
+Для `(tr_id, T)` цель — первое плановое посещение с `600 < (plan − T) <= 900` секунд.
+`horizon_s = target_planned_at − cutoff_t` всегда в этом окне. Левая граница исключена,
+правая включена. При равных минимальных плановых временах сохраняется ID из раздачи,
+иначе выбор детерминирован по `target_stop_id`. Backend не выбирает цель по прогнозу
+прибытия: правило основано на плане. `expected_arrival_at = target_planned_at + delay_s`
+может выходить за правую границу окна — это нормально.
+
+## 4. ML service
+
+Базовый URL внутри Compose: `http://ml:8001`.
+
+| Метод | Путь | Назначение |
+|---|---|---|
+| `GET` | `/health/live` | Процесс жив (никогда не загружает модель) |
+| `GET` | `/health/ready` | 200 при загруженной модели, иначе 503 |
+| `GET` | `/v1/model` | Версия, feature schema, упорядоченный список признаков, калибровка |
+| `POST` | `/v1/predict` | Пакетный инференс по готовым признакам |
+
+`POST /v1/predict` запрос:
+
+```json
+{
+  "feature_schema_version": "1",
+  "items": [
+    {
+      "request_id": "0",
+      "tr_id": "131672",
+      "cutoff_t": "2026-01-06 12:00:00",
+      "target_stop_id": "53700172828",
+      "target_planned_at": "2026-01-06 12:13:00",
+      "features": {"cur_dev_s": 274.0, "horizon_s": 780.0, "...": 0.0}
+    }
+  ]
+}
+```
+
+- `features` — ровно набор из `/v1/model` (`features`), значения `number | null`;
+  `null` означает отсутствие данных. Лишнее/пропущенное поле → 422, `inf` → 422.
+- `tr_id`, `cutoff_t`, `target_stop_id`, `target_planned_at` — метаданные для журнала,
+  в модель не попадают. Максимум `items` ограничен (по умолчанию 256).
+
+Ответ:
+
+```json
+{
+  "model_version": "b3f1…",
+  "feature_schema_version": "1",
+  "inference_ms": 2.4,
+  "results": [
+    {
+      "request_id": "0",
+      "delay_s": 123.4,
+      "model_used": "main",
+      "used_hint": true,
+      "late_probability": 0.37,
+      "late_threshold_s": 120.0,
+      "calibration": {"method": "platt", "status": "validated", "report": "ml/reports/ml-v2.md"}
+    }
+  ]
+}
+```
+
+- `delay_s` — знаковая задержка в секундах, конечное число. Отрицательное — опережение.
+- `model_used`: `main` при известном `cur_dev_s`, `fallback` при `null`.
+- `late_probability` — `P(delay_s > late_threshold_s)` после калибровки; `null` вместе с
+  `calibration.status = "unavailable"`, если классификатор отсутствует в артефакте.
+- Ошибки: 422 — несовпадение schema/списка признаков/не конечное значение;
+  503 — модель не загружена; 413 — превышен размер пакета.
+
+## 5. Backend API
+
+Базовый URL: `http://backend:8000`, UI проксирует `/api` и `/openapi.json`.
+
+| Метод | Путь | Назначение |
+|---|---|---|
+| `GET` | `/health/live` | Процесс жив |
+| `GET` | `/health/ready` | Готов: загружены план/маппинг, приёмник запущен |
+| `GET` | `/api/v1/status` | Режим, часы, состояние ML и приёма, счётчики, latency |
+| `GET` | `/api/v1/snapshot` | Согласованный снимок: `vehicles`, `alerts`, `summary`, `clock` |
+| `GET` | `/api/v1/vehicles/{tr_id}` | Плановые посещения, пройденный трек, история прогнозов |
+| `GET` | `/api/v1/predictions` | Последние прогнозы (для журнала и проверки) |
+| `GET` | `/api/v1/alerts` | Активные и закрытые инциденты |
+| `POST` | `/api/v1/alerts/{alert_id}/ack` | Идемпотентная отметка «принято в работу» |
+| `GET` | `/api/v1/metrics/quality` | Измеренные offline/replay метрики, без выдуманных чисел |
+| `GET` | `/api/v1/metrics` | Технические счётчики и гистограммы latency (JSON) |
+| `POST` | `/api/v1/replay/control` | `start`/`pause`/`reset`/`speed`; только demo-режим replay |
+
+Фильтры snapshot: `risk=green|yellow|red`, `only_attention=true`, `stale=true|false`,
+`limit`. Пустой фильтр возвращает весь парк.
+
+### 5.1 Snapshot
+
+```json
+{
+  "schema_version": "1",
+  "run_id": "run-20260926T101500Z-3f9a",
+  "revision": 412,
+  "mode": "replay",
+  "server_sent_at": "2026-09-26T10:15:00.123Z",
+  "clock": {
+    "time_basis": "dataset_naive_ns",
+    "source_time": "2026-01-06 12:00:00",
+    "wall_time": "2026-09-26T10:15:00.123Z",
+    "speed": 10.0,
+    "paused": false,
+    "plan_shift_s": 0.0,
+    "source_window": {"first": "2026-01-06 00:00:02", "last": "2026-01-06 23:59:59"}
+  },
+  "summary": {
+    "vehicles": 30, "with_prediction": 11, "attention": 4, "no_prediction": 19,
+    "stale": 3, "unmapped": 0, "alerts_active": 4
+  },
+  "risk_policy": {
+    "green_max_delay_s": 60.0, "red_min_delay_s": 120.0, "early_yellow_s": -60.0,
+    "late_probability_red": 0.5,
+    "note": "Продуктовые пороги UI, не официальная разметка target_class"
+  },
+  "vehicles": [],
+  "alerts": []
+}
+```
+
+`revision` монотонно растёт; UI игнорирует ответ с меньшим `revision` и не перезаписывает
+им более новое состояние. Смена режима или `reset` меняет `run_id` и сбрасывает состояние.
+
+### 5.2 VehicleView
+
+```json
+{
+  "tr_id": "131672",
+  "unit_id": "664030",
+  "mapped": true,
+  "position": {
+    "lon": 37.6173, "lat": 55.7551, "speed_kmh": 21.0, "heading_deg": 94.0,
+    "event_at": "2026-01-06 11:59:48", "age_s": 12.0
+  },
+  "last_event_at": "2026-01-06 11:59:48",
+  "telemetry_age_s": 12.0,
+  "position_age_s": 12.0,
+  "stale": false,
+  "events_in_window": 149,
+  "invalid_gps_fraction": 0.0,
+  "quality_flags": [],
+  "next_visit": {
+    "target_stop_id": "53700172828", "planned_at": "2026-01-06 12:13:00",
+    "address": "ул. Маршала Василевского, д.17", "lon": 37.4633, "lat": 55.8089
+  },
+  "prediction": null
+}
+```
+
+`position = null` означает отсутствие валидной позиции в окне (не координату 0,0).
+`quality_flags` ⊂ `{invalid_gps, stale_gps, sparse_history, clock_skew, no_schedule,
+no_mapping, history_truncated}`.
+
+### 5.3 PredictionView
+
+```json
+{
+  "prediction_id": "p-000412",
+  "run_id": "run-20260926T101500Z-3f9a",
+  "tr_id": "131672",
+  "sample_id": "131672_1767700800",
+  "status": "ok",
+  "cutoff_t": "2026-01-06 12:00:00",
+  "computed_at": "2026-09-26T10:15:00.081Z",
+  "target_stop_id": "53700172828",
+  "target_planned_at": "2026-01-06 12:13:00",
+  "target_address": "ул. Маршала Василевского, д.17",
+  "target_lon": 37.4633,
+  "target_lat": 55.8089,
+  "horizon_s": 780.0,
+  "delay_s": 148.6,
+  "expected_arrival_at": "2026-01-06 12:15:28.600000000",
+  "risk_level": "red",
+  "risk_basis": "delay_s > 120",
+  "late_probability": 0.62,
+  "late_threshold_s": 120.0,
+  "calibration": {"method": "platt", "status": "validated", "report": "ml/reports/ml-v2.md"},
+  "model_version": "b3f1…",
+  "model_used": "main",
+  "feature_schema_version": "1",
+  "cur_dev_s": 274.0,
+  "cur_dev_source": "supplied",
+  "cur_dev_age_s": 420.0,
+  "data_age_s": 12.0,
+  "prediction_age_s": 1.4,
+  "stale": false,
+  "inference_ms": 2.4,
+  "evidence": [
+    {"kind": "speed_drop", "text": "Скорость за 3 мин 4,2 км/ч против 18,0 км/ч за 10 мин",
+     "value": 4.2}
+  ],
+  "recommendation": "Уточнить у водителя причину задержки; рассмотреть регулирование по действующим правилам",
+  "quality_flags": []
+}
+```
+
+Статусы `status`:
+
+| Значение | Смысл |
+|---|---|
+| `ok` | Есть прогноз модели на указанный `cutoff_t` |
+| `warming_up` | Истории меньше минимального окна: прогноз не выдаётся |
+| `no_target_in_horizon` | Нет планового посещения в `(T+600, T+900]` |
+| `no_schedule` | Для ТС нет плана в загруженном расписании |
+| `no_mapping` | `unit_id` не сопоставлен с `tr_id` |
+| `stale` | Последнее валидное наблюдение старше порога; прогноз не обновляется |
+| `ml_unavailable` | ML недоступен/ошибка; показывается последний прогноз с возрастом |
+| `invalid_input` | Признаки не прошли проверку контракта |
+
+Отсутствие прогноза никогда не выдаётся как `delay_s = 0`: `delay_s` в этих статусах
+`null`. `cur_dev_source`: `supplied` (подсказка из прогнозной точки офлайн-контура),
+`estimated` (причинная оценка по GPS и плану, с `cur_dev_age_s` и флагом качества),
+`missing` (ML использует fallback без подсказки). `risk_level` определяется порогами
+`risk_policy` по `delay_s`; `late_probability` показывается отдельно и не подменяет риск.
+
+### 5.4 AlertView
+
+```json
+{
+  "alert_id": "run-20260926T101500Z-3f9a:131672:53700172828",
+  "tr_id": "131672",
+  "target_stop_id": "53700172828",
+  "target_planned_at": "2026-01-06 12:13:00",
+  "risk_level": "red",
+  "delay_s": 148.6,
+  "late_probability": 0.62,
+  "first_alert_at": "2026-01-06 12:00:00",
+  "first_alert_at_wall": "2026-09-26T10:15:00.081Z",
+  "latest_prediction_at": "2026-01-06 12:02:00",
+  "planned_lead_s": 780.0,
+  "updates": 5,
+  "state": "active",
+  "acknowledged_at": null,
+  "evidence": []
+}
+```
+
+Один инцидент на `(run_id, tr_id, target_stop_id)`: повторный расчёт обновляет его.
+`planned_lead_s` — плановый горизонт на момент первого алерта, **не** доказательство
+фактического lead time: последнее считается только на размеченном replay после события.
+`state`: `active`, `resolved` (прогноз вернулся в зелёную зону), `expired` (плановое время
+цели прошло). Ack — отметка диспетчера, не команда транспортному средству.
+
+### 5.5 Replay control
+
+```json
+{"action": "start" | "pause" | "reset" | "speed", "speed": 10.0, "start_at": "2026-01-06 11:30:00"}
+```
+
+Доступно только при `mode = replay` и `REPLAY_CONTROL_ENABLED=true`; источник данных
+ограничен заранее заданным каталогом раздачи. `reset` создаёт новый `run_id` и очищает
+состояние, историю и инциденты. Пауза останавливает виртуальные возраста данных,
+но не влияет на wall-clock health.
+
+## 6. Нормализованное событие телеметрии
+
+Внутренний контракт Backend (в JSON наружу не отдаётся целиком):
+
+```text
+TelemetryEvent(source, run_id, unit_id, tr_id|None, event_time_ns, time_basis,
+               received_at_wall, lon|None, lat|None, speed_kmh|None, heading_deg|None,
+               altitude_m|None, gps_valid, quality_flags, packet_id|None)
+```
+
+`source`: `csv_replay`, `ndtp_live`, `ndtp_replay`. Дедупликация — по полному нормализованному
+событию; совпадение `(tr_id, event_time)` с разными полями дублем не считается, порядок
+разрешается стабильным tie-break и помечается флагом качества. События после текущего T
+в признаки не попадают; событие с временем в будущем относительно источника помещается
+в карантин со счётчиком.
+
+## 7. Ошибки и деградация
+
+- Ошибки HTTP: `{"detail": "...", "code": "...", "schema_version": "1"}`, коды
+  `schema_mismatch`, `unknown_vehicle`, `model_unavailable`, `replay_disabled`,
+  `bad_request`. Сообщение объясняет причину, а не «internal error».
+- ML timeout/5xx: Backend не падает, `status = ml_unavailable`, в snapshot остаётся прошлый
+  прогноз с `prediction_age_s`; счётчик `ml_errors` растёт; UI показывает баннер.
+- Потеря NDTP: соединения закрываются, счётчики `crc_errors`/`invalid_frames`/`reconnects`
+  растут, данные ТС стареют и переходят в `stale`. Listener не останавливается.
+- UI при недоступном Backend показывает последнее состояние с баннером «Связь потеряна»
+  и не перекрашивает красное в зелёное.
+
+## 8. Фикстуры
+
+Примеры ответов, используемые UI в dev-режиме и в тестах Backend:
+`backend/fixtures/snapshot.json`, `backend/fixtures/status.json`,
+`backend/fixtures/vehicle.json`. Они помечены `"fixture": true` и не применяются в
+production-сборке UI. При изменении контракта фикстуры обновляются вместе с кодом.

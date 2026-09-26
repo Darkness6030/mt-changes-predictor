@@ -1,0 +1,117 @@
+# Three modules: ML inference, Backend (NDTP + API), UI. Training and the packet replayer are
+# separate commands, not extra always-on services.
+#
+#   docker compose up --build                 # исторический replay с разметкой (демо по умолчанию)
+#   docker compose --profile emulator up -d emulator   # официальный эмулятор NDTP
+#   docker compose run --rm ndtp-replay       # наш собственный replay телеметрии в NDTP
+#   docker compose run --rm trainer train --model artifacts/run-2  # обучение
+name: mt-changes-predictor
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  ml:
+    build:
+      context: ./ml
+    image: mt-changes-ml:0.2
+    environment:
+      ML_MODEL_DIR: /app/model
+      ML_PORT: "8001"
+      ML_MAX_ITEMS: "256"
+    volumes:
+      # Read-only model bundle: the container holds no dataset and no writable artifact.
+      - ./ml/pretrained/${MODEL_VERSION:-v2}:/app/model:ro
+    ports:
+      - "${ML_HOST_PORT:-8011}:8001"
+    restart: unless-stopped
+    logging: *logging
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: mt-changes-backend:0.1
+    depends_on:
+      ml:
+        condition: service_healthy
+    environment:
+      BACKEND_MODE: ${BACKEND_MODE:-replay}
+      BACKEND_SPLIT: ${BACKEND_SPLIT:-test}
+      BACKEND_DATA_ROOT: /app/dataset
+      BACKEND_ML_URL: http://ml:8001
+      BACKEND_LABELS: ${BACKEND_LABELS:-/app/dataset/labels/labels_test.csv}
+      BACKEND_OFFLINE_METRICS: /app/model/metrics.json
+      BACKEND_REPLAY_SPEED: ${BACKEND_REPLAY_SPEED:-60}
+      BACKEND_REPLAY_START: ${BACKEND_REPLAY_START:-2026-01-06 08:00:00}
+      BACKEND_PREDICT_INTERVAL_S: ${BACKEND_PREDICT_INTERVAL_S:-30}
+      BACKEND_NDTP_PORT: "9201"
+      BACKEND_PLAN_SHIFT_S: ${BACKEND_PLAN_SHIFT_S:-0}
+    volumes:
+      - ./dataset:/app/dataset:ro
+      - ./ml/pretrained/${MODEL_VERSION:-v2}:/app/model:ro
+    ports:
+      - "${BACKEND_HOST_PORT:-8010}:8000"
+      - "${NDTP_HOST_PORT:-9201}:9201"
+    restart: unless-stopped
+    logging: *logging
+
+  ui:
+    build:
+      context: ./frontend
+    image: mt-changes-ui:0.1
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${UI_HOST_PORT:-8080}:8080"
+    restart: unless-stopped
+    logging: *logging
+
+  # Our own historical packet replayer: dataset telemetry encoded as real NDTP frames.
+  # Run it against a Backend started with BACKEND_MODE=ndtp.
+  ndtp-replay:
+    image: mt-changes-backend:0.1
+    profiles: ["tools"]
+    depends_on:
+      backend:
+        condition: service_started
+    entrypoint:
+      - transport-backend
+      - send-ndtp
+    command:
+      - --host=backend
+      - --port=9201
+      - --split=${BACKEND_SPLIT:-test}
+      - --speed=${NDTP_REPLAY_SPEED:-60}
+      - --start=${NDTP_REPLAY_START:-2026-01-06 08:00:00}
+      - --duration=${NDTP_REPLAY_DURATION:-7200}
+    volumes:
+      - ./dataset:/app/dataset:ro
+    logging: *logging
+
+  # Offline training / evaluation / submission. Writes only into ./artifacts.
+  trainer:
+    image: mt-changes-ml:0.2
+    profiles: ["tools"]
+    entrypoint: ["transport-ml"]
+    command: ["--help"]
+    user: "${DOCKER_UID:-10001}:${DOCKER_GID:-10001}"
+    volumes:
+      - ./dataset:/app/dataset:ro
+      - ./artifacts:/app/artifacts
+    logging: *logging
+
+  # Official emulator from the distribution. The image must be imported locally first:
+  #   tar -C dataset/ndtp-telemetry-emulator -cf /tmp/ndtp.tar . && docker image load -i /tmp/ndtp.tar
+  emulator:
+    image: ndtp-telemetry-emulator:1.0
+    platform: linux/amd64
+    profiles: ["emulator"]
+    ports:
+      - "${EMULATOR_HOST_PORT:-18080}:18080"
+    restart: unless-stopped
+    logging: *logging

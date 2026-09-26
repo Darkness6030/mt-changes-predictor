@@ -32,6 +32,11 @@ def distance_m(lon1, lat1, lon2, lat2):
 
 
 def prepare_plan(plan: pd.DataFrame) -> pd.DataFrame:
+    # An already prepared plan is reused unchanged: streaming callers rebuild the builder on
+    # every prediction cycle and must not pay for parsing 5 500 rows of WKT each time.
+    prepared = {"lon", "lat"}.issubset(plan.columns) and plan.time_begin.dtype == "datetime64[ns]"
+    if prepared:
+        return plan
     plan = plan[PLAN_COLUMNS].copy()
     for key in ("tr_id", "tt_action_item_id"):
         if plan[key].isna().any():

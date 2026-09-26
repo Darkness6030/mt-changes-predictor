@@ -1,0 +1,120 @@
+{
+ "fixture": true,
+ "captured_at": "2026-09-26T14:01:25.696Z",
+ "note": "Снимок работающего replay-стенда; используется в dev-режиме UI и тестах",
+ "schema_version": "1",
+ "backend_version": "0.1.0",
+ "run_id": "run-20260926T140051Z-6fdc",
+ "mode": "replay",
+ "ready": true,
+ "started_at": "2026-09-26T14:00:51.057Z",
+ "revision": 64,
+ "clock": {
+  "time_basis": "dataset_naive_ns",
+  "mode": "driven",
+  "source_time": "2026-01-06 10:51:53.857275014",
+  "wall_time": "2026-09-26T14:01:25.696Z",
+  "speed": 300.0,
+  "paused": false,
+  "plan_shift_s": 0.0,
+  "source_window": {
+   "first": "2026-01-06 00:00:02",
+   "last": "2026-01-06 23:59:59"
+  },
+  "source_progress": 0.4195458371594735,
+  "events_delivered": 43861,
+  "events_total": 104544
+ },
+ "split": "test",
+ "plan": {
+  "file": "dataset/test/schedule.csv",
+  "vehicles": 13,
+  "visits": 5558,
+  "shift_s": 0.0
+ },
+ "points": {
+  "total": 353,
+  "delivered": 146,
+  "skipped": 0,
+  "predicted": 44
+ },
+ "state": {
+  "vehicles": 17,
+  "events_in_state": 2607,
+  "accepted_events": 14355,
+  "duplicate_events": 0,
+  "rejected_future_events": 0,
+  "unmapped_units": 0,
+  "last_event_at": "2026-01-06 10:51:32",
+  "source_time": "2026-01-06 10:51:53.856137380"
+ },
+ "ml": {
+  "url": "http://127.0.0.1:8011",
+  "ready": true,
+  "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+  "feature_schema_version": "1",
+  "late_threshold_s": 120.0,
+  "calibration": {
+   "method": "platt",
+   "status": "fitted_on_development",
+   "report": "ml/reports/ml-v2.md",
+   "fit_rows": 287
+  },
+  "requests": 63,
+  "errors": 0,
+  "timeouts": 0,
+  "last_error": null,
+  "round_trip": {
+   "samples": 63,
+   "p50_ms": 5.342541029676795,
+   "p95_ms": 6.786416983231902,
+   "max_ms": 7.502667140215635
+  },
+  "inference": {
+   "samples": 63,
+   "p50_ms": 2.7847092133015394,
+   "p95_ms": 4.118832992389798,
+   "max_ms": 4.327000118792057
+  }
+ },
+ "ndtp": null,
+ "replay": {
+  "events_total": 104544,
+  "events_delivered": 43861,
+  "finished": false,
+  "control_enabled": true
+ },
+ "performance": {
+  "cycles": 64,
+  "last_cycle_at": "2026-09-26T14:01:25.626Z",
+  "cycle_ms": {
+   "samples": 64,
+   "p50_ms": 43.040124932304025,
+   "p95_ms": 52.16308310627937,
+   "max_ms": 59.60220913402736
+  },
+  "feature_build_ms": {
+   "samples": 64,
+   "p50_ms": 31.229000072926283,
+   "p95_ms": 38.2082499563694,
+   "max_ms": 49.76750002242625
+  },
+  "ml_round_trip_ms": {
+   "samples": 63,
+   "p50_ms": 5.342541029676795,
+   "p95_ms": 6.786416983231902,
+   "max_ms": 7.502667140215635
+  },
+  "ml_inference_ms": {
+   "samples": 63,
+   "p50_ms": 2.7847092133015394,
+   "p95_ms": 4.118832992389798,
+   "max_ms": 4.327000118792057
+  },
+  "predictions": 389,
+  "tick_interval_s": 0.5,
+  "predict_interval_s": 30.0
+ },
+ "errors": {},
+ "unmapped_units": {}
+}

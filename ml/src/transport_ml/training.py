@@ -9,8 +9,9 @@ from time import perf_counter
 
 import numpy as np
 import pandas as pd
-from catboost import CatBoostRegressor
+from catboost import CatBoostClassifier, CatBoostRegressor
 
+from transport_ml.calibration import fit_platt, reliability
 from transport_ml.data import load_inputs, load_labels, load_points, point_path
 from transport_ml.features import SCHEMA_VERSION, FeatureBuilder, FeatureConfig
 from transport_ml.model import DelayModel, sha256, write_json
@@ -23,6 +24,7 @@ class TrainConfig:
     seed: int = 42
     threads: int = 4
     development_fraction: float = 0.25
+    late_threshold_s: float = 120.0
 
 
 def mae(target: np.ndarray, prediction: np.ndarray) -> float:
@@ -91,6 +93,69 @@ def select_model(features, target, fit, development, config, *, no_hint):
     return final, {**best, "features": columns}, candidates
 
 
+def classifier(config: TrainConfig, depth: int, iterations: int) -> CatBoostClassifier:
+    return CatBoostClassifier(
+        iterations=iterations,
+        depth=depth,
+        learning_rate=config.learning_rate,
+        loss_function="Logloss",
+        random_seed=config.seed,
+        thread_count=config.threads,
+        l2_leaf_reg=5,
+        allow_writing_files=False,
+        verbose=False,
+    )
+
+
+def select_classifier(features, late, fit, development, config, *, no_hint):
+    """Grow trees on the fit fold only, then calibrate two parameters on development.
+
+    The classifier is deliberately not refitted on all rows: a Platt mapping is only
+    meaningful for the exact scores it was fitted against.
+    """
+    columns = [name for name in features if not (no_hint and name == "cur_dev_s")]
+    candidates = []
+    for depth in (4, 6):
+        model = classifier(config, depth, config.iterations)
+        model.fit(
+            features.loc[fit, columns],
+            late[fit],
+            eval_set=(features.loc[development, columns], late[development]),
+            early_stopping_rounds=70,
+        )
+        scores = model.predict(features.loc[development, columns], prediction_type="RawFormulaVal")
+        platt = fit_platt(np.asarray(scores, dtype=float), late[development])
+        report = reliability(late[development], platt.apply(scores))
+        candidates.append(
+            {
+                "depth": depth,
+                "iterations": model.tree_count_,
+                "development": {key: report[key] for key in ("brier", "log_loss", "roc_auc")},
+                "model": model,
+                "calibration": platt,
+                "development_report": report,
+            }
+        )
+    best = min(candidates, key=lambda row: row["development"]["brier"])
+    spec = {
+        "features": columns,
+        "depth": best["depth"],
+        "iterations": best["iterations"],
+        "threshold_s": config.late_threshold_s,
+        "trained_on": "fit fold only, so the calibration matches these scores",
+        "calibration": {
+            **best["calibration"].to_dict(),
+            "positive_rows": best["calibration"].positive_rows,
+            "fold": "development",
+            "status": "fitted_on_development",
+            "report": "ml/reports/ml-v2.md",
+        },
+    }
+    keys = ("depth", "iterations", "development")
+    trace = [{key: row[key] for key in keys} for row in candidates]
+    return best["model"], spec, trace, best["development_report"]
+
+
 def evaluation(points, target, prediction, fallback, train_median):
     summary = {
         "rows": len(points),
@@ -128,14 +193,24 @@ def evaluate(root: Path, directory: Path, split: str = "test") -> dict:
     fallback = model.predict(features, no_hint=True)
     report = evaluation(points, target, prediction, fallback, model.manifest["train_median_s"])
     report.update(feature_build_seconds=feature_seconds, batch_predict_seconds=predict_seconds)
-    pd.DataFrame(
-        {
-            "sample_id": points.sample_id,
-            "target_delay_s": target,
-            "prediction": prediction,
-            "no_hint_prediction": fallback,
+    columns = {
+        "sample_id": points.sample_id,
+        "target_delay_s": target,
+        "prediction": prediction,
+        "no_hint_prediction": fallback,
+    }
+    probability = model.predict_late_probability(features)
+    if probability is not None:
+        threshold = model.late_threshold_s
+        late = (target > threshold).astype(float)
+        report["late_probability"] = {
+            "threshold_s": threshold,
+            "calibration": model.calibration_status(),
+            "with_hint": reliability(late, probability),
+            "no_hint": reliability(late, model.predict_late_probability(features, no_hint=True)),
         }
-    ).to_csv(directory / f"{split}_predictions.csv", index=False)
+        columns["late_probability"] = probability
+    pd.DataFrame(columns).to_csv(directory / f"{split}_predictions.csv", index=False)
     return report
 
 
@@ -166,6 +241,7 @@ def train(root: Path, directory: Path, config: TrainConfig) -> dict:
         "excluded_synthetic_rows": int((~real).sum()),
         "train_median_s": float(np.median(target)),
         "models": {},
+        "classifiers": {},
     }
     report = {
         "selection": {
@@ -185,7 +261,7 @@ def train(root: Path, directory: Path, config: TrainConfig) -> dict:
             "Test shares vehicles/day with train and telemetry/plan with validate.",
             "Development is used for model selection, not an unbiased final estimate.",
             "Synthetic families excluded; vehicle-group validation is pending.",
-            "No calibrated probability, NDTP or HTTP service in this iteration.",
+            "Late probability is calibrated on the development fold, not on an unseen day.",
         ],
     }
     for name in ("main", "fallback"):
@@ -202,6 +278,25 @@ def train(root: Path, directory: Path, config: TrainConfig) -> dict:
         ).sort_values(ascending=False).to_csv(
             directory / f"{name}_importance.csv", index_label="feature"
         )
+    late = (target > config.late_threshold_s).astype(float)
+    manifest["late_rate"] = float(late.mean())
+    report["late_probability"] = {
+        "threshold_s": config.late_threshold_s,
+        "train_positive_rate": float(late.mean()),
+        "development_positive_rows": int(late[development].sum()),
+        "candidates": {},
+        "development": {},
+    }
+    for name in ("late", "late_fallback"):
+        print(f"Selecting and calibrating {name} classifier...", flush=True)
+        model, spec, trace, fold_report = select_classifier(
+            features, late, fit, development, config, no_hint=name == "late_fallback"
+        )
+        path = directory / f"{name}.cbm"
+        model.save_model(str(path))
+        manifest["classifiers"][name] = {**spec, "file": path.name, "sha256": sha256(path)}
+        report["late_probability"]["candidates"][name] = trace
+        report["late_probability"]["development"][name] = fold_report
     sources = [
         root / split / name
         for split in ("train", "test")

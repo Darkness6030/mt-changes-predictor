@@ -1,0 +1,411 @@
+{
+  "selection": {
+    "boundary": "2026-01-06 16:35:00",
+    "fit_rows": 844,
+    "development_rows": 287,
+    "purged_rows": 10,
+    "development_cur_dev_mae_s": 98.53310104529616,
+    "development_train_median_mae_s": 111.24738675958189,
+    "candidates": {
+      "main": [
+        {
+          "depth": 4,
+          "residual": false,
+          "iterations": 370,
+          "development_mae_s": 90.10936592136092
+        },
+        {
+          "depth": 4,
+          "residual": true,
+          "iterations": 368,
+          "development_mae_s": 87.9010546585979
+        },
+        {
+          "depth": 6,
+          "residual": false,
+          "iterations": 130,
+          "development_mae_s": 90.03997786325584
+        },
+        {
+          "depth": 6,
+          "residual": true,
+          "iterations": 161,
+          "development_mae_s": 90.5667056352823
+        }
+      ],
+      "fallback": [
+        {
+          "depth": 4,
+          "residual": false,
+          "iterations": 600,
+          "development_mae_s": 96.43346240269075
+        },
+        {
+          "depth": 6,
+          "residual": false,
+          "iterations": 293,
+          "development_mae_s": 96.22512133661354
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Test shares vehicles/day with train and telemetry/plan with validate.",
+    "Development is used for model selection, not an unbiased final estimate.",
+    "Synthetic families excluded; vehicle-group validation is pending.",
+    "Late probability is calibrated on the development fold, not on an unseen day."
+  ],
+  "late_probability": {
+    "threshold_s": 120.0,
+    "train_positive_rate": 0.21034180543382996,
+    "development_positive_rows": 76,
+    "candidates": {
+      "late": [
+        {
+          "depth": 4,
+          "iterations": 187,
+          "development": {
+            "brier": 0.12392754786499327,
+            "log_loss": 0.3994478321594813,
+            "roc_auc": 0.8518333749064605
+          }
+        },
+        {
+          "depth": 6,
+          "iterations": 114,
+          "development": {
+            "brier": 0.1299418713328223,
+            "log_loss": 0.4100634353126681,
+            "roc_auc": 0.8445372910950362
+          }
+        }
+      ],
+      "late_fallback": [
+        {
+          "depth": 4,
+          "iterations": 28,
+          "development": {
+            "brier": 0.16688172012124555,
+            "log_loss": 0.5159017541379552,
+            "roc_auc": 0.7213145422798702
+          }
+        },
+        {
+          "depth": 6,
+          "iterations": 41,
+          "development": {
+            "brier": 0.16318280317179282,
+            "log_loss": 0.5051346069305429,
+            "roc_auc": 0.7361873285108506
+          }
+        }
+      ]
+    },
+    "development": {
+      "late": {
+        "rows": 287,
+        "positive_rate": 0.26480836236933797,
+        "brier": 0.12392754786499327,
+        "base_rate_brier": 0.1946848935886073,
+        "log_loss": 0.3994478321594813,
+        "roc_auc": 0.8518333749064605,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 147,
+            "mean_predicted": 0.07003147260483404,
+            "observed_rate": 0.08163265306122448
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 71,
+            "mean_predicted": 0.2907088647306691,
+            "observed_rate": 0.2112676056338028
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 29,
+            "mean_predicted": 0.4928405529153699,
+            "observed_rate": 0.5172413793103449
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 21,
+            "mean_predicted": 0.7018649162585048,
+            "observed_rate": 0.7142857142857143
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 19,
+            "mean_predicted": 0.8447240110272157,
+            "observed_rate": 1.0
+          }
+        ],
+        "status": "validated"
+      },
+      "late_fallback": {
+        "rows": 287,
+        "positive_rate": 0.26480836236933797,
+        "brier": 0.16318280317179282,
+        "base_rate_brier": 0.1946848935886073,
+        "log_loss": 0.5051346069305429,
+        "roc_auc": 0.7361873285108506,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 116,
+            "mean_predicted": 0.11550933178098378,
+            "observed_rate": 0.1206896551724138
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 112,
+            "mean_predicted": 0.2859236564315618,
+            "observed_rate": 0.25
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 50,
+            "mean_predicted": 0.49121338344635995,
+            "observed_rate": 0.54
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 9,
+            "mean_predicted": 0.6703389083369432,
+            "observed_rate": 0.7777777777777778
+          }
+        ],
+        "status": "validated"
+      }
+    }
+  },
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 79.08736581427026,
+    "no_hint_mae_s": 87.32712274964757,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "train_median_mae_s": 101.20113314447592,
+    "absolute_error_p50_s": 63.73450762159278,
+    "absolute_error_p90_s": 180.49755633764667,
+    "slices": {
+      "vehicle:122048": {
+        "rows": 24,
+        "mae_s": 122.58731292868517
+      },
+      "vehicle:122613": {
+        "rows": 25,
+        "mae_s": 34.76856705333362
+      },
+      "vehicle:122658": {
+        "rows": 17,
+        "mae_s": 120.46229759378764
+      },
+      "vehicle:129964": {
+        "rows": 26,
+        "mae_s": 78.41259160450646
+      },
+      "vehicle:130072": {
+        "rows": 2,
+        "mae_s": 8.934724179707088
+      },
+      "vehicle:130238": {
+        "rows": 7,
+        "mae_s": 53.95241809732972
+      },
+      "vehicle:131672": {
+        "rows": 38,
+        "mae_s": 75.23954764059313
+      },
+      "vehicle:132430": {
+        "rows": 32,
+        "mae_s": 112.01446911933733
+      },
+      "vehicle:133300": {
+        "rows": 28,
+        "mae_s": 76.60557274441176
+      },
+      "vehicle:133957": {
+        "rows": 41,
+        "mae_s": 67.85552622134803
+      },
+      "vehicle:134040": {
+        "rows": 52,
+        "mae_s": 77.30808829093218
+      },
+      "vehicle:134494": {
+        "rows": 6,
+        "mae_s": 1.845202719183371
+      },
+      "vehicle:135081": {
+        "rows": 55,
+        "mae_s": 76.77667978981148
+      },
+      "early": {
+        "rows": 49,
+        "mae_s": 107.39677999851784
+      },
+      "ontime": {
+        "rows": 218,
+        "mae_s": 48.80481269201591
+      },
+      "late": {
+        "rows": 86,
+        "mae_s": 139.72033425175064
+      }
+    },
+    "feature_build_seconds": 0.3235303331166506,
+    "batch_predict_seconds": 0.0010159998200833797,
+    "late_probability": {
+      "threshold_s": 120.0,
+      "calibration": {
+        "method": "platt",
+        "status": "fitted_on_development",
+        "report": "ml/reports/ml-v2.md",
+        "fit_rows": 287
+      },
+      "with_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.13950472496942737,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.42763842817202147,
+        "roc_auc": 0.8176552565107569,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 178,
+            "mean_predicted": 0.08554395317162229,
+            "observed_rate": 0.07303370786516854
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 71,
+            "mean_predicted": 0.29296760601790767,
+            "observed_rate": 0.323943661971831
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 66,
+            "mean_predicted": 0.4891523357303237,
+            "observed_rate": 0.3333333333333333
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 29,
+            "mean_predicted": 0.6879352445136049,
+            "observed_rate": 0.7241379310344828
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 9,
+            "mean_predicted": 0.853048514348655,
+            "observed_rate": 0.7777777777777778
+          }
+        ],
+        "status": "validated"
+      },
+      "no_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.17631862440732882,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.5250707209571354,
+        "roc_auc": 0.6934500479052348,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 108,
+            "mean_predicted": 0.12626235396616894,
+            "observed_rate": 0.08333333333333333
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 151,
+            "mean_predicted": 0.29012076331235026,
+            "observed_rate": 0.2582781456953642
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 78,
+            "mean_predicted": 0.48114429219749355,
+            "observed_rate": 0.41025641025641024
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 14,
+            "mean_predicted": 0.695713080719077,
+            "observed_rate": 0.2857142857142857
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 2,
+            "mean_predicted": 0.8360505714510232,
+            "observed_rate": 1.0
+          }
+        ],
+        "status": "validated"
+      }
+    }
+  },
+  "train_seconds": 3.9942946250084788
+}

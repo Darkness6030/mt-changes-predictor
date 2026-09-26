@@ -1,0 +1,2051 @@
+{
+ "fixture": true,
+ "captured_at": "2026-09-26T14:01:25.696Z",
+ "note": "Снимок работающего replay-стенда; используется в dev-режиме UI и тестах",
+ "schema_version": "1",
+ "run_id": "run-20260926T140051Z-6fdc",
+ "revision": 64,
+ "mode": "replay",
+ "server_sent_at": "2026-09-26T14:01:25.694Z",
+ "clock": {
+  "time_basis": "dataset_naive_ns",
+  "mode": "driven",
+  "source_time": "2026-01-06 10:51:53.389224861",
+  "wall_time": "2026-09-26T14:01:25.694Z",
+  "speed": 300.0,
+  "paused": false,
+  "plan_shift_s": 0.0,
+  "source_window": {
+   "first": "2026-01-06 00:00:02",
+   "last": "2026-01-06 23:59:59"
+  },
+  "source_progress": 0.4195458371594735,
+  "events_delivered": 43861,
+  "events_total": 104544
+ },
+ "summary": {
+  "vehicles": 17,
+  "with_prediction": 8,
+  "attention": 3,
+  "red": 0,
+  "no_prediction": 9,
+  "stale": 5,
+  "unmapped": 0,
+  "alerts_active": 10
+ },
+ "risk_policy": {
+  "green_max_delay_s": 60.0,
+  "red_min_delay_s": 120.0,
+  "early_yellow_s": -60.0,
+  "late_probability_red": 0.5,
+  "note": "Продуктовые пороги UI, не официальная разметка target_class"
+ },
+ "vehicles": [
+  {
+   "tr_id": "120439",
+   "unit_id": "666753",
+   "mapped": true,
+   "position": {
+    "lon": 37.77398,
+    "lat": 55.81358,
+    "speed_kmh": 0.0,
+    "heading_deg": 219.0,
+    "event_at": "2026-01-06 10:51:21",
+    "age_s": 32.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:21",
+   "telemetry_age_s": 32.008149876,
+   "position_age_s": 32.008149876,
+   "stale": false,
+   "events_in_window": 121,
+   "invalid_gps_fraction": 0.008264462809917356,
+   "quality_flags": [
+    "invalid_gps"
+   ],
+   "has_schedule": false,
+   "next_visit": null,
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "120439",
+    "sample_id": null,
+    "status": "no_schedule",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 11.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "122048",
+   "unit_id": "893159",
+   "mapped": true,
+   "position": {
+    "lon": 37.625313,
+    "lat": 55.72919,
+    "speed_kmh": 54.0,
+    "heading_deg": 143.0,
+    "event_at": "2026-01-06 10:50:22",
+    "age_s": 91.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:20",
+   "telemetry_age_s": 33.008149876,
+   "position_age_s": 91.008149876,
+   "stale": false,
+   "events_in_window": 150,
+   "invalid_gps_fraction": 0.14666666666666667,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53699019206",
+    "planned_at": "2026-01-06 10:52:00",
+    "address": "Люсиновская ул., д.27",
+    "lon": 37.62262505,
+    "lat": 55.72531559
+   },
+   "prediction": {
+    "prediction_id": "p-000384",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "122048",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53699019214",
+    "target_planned_at": "2026-01-06 11:03:00",
+    "target_address": "Большая Тульская ул., д.10",
+    "target_lon": 37.62090917,
+    "target_lat": 55.70700843,
+    "horizon_s": 687.704512496,
+    "delay_s": 28.82366099230265,
+    "expected_arrival_at": "2026-01-06 11:03:28.823660992",
+    "risk_level": "green",
+    "risk_basis": "в пределах допустимого отклонения",
+    "late_probability": 0.10747008395408483,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": -86.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 298.295487504,
+    "data_age_s": 70.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "current_deviation",
+      "text": "На последней пройденной остановке опережение 86 с",
+      "value": -86.0
+     },
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 2,5 км",
+      "value": 2481.8524402663093
+     }
+    ],
+    "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "122613",
+   "unit_id": "913870",
+   "mapped": true,
+   "position": {
+    "lon": 37.745686,
+    "lat": 55.63594,
+    "speed_kmh": 67.0,
+    "heading_deg": 285.0,
+    "event_at": "2026-01-06 10:50:51",
+    "age_s": 62.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:30",
+   "telemetry_age_s": 23.008149876,
+   "position_age_s": 62.008149876,
+   "stale": false,
+   "events_in_window": 502,
+   "invalid_gps_fraction": 0.05776892430278884,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53718539260",
+    "planned_at": "2026-01-06 11:06:00",
+    "address": "Братеевская ул., д.16, к.1",
+    "lon": 37.76432598,
+    "lat": 55.63347164
+   },
+   "prediction": {
+    "prediction_id": "p-000385",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "122613",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53718539260",
+    "target_planned_at": "2026-01-06 11:06:00",
+    "target_address": "Братеевская ул., д.16, к.1",
+    "target_lon": 37.76432598,
+    "target_lat": 55.63347164,
+    "horizon_s": 867.704512496,
+    "delay_s": 69.5876791571981,
+    "expected_arrival_at": "2026-01-06 11:07:09.587679157",
+    "risk_level": "yellow",
+    "risk_basis": "delay_s > 60",
+    "late_probability": 0.17893967434330643,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": 53.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 219.295487504,
+    "data_age_s": 41.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 1,2 км",
+      "value": 1201.718483008099
+     }
+    ],
+    "recommendation": "Держать ТС под наблюдением: отклонение выше допустимого, но ниже порога внимания",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "122658",
+   "unit_id": "786201",
+   "mapped": true,
+   "position": {
+    "lon": 37.357365,
+    "lat": 55.79209,
+    "speed_kmh": 26.0,
+    "heading_deg": 21.0,
+    "event_at": "2026-01-06 10:51:15",
+    "age_s": 38.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:15",
+   "telemetry_age_s": 38.008149876,
+   "position_age_s": 38.008149876,
+   "stale": false,
+   "events_in_window": 220,
+   "invalid_gps_fraction": 0.013636363636363636,
+   "quality_flags": [
+    "invalid_gps"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53699433911",
+    "planned_at": "2026-01-06 10:53:00",
+    "address": null,
+    "lon": 37.3712206,
+    "lat": 55.79897028
+   },
+   "prediction": {
+    "prediction_id": "p-000382",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "122658",
+    "sample_id": "122658_1767696600",
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:50:00",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "point",
+    "target_stop_id": "53699433903",
+    "target_planned_at": "2026-01-06 11:01:00",
+    "target_address": "Строгинский бульв., д.2, к.1",
+    "target_lon": 37.39496481,
+    "target_lat": 55.80508518,
+    "horizon_s": 660.0,
+    "delay_s": 82.2568024134451,
+    "expected_arrival_at": "2026-01-06 11:02:22.256802413",
+    "risk_level": "yellow",
+    "risk_basis": "delay_s > 60",
+    "late_probability": 0.5388774476763318,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": 57.0,
+    "cur_dev_source": "supplied",
+    "cur_dev_age_s": null,
+    "data_age_s": -75.0,
+    "prediction_age_s": 113.008149876,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 3,1 км",
+      "value": 3096.3892946584638
+     }
+    ],
+    "recommendation": "Держать ТС под наблюдением: отклонение выше допустимого, но ниже порога внимания",
+    "quality_flags": [
+     "invalid_gps"
+    ]
+   }
+  },
+  {
+   "tr_id": "129964",
+   "unit_id": "894032",
+   "mapped": true,
+   "position": {
+    "lon": 37.689137,
+    "lat": 55.676826,
+    "speed_kmh": 5.0,
+    "heading_deg": 239.0,
+    "event_at": "2026-01-06 10:51:25",
+    "age_s": 28.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:25",
+   "telemetry_age_s": 28.008149876,
+   "position_age_s": 28.008149876,
+   "stale": false,
+   "events_in_window": 138,
+   "invalid_gps_fraction": 0.043478260869565216,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53700336547",
+    "planned_at": "2026-01-06 10:52:00",
+    "address": null,
+    "lon": 37.68612322,
+    "lat": 55.67610673
+   },
+   "prediction": {
+    "prediction_id": "p-000386",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "129964",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53700336538",
+    "target_planned_at": "2026-01-06 11:03:00",
+    "target_address": "Нагатинская наб., д.54",
+    "target_lon": 37.68318523,
+    "target_lat": 55.689356,
+    "horizon_s": 687.704512496,
+    "delay_s": 2.0960695570378327,
+    "expected_arrival_at": "2026-01-06 11:03:02.096069557",
+    "risk_level": "green",
+    "risk_basis": "в пределах допустимого отклонения",
+    "late_probability": 0.08197856109748829,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": -3.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 35.295487504,
+    "data_age_s": 7.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 1,4 км",
+      "value": 1442.3649332011373
+     }
+    ],
+    "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "130072",
+   "unit_id": "896671",
+   "mapped": true,
+   "position": {
+    "lon": 37.190094,
+    "lat": 56.011993,
+    "speed_kmh": 0.0,
+    "heading_deg": 0.0,
+    "event_at": "2026-01-06 10:01:11",
+    "age_s": 3042.008149876
+   },
+   "last_event_at": "2026-01-06 10:01:11",
+   "telemetry_age_s": 3042.008149876,
+   "position_age_s": 3042.008149876,
+   "stale": true,
+   "events_in_window": 0,
+   "invalid_gps_fraction": null,
+   "quality_flags": [
+    "stale_gps",
+    "sparse_history",
+    "history_truncated",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53698461638",
+    "planned_at": "2026-01-06 20:25:00",
+    "address": null,
+    "lon": 37.14902475,
+    "lat": 55.96464991
+   },
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "130072",
+    "sample_id": null,
+    "status": "stale",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 3021.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": true,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "130238",
+   "unit_id": "902577",
+   "mapped": true,
+   "position": {
+    "lon": 37.51782,
+    "lat": 55.71696,
+    "speed_kmh": 0.0,
+    "heading_deg": 224.0,
+    "event_at": "2026-01-06 10:51:25",
+    "age_s": 28.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:25",
+   "telemetry_age_s": 28.008149876,
+   "position_age_s": 28.008149876,
+   "stale": false,
+   "events_in_window": 152,
+   "invalid_gps_fraction": 0.07894736842105263,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53698370412",
+    "planned_at": "2026-01-06 10:52:00",
+    "address": "Мосфильмовская ул., д.60",
+    "lon": 37.51638878,
+    "lat": 55.71621425
+   },
+   "prediction": {
+    "prediction_id": "p-000387",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "130238",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53698370420",
+    "target_planned_at": "2026-01-06 11:02:00",
+    "target_address": "ул. Пельше, д.26",
+    "target_lon": 37.50171181,
+    "target_lat": 55.69977702,
+    "horizon_s": 627.704512496,
+    "delay_s": -26.99926575502212,
+    "expected_arrival_at": "2026-01-06 11:01:33.000734245",
+    "risk_level": "green",
+    "risk_basis": "в пределах допустимого отклонения",
+    "late_probability": 0.06093628647644164,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": -33.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 65.295487504,
+    "data_age_s": 7.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 2,2 км",
+      "value": 2160.7850248949158
+     }
+    ],
+    "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "130389",
+   "unit_id": "910085",
+   "mapped": true,
+   "position": {
+    "lon": 37.406734,
+    "lat": 55.982758,
+    "speed_kmh": 99.0,
+    "heading_deg": 93.0,
+    "event_at": "2026-01-06 10:51:32",
+    "age_s": 21.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:32",
+   "telemetry_age_s": 21.008149876,
+   "position_age_s": 21.008149876,
+   "stale": false,
+   "events_in_window": 192,
+   "invalid_gps_fraction": 0.3645833333333333,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": false,
+   "next_visit": null,
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "130389",
+    "sample_id": null,
+    "status": "no_schedule",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 0.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "131542",
+   "unit_id": "984922",
+   "mapped": true,
+   "position": {
+    "lon": 37.619587,
+    "lat": 55.67139,
+    "speed_kmh": 0.0,
+    "heading_deg": 352.0,
+    "event_at": "2026-01-06 08:07:47",
+    "age_s": 9846.008149876
+   },
+   "last_event_at": "2026-01-06 08:07:47",
+   "telemetry_age_s": 9846.008149876,
+   "position_age_s": 9846.008149876,
+   "stale": true,
+   "events_in_window": 0,
+   "invalid_gps_fraction": null,
+   "quality_flags": [
+    "stale_gps",
+    "sparse_history",
+    "history_truncated"
+   ],
+   "has_schedule": false,
+   "next_visit": null,
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "131542",
+    "sample_id": null,
+    "status": "no_schedule",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 9825.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "131672",
+   "unit_id": "985940",
+   "mapped": true,
+   "position": {
+    "lon": 37.85956,
+    "lat": 55.730335,
+    "speed_kmh": 0.0,
+    "heading_deg": 171.0,
+    "event_at": "2026-01-06 10:51:32",
+    "age_s": 21.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:32",
+   "telemetry_age_s": 21.008149876,
+   "position_age_s": 21.008149876,
+   "stale": false,
+   "events_in_window": 62,
+   "invalid_gps_fraction": 0.04838709677419355,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53718793654",
+    "planned_at": "2026-01-06 11:27:00",
+    "address": "Салтыковская ул., д.1А",
+    "lon": 37.85912214,
+    "lat": 55.73034153
+   },
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "131672",
+    "sample_id": null,
+    "status": "no_target_in_horizon",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 0.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "131954",
+   "unit_id": "987268",
+   "mapped": true,
+   "position": {
+    "lon": 37.544464,
+    "lat": 55.649208,
+    "speed_kmh": 0.0,
+    "heading_deg": 263.0,
+    "event_at": "2026-01-06 08:11:58",
+    "age_s": 9595.008149876
+   },
+   "last_event_at": "2026-01-06 08:11:58",
+   "telemetry_age_s": 9595.008149876,
+   "position_age_s": 9595.008149876,
+   "stale": true,
+   "events_in_window": 0,
+   "invalid_gps_fraction": null,
+   "quality_flags": [
+    "stale_gps",
+    "sparse_history",
+    "history_truncated"
+   ],
+   "has_schedule": false,
+   "next_visit": null,
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "131954",
+    "sample_id": null,
+    "status": "no_schedule",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 9574.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "132430",
+   "unit_id": "1012706",
+   "mapped": true,
+   "position": {
+    "lon": 37.45211,
+    "lat": 55.517715,
+    "speed_kmh": 0.0,
+    "heading_deg": 345.0,
+    "event_at": "2026-01-06 10:51:23",
+    "age_s": 30.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:23",
+   "telemetry_age_s": 30.008149876,
+   "position_age_s": 30.008149876,
+   "stale": false,
+   "events_in_window": 440,
+   "invalid_gps_fraction": 0.075,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53698549450",
+    "planned_at": "2026-01-06 10:54:00",
+    "address": null,
+    "lon": 37.45179411,
+    "lat": 55.51923605
+   },
+   "prediction": {
+    "prediction_id": "p-000388",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "132430",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53698549463",
+    "target_planned_at": "2026-01-06 11:02:00",
+    "target_address": null,
+    "target_lon": 37.44568716,
+    "target_lat": 55.54255625,
+    "horizon_s": 627.704512496,
+    "delay_s": 41.24337861744782,
+    "expected_arrival_at": "2026-01-06 11:02:41.243378617",
+    "risk_level": "green",
+    "risk_basis": "в пределах допустимого отклонения",
+    "late_probability": 0.4784830088973953,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": -9.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 41.295487504,
+    "data_age_s": 9.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 2,8 км",
+      "value": 2791.639442871144
+     }
+    ],
+    "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "133300",
+   "unit_id": "1076894",
+   "mapped": true,
+   "position": {
+    "lon": 37.411198,
+    "lat": 55.737095,
+    "speed_kmh": 0.0,
+    "heading_deg": 310.0,
+    "event_at": "2026-01-06 10:51:30",
+    "age_s": 23.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:30",
+   "telemetry_age_s": 23.008149876,
+   "position_age_s": 23.008149876,
+   "stale": false,
+   "events_in_window": 269,
+   "invalid_gps_fraction": 0.06691449814126393,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53700641100",
+    "planned_at": "2026-01-06 10:52:00",
+    "address": "Ярцевская ул., д.30",
+    "lon": 37.41606537,
+    "lat": 55.74069333
+   },
+   "prediction": {
+    "prediction_id": "p-000383",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "133300",
+    "sample_id": "133300_1767696600",
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:50:00",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "point",
+    "target_stop_id": "53700641370",
+    "target_planned_at": "2026-01-06 11:05:00",
+    "target_address": "Ярцевская ул., д.25, к.3",
+    "target_lon": 37.41463303,
+    "target_lat": 55.74160241,
+    "horizon_s": 900.0,
+    "delay_s": 46.36037103789492,
+    "expected_arrival_at": "2026-01-06 11:05:46.360371038",
+    "risk_level": "green",
+    "risk_basis": "в пределах допустимого отклонения",
+    "late_probability": 0.3081245508778705,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": 97.0,
+    "cur_dev_source": "supplied",
+    "cur_dev_age_s": null,
+    "data_age_s": -90.0,
+    "prediction_age_s": 113.008149876,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "current_deviation",
+      "text": "На последней пройденной остановке опоздание 97 с",
+      "value": 97.0
+     },
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 0,8 км",
+      "value": 774.3021077723648
+     }
+    ],
+    "recommendation": "Действий не требуется: прогноз в пределах допустимого отклонения",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "133957",
+   "unit_id": "1099984",
+   "mapped": true,
+   "position": {
+    "lon": 37.52241,
+    "lat": 55.64371,
+    "speed_kmh": 0.0,
+    "heading_deg": 306.0,
+    "event_at": "2026-01-06 10:51:17",
+    "age_s": 36.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:17",
+   "telemetry_age_s": 36.008149876,
+   "position_age_s": 36.008149876,
+   "stale": false,
+   "events_in_window": 213,
+   "invalid_gps_fraction": 0.08450704225352113,
+   "quality_flags": [
+    "invalid_gps",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53699456417",
+    "planned_at": "2026-01-06 10:53:00",
+    "address": "ул. Миклухо-Маклая, д.22А",
+    "lon": 37.52365282,
+    "lat": 55.64304648
+   },
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "133957",
+    "sample_id": null,
+    "status": "ok",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "trigger": "periodic",
+    "target_stop_id": "53699456430",
+    "target_planned_at": "2026-01-06 11:02:00",
+    "target_address": "ул. Островитянова, д.31",
+    "target_lon": 37.52324365,
+    "target_lat": 55.63379817,
+    "horizon_s": 627.704512496,
+    "delay_s": 86.78616352874607,
+    "expected_arrival_at": "2026-01-06 11:03:26.786163529",
+    "risk_level": "yellow",
+    "risk_basis": "delay_s > 60",
+    "late_probability": 0.3028174428532481,
+    "late_threshold_s": 120.0,
+    "calibration": {
+     "method": "platt",
+     "status": "fitted_on_development",
+     "report": "ml/reports/ml-v2.md",
+     "fit_rows": 287
+    },
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "model_used": "main",
+    "feature_schema_version": "1",
+    "cur_dev_s": 47.0,
+    "cur_dev_source": "estimated",
+    "cur_dev_age_s": 405.295487504,
+    "data_age_s": 15.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "evidence": [
+     {
+      "kind": "long_dwell",
+      "text": "Наблюдаемая стоянка 306 с без движения",
+      "value": 306.0
+     },
+     {
+      "kind": "distance_to_target",
+      "text": "До целевой остановки по прямой 1,1 км",
+      "value": 1103.3863238218792
+     }
+    ],
+    "recommendation": "Держать ТС под наблюдением: отклонение выше допустимого, но ниже порога внимания",
+    "quality_flags": [
+     "invalid_gps",
+     "conflicting_event_times"
+    ]
+   }
+  },
+  {
+   "tr_id": "134040",
+   "unit_id": "1105498",
+   "mapped": true,
+   "position": {
+    "lon": 37.386005,
+    "lat": 55.718605,
+    "speed_kmh": 0.0,
+    "heading_deg": 308.0,
+    "event_at": "2026-01-06 09:29:09",
+    "age_s": 4964.008149876
+   },
+   "last_event_at": "2026-01-06 09:29:09",
+   "telemetry_age_s": 4964.008149876,
+   "position_age_s": 4964.008149876,
+   "stale": true,
+   "events_in_window": 0,
+   "invalid_gps_fraction": null,
+   "quality_flags": [
+    "stale_gps",
+    "sparse_history",
+    "history_truncated",
+    "conflicting_event_times"
+   ],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53698328493",
+    "planned_at": "2026-01-06 12:55:00",
+    "address": "Барвихинская ул., д.9",
+    "lon": 37.3856911,
+    "lat": 55.71867854
+   },
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "134040",
+    "sample_id": null,
+    "status": "stale",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 4943.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": true,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "135081",
+   "unit_id": "1133091",
+   "mapped": true,
+   "position": {
+    "lon": 37.70648,
+    "lat": 55.65068,
+    "speed_kmh": 0.0,
+    "heading_deg": 202.0,
+    "event_at": "2026-01-06 10:51:25",
+    "age_s": 28.008149876
+   },
+   "last_event_at": "2026-01-06 10:51:25",
+   "telemetry_age_s": 28.008149876,
+   "position_age_s": 28.008149876,
+   "stale": false,
+   "events_in_window": 120,
+   "invalid_gps_fraction": 0.0,
+   "quality_flags": [],
+   "has_schedule": true,
+   "next_visit": {
+    "target_stop_id": "53718723956",
+    "planned_at": "2026-01-06 11:25:00",
+    "address": null,
+    "lon": 37.70642822,
+    "lat": 55.65167973
+   },
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "135081",
+    "sample_id": null,
+    "status": "no_target_in_horizon",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 7.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  },
+  {
+   "tr_id": "135511",
+   "unit_id": "1155033",
+   "mapped": true,
+   "position": {
+    "lon": 37.40585,
+    "lat": 55.70722,
+    "speed_kmh": 0.0,
+    "heading_deg": 41.0,
+    "event_at": "2026-01-06 10:40:42",
+    "age_s": 671.008149876
+   },
+   "last_event_at": "2026-01-06 10:50:40.916579",
+   "telemetry_age_s": 72.091570876,
+   "position_age_s": 671.008149876,
+   "stale": true,
+   "events_in_window": 28,
+   "invalid_gps_fraction": 0.9642857142857143,
+   "quality_flags": [
+    "stale_gps",
+    "invalid_gps",
+    "history_truncated"
+   ],
+   "has_schedule": false,
+   "next_visit": null,
+   "prediction": {
+    "prediction_id": "p-000389",
+    "run_id": "run-20260926T140051Z-6fdc",
+    "tr_id": "135511",
+    "sample_id": null,
+    "status": "no_schedule",
+    "cutoff_t": "2026-01-06 10:51:32.295487504",
+    "computed_at": "2026-09-26T14:01:25.661Z",
+    "target_stop_id": null,
+    "target_planned_at": null,
+    "horizon_s": null,
+    "delay_s": null,
+    "risk_level": null,
+    "risk_basis": null,
+    "late_probability": null,
+    "model_version": "6eb7de4d4453eb03ea0c482b14433649a8d90c32d9cef3ff4298c93f1bfb6840",
+    "data_age_s": 650.295487504,
+    "prediction_age_s": 20.712662372,
+    "stale": false,
+    "cur_dev_source": null,
+    "cur_dev_s": null,
+    "detail": null,
+    "evidence": [],
+    "recommendation": null,
+    "quality_flags": []
+   }
+  }
+ ],
+ "alerts": [
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122658:53699433900",
+   "tr_id": "122658",
+   "target_stop_id": "53699433900",
+   "target_planned_at": "2026-01-06 10:55:00",
+   "first_alert_at": "2026-01-06 10:43:23.741987398",
+   "first_alert_at_wall": "2026-09-26T14:01:24.032Z",
+   "planned_lead_s": 696.258012602,
+   "risk_level": "yellow",
+   "delay_s": 105.85892360779013,
+   "late_probability": 0.45242081362678654,
+   "latest_prediction_at": "2026-01-06 10:43:23.741987398",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 566 с без движения",
+     "value": 566.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,7 км",
+     "value": 1733.2007881086538
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549457",
+   "tr_id": "132430",
+   "target_stop_id": "53698549457",
+   "target_planned_at": "2026-01-06 10:59:00",
+   "first_alert_at": "2026-01-06 10:48:48.303212416",
+   "first_alert_at_wall": "2026-09-26T14:01:25.123Z",
+   "planned_lead_s": 611.696787584,
+   "risk_level": "yellow",
+   "delay_s": 97.4488223485113,
+   "late_probability": 0.6914595500510987,
+   "latest_prediction_at": "2026-01-06 10:48:48.303212416",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,2 км",
+     "value": 1248.5862019988936
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133957:53699456430",
+   "tr_id": "133957",
+   "target_stop_id": "53699456430",
+   "target_planned_at": "2026-01-06 11:02:00",
+   "first_alert_at": "2026-01-06 10:51:32.295487504",
+   "first_alert_at_wall": "2026-09-26T14:01:25.661Z",
+   "planned_lead_s": 627.704512496,
+   "risk_level": "yellow",
+   "delay_s": 86.78616352874607,
+   "late_probability": 0.3028174428532481,
+   "latest_prediction_at": "2026-01-06 10:51:32.295487504",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 306 с без движения",
+     "value": 306.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,1 км",
+     "value": 1103.3863238218792
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122658:53699433903",
+   "tr_id": "122658",
+   "target_stop_id": "53699433903",
+   "target_planned_at": "2026-01-06 11:01:00",
+   "first_alert_at": "2026-01-06 10:50:00",
+   "first_alert_at_wall": "2026-09-26T14:01:25.661Z",
+   "planned_lead_s": 660.0,
+   "risk_level": "yellow",
+   "delay_s": 82.2568024134451,
+   "late_probability": 0.5388774476763318,
+   "latest_prediction_at": "2026-01-06 10:50:00",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,1 км",
+     "value": 3096.3892946584638
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122658:53699433902",
+   "tr_id": "122658",
+   "target_stop_id": "53699433902",
+   "target_planned_at": "2026-01-06 11:00:00",
+   "first_alert_at": "2026-01-06 10:48:48.303212416",
+   "first_alert_at_wall": "2026-09-26T14:01:25.123Z",
+   "planned_lead_s": 671.696787584,
+   "risk_level": "yellow",
+   "delay_s": 82.20915847440145,
+   "late_probability": 0.4879664630153774,
+   "latest_prediction_at": "2026-01-06 10:48:48.303212416",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,0 км",
+     "value": 3011.159648081324
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019206",
+   "tr_id": "122048",
+   "target_stop_id": "53699019206",
+   "target_planned_at": "2026-01-06 10:52:00",
+   "first_alert_at": "2026-01-06 10:40:40.664387354",
+   "first_alert_at_wall": "2026-09-26T14:01:23.494Z",
+   "planned_lead_s": 679.335612646,
+   "risk_level": "yellow",
+   "delay_s": -78.74711959154124,
+   "late_probability": 0.17451435845664637,
+   "latest_prediction_at": "2026-01-06 10:40:40.664387354",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "speed_drop",
+     "text": "Средняя скорость за 3 мин 1,5 км/ч против 10,3 км/ч за 10 мин",
+     "value": 1.5384615384615385
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 296 с",
+     "value": -296.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 0,4 км",
+     "value": 402.1221459937719
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122613:53718539260",
+   "tr_id": "122613",
+   "target_stop_id": "53718539260",
+   "target_planned_at": "2026-01-06 11:06:00",
+   "first_alert_at": "2026-01-06 10:51:32.295487504",
+   "first_alert_at_wall": "2026-09-26T14:01:25.661Z",
+   "planned_lead_s": 867.704512496,
+   "risk_level": "yellow",
+   "delay_s": 69.5876791571981,
+   "late_probability": 0.17893967434330643,
+   "latest_prediction_at": "2026-01-06 10:51:32.295487504",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,2 км",
+     "value": 1201.718483008099
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133957:53699456421",
+   "tr_id": "133957",
+   "target_stop_id": "53699456421",
+   "target_planned_at": "2026-01-06 10:59:00",
+   "first_alert_at": "2026-01-06 10:48:48.303212416",
+   "first_alert_at_wall": "2026-09-26T14:01:25.124Z",
+   "planned_lead_s": 611.696787584,
+   "risk_level": "yellow",
+   "delay_s": 63.784532824683794,
+   "late_probability": 0.2585845033586892,
+   "latest_prediction_at": "2026-01-06 10:48:48.303212416",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "speed_drop",
+     "text": "Средняя скорость за 3 мин 0,8 км/ч против 7,2 км/ч за 10 мин",
+     "value": 0.75
+    },
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 156 с без движения",
+     "value": 156.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,1 км",
+     "value": 1096.2022500917972
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019220",
+   "tr_id": "122048",
+   "target_stop_id": "53699019220",
+   "target_planned_at": "2026-01-06 10:57:00",
+   "first_alert_at": "2026-01-06 10:46:05.439375001",
+   "first_alert_at_wall": "2026-09-26T14:01:24.577Z",
+   "planned_lead_s": 654.560624999,
+   "risk_level": "yellow",
+   "delay_s": 62.71427876890155,
+   "late_probability": 0.3739707003018013,
+   "latest_prediction_at": "2026-01-06 10:46:05.439375001",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 126 с",
+     "value": 126.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,5 км",
+     "value": 1455.9574795185476
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133300:53700641095",
+   "tr_id": "133300",
+   "target_stop_id": "53700641095",
+   "target_planned_at": "2026-01-06 10:54:00",
+   "first_alert_at": "2026-01-06 10:43:23.741987398",
+   "first_alert_at_wall": "2026-09-26T14:01:24.032Z",
+   "planned_lead_s": 636.258012602,
+   "risk_level": "yellow",
+   "delay_s": 62.60382819249419,
+   "late_probability": 0.505394210509673,
+   "latest_prediction_at": "2026-01-06 10:43:23.741987398",
+   "updates": 1,
+   "state": "active",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 70 с",
+     "value": 70.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,3 км",
+     "value": 1261.713469469401
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:130238:53698370426",
+   "tr_id": "130238",
+   "target_stop_id": "53698370426",
+   "target_planned_at": "2026-01-06 10:43:00",
+   "first_alert_at": "2026-01-06 10:32:27.551274904",
+   "first_alert_at_wall": "2026-09-26T14:01:21.854Z",
+   "planned_lead_s": 632.448725096,
+   "risk_level": "red",
+   "delay_s": 188.741775605087,
+   "late_probability": 0.5971432917990508,
+   "latest_prediction_at": "2026-01-06 10:32:27.551274904",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 360 с",
+     "value": 360.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,9 км",
+     "value": 1890.1920122277527
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133300:53700641102",
+   "tr_id": "133300",
+   "target_stop_id": "53700641102",
+   "target_planned_at": "2026-01-06 10:35:00",
+   "first_alert_at": "2026-01-06 10:24:15.148524907",
+   "first_alert_at_wall": "2026-09-26T14:01:20.213Z",
+   "planned_lead_s": 644.851475093,
+   "risk_level": "red",
+   "delay_s": 183.48140774847846,
+   "late_probability": 0.6024027166827259,
+   "latest_prediction_at": "2026-01-06 10:24:15.148524907",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 330 с без движения",
+     "value": 330.0
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 324 с",
+     "value": 324.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,2 км",
+     "value": 1209.023460500795
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:130238:53698370400",
+   "tr_id": "130238",
+   "target_stop_id": "53698370400",
+   "target_planned_at": "2026-01-06 10:46:00",
+   "first_alert_at": "2026-01-06 10:35:11.399662471",
+   "first_alert_at_wall": "2026-09-26T14:01:22.404Z",
+   "planned_lead_s": 648.600337529,
+   "risk_level": "red",
+   "delay_s": 183.152795897686,
+   "late_probability": 0.5625093846008525,
+   "latest_prediction_at": "2026-01-06 10:35:11.399662471",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 360 с",
+     "value": 360.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 2,8 км",
+     "value": 2760.4307920286274
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:130238:53698370424",
+   "tr_id": "130238",
+   "target_stop_id": "53698370424",
+   "target_planned_at": "2026-01-06 10:40:00",
+   "first_alert_at": "2026-01-06 10:29:43.154574874",
+   "first_alert_at_wall": "2026-09-26T14:01:21.307Z",
+   "planned_lead_s": 616.845425126,
+   "risk_level": "red",
+   "delay_s": 159.41056075045407,
+   "late_probability": 0.47907618609127217,
+   "latest_prediction_at": "2026-01-06 10:29:43.154574874",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 239 с без движения",
+     "value": 239.0
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 344 с",
+     "value": 344.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 0,9 км",
+     "value": 857.4907677176408
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549379",
+   "tr_id": "132430",
+   "target_stop_id": "53698549379",
+   "target_planned_at": "2026-01-06 10:46:00",
+   "first_alert_at": "2026-01-06 10:35:11.399662471",
+   "first_alert_at_wall": "2026-09-26T14:01:22.404Z",
+   "planned_lead_s": 648.600337529,
+   "risk_level": "red",
+   "delay_s": 145.43838404526514,
+   "late_probability": 0.73045531133475,
+   "latest_prediction_at": "2026-01-06 10:35:11.399662471",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 240 с",
+     "value": 240.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 4,4 км",
+     "value": 4357.573710531357
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133300:53700641096",
+   "tr_id": "133300",
+   "target_stop_id": "53700641096",
+   "target_planned_at": "2026-01-06 10:30:00",
+   "first_alert_at": "2026-01-06 10:18:49.385749809",
+   "first_alert_at_wall": "2026-09-26T14:01:19.127Z",
+   "planned_lead_s": 670.614250191,
+   "risk_level": "red",
+   "delay_s": 132.76120034927425,
+   "late_probability": 0.6604227348832477,
+   "latest_prediction_at": "2026-01-06 10:18:49.385749809",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 208 с",
+     "value": 208.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 0,7 км",
+     "value": 706.8188966887482
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019180",
+   "tr_id": "122048",
+   "target_stop_id": "53699019180",
+   "target_planned_at": "2026-01-06 10:40:00",
+   "first_alert_at": "2026-01-06 10:29:43.154574874",
+   "first_alert_at_wall": "2026-09-26T14:01:21.307Z",
+   "planned_lead_s": 616.845425126,
+   "risk_level": "yellow",
+   "delay_s": -131.32812734417212,
+   "late_probability": 0.03772603129309819,
+   "latest_prediction_at": "2026-01-06 10:29:43.154574874",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 202 с",
+     "value": -202.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,3 км",
+     "value": 1318.9233742138213
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019173",
+   "tr_id": "122048",
+   "target_stop_id": "53699019173",
+   "target_planned_at": "2026-01-06 10:37:00",
+   "first_alert_at": "2026-01-06 10:24:15.148524907",
+   "first_alert_at_wall": "2026-09-26T14:01:20.213Z",
+   "planned_lead_s": 764.851475093,
+   "risk_level": "yellow",
+   "delay_s": -127.99921081389279,
+   "late_probability": 0.02895633579769014,
+   "latest_prediction_at": "2026-01-06 10:26:59.661824963",
+   "updates": 2,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 132 с",
+     "value": -132.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,3 км",
+     "value": 1267.0538108657154
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019167",
+   "tr_id": "122048",
+   "target_stop_id": "53699019167",
+   "target_planned_at": "2026-01-06 10:43:00",
+   "first_alert_at": "2026-01-06 10:32:27.551274904",
+   "first_alert_at_wall": "2026-09-26T14:01:21.854Z",
+   "planned_lead_s": 632.448725096,
+   "risk_level": "yellow",
+   "delay_s": -127.87768914561946,
+   "late_probability": 0.036935229089902086,
+   "latest_prediction_at": "2026-01-06 10:32:27.551274904",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "speed_drop",
+     "text": "Средняя скорость за 3 мин 12,6 км/ч против 22,2 км/ч за 10 мин",
+     "value": 12.642857142857142
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 248 с",
+     "value": -248.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,4 км",
+     "value": 1440.0375293779766
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133300:53700641085",
+   "tr_id": "133300",
+   "target_stop_id": "53700641085",
+   "target_planned_at": "2026-01-06 10:33:00",
+   "first_alert_at": "2026-01-06 10:21:33.748712399",
+   "first_alert_at_wall": "2026-09-26T14:01:19.666Z",
+   "planned_lead_s": 686.251287601,
+   "risk_level": "red",
+   "delay_s": 124.66028534503798,
+   "late_probability": 0.5257335432186961,
+   "latest_prediction_at": "2026-01-06 10:21:33.748712399",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "speed_drop",
+     "text": "Средняя скорость за 3 мин 0,5 км/ч против 6,0 км/ч за 10 мин",
+     "value": 0.46153846153846156
+    },
+    {
+     "kind": "long_dwell",
+     "text": "Наблюдаемая стоянка 164 с без движения",
+     "value": 164.0
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 234 с",
+     "value": 234.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 1,0 км",
+     "value": 963.2146672099403
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019208",
+   "tr_id": "122048",
+   "target_stop_id": "53699019208",
+   "target_planned_at": "2026-01-06 10:48:00",
+   "first_alert_at": "2026-01-06 10:35:11.399662471",
+   "first_alert_at_wall": "2026-09-26T14:01:22.404Z",
+   "planned_lead_s": 768.600337529,
+   "risk_level": "yellow",
+   "delay_s": -121.69079886351105,
+   "late_probability": 0.03870966806738666,
+   "latest_prediction_at": "2026-01-06 10:37:56.415812387",
+   "updates": 2,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 267 с",
+     "value": -267.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 0,0 км",
+     "value": 35.40354608495932
+    },
+    {
+     "kind": "data_quality",
+     "text": "Валидных координат за 10 мин 80%",
+     "value": 0.7959183673469388
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549359",
+   "tr_id": "132430",
+   "target_stop_id": "53698549359",
+   "target_planned_at": "2026-01-06 10:44:00",
+   "first_alert_at": "2026-01-06 10:32:27.551274904",
+   "first_alert_at_wall": "2026-09-26T14:01:21.854Z",
+   "planned_lead_s": 692.448725096,
+   "risk_level": "red",
+   "delay_s": 121.5165858366427,
+   "late_probability": 0.3242413523793987,
+   "latest_prediction_at": "2026-01-06 10:32:27.551274904",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 187 с",
+     "value": 187.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,7 км",
+     "value": 3741.6601039484553
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549357",
+   "tr_id": "132430",
+   "target_stop_id": "53698549357",
+   "target_planned_at": "2026-01-06 10:38:00",
+   "first_alert_at": "2026-01-06 10:26:59.661824963",
+   "first_alert_at_wall": "2026-09-26T14:01:20.757Z",
+   "planned_lead_s": 660.338175037,
+   "risk_level": "yellow",
+   "delay_s": 110.66642469587015,
+   "late_probability": 0.35957519476649286,
+   "latest_prediction_at": "2026-01-06 10:26:59.661824963",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 118 с",
+     "value": 118.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 4,0 км",
+     "value": 3990.743556523583
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122613:53718539223",
+   "tr_id": "122613",
+   "target_stop_id": "53718539223",
+   "target_planned_at": "2026-01-06 10:28:00",
+   "first_alert_at": "2026-01-06 10:16:11.453512483",
+   "first_alert_at_wall": "2026-09-26T14:01:18.580Z",
+   "planned_lead_s": 708.546487517,
+   "risk_level": "yellow",
+   "delay_s": -101.90114507768955,
+   "late_probability": 0.12932359118966524,
+   "latest_prediction_at": "2026-01-06 10:16:11.453512483",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "speed_drop",
+     "text": "Средняя скорость за 3 мин 7,3 км/ч против 14,3 км/ч за 10 мин",
+     "value": 7.333333333333333
+    },
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 179 с",
+     "value": -179.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 2,8 км",
+     "value": 2800.5817713099345
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019168",
+   "tr_id": "122048",
+   "target_stop_id": "53699019168",
+   "target_planned_at": "2026-01-06 10:22:00",
+   "first_alert_at": "2026-01-06 10:10:44.815187389",
+   "first_alert_at_wall": "2026-09-26T14:01:17.508Z",
+   "planned_lead_s": 675.184812611,
+   "risk_level": "yellow",
+   "delay_s": -98.61241780364931,
+   "late_probability": 0.036559161015928744,
+   "latest_prediction_at": "2026-01-06 10:10:44.815187389",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 110 с",
+     "value": -110.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,8 км",
+     "value": 3809.5679856626675
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:133300:53700641084",
+   "tr_id": "133300",
+   "target_stop_id": "53700641084",
+   "target_planned_at": "2026-01-06 10:27:00",
+   "first_alert_at": "2026-01-06 10:16:11.453512483",
+   "first_alert_at_wall": "2026-09-26T14:01:18.581Z",
+   "planned_lead_s": 648.546487517,
+   "risk_level": "yellow",
+   "delay_s": 98.52640380392212,
+   "late_probability": 0.4805196116212805,
+   "latest_prediction_at": "2026-01-06 10:16:11.453512483",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 176 с",
+     "value": 176.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 0,2 км",
+     "value": 192.85934883200747
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549377",
+   "tr_id": "132430",
+   "target_stop_id": "53698549377",
+   "target_planned_at": "2026-01-06 10:36:00",
+   "first_alert_at": "2026-01-06 10:24:15.148524907",
+   "first_alert_at_wall": "2026-09-26T14:01:20.213Z",
+   "planned_lead_s": 704.851475093,
+   "risk_level": "yellow",
+   "delay_s": 94.44700287205715,
+   "late_probability": 0.3257440175938253,
+   "latest_prediction_at": "2026-01-06 10:24:15.148524907",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 97 с",
+     "value": 97.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 4,2 км",
+     "value": 4195.707461148809
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549358",
+   "tr_id": "132430",
+   "target_stop_id": "53698549358",
+   "target_planned_at": "2026-01-06 10:40:00",
+   "first_alert_at": "2026-01-06 10:29:43.154574874",
+   "first_alert_at_wall": "2026-09-26T14:01:21.307Z",
+   "planned_lead_s": 616.845425126,
+   "risk_level": "yellow",
+   "delay_s": 89.11926586435374,
+   "late_probability": 0.2634008259407587,
+   "latest_prediction_at": "2026-01-06 10:29:43.154574874",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 159 с",
+     "value": 159.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,4 км",
+     "value": 3388.7385534681566
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:132430:53698549374",
+   "tr_id": "132430",
+   "target_stop_id": "53698549374",
+   "target_planned_at": "2026-01-06 10:26:00",
+   "first_alert_at": "2026-01-06 10:13:27.830587495",
+   "first_alert_at_wall": "2026-09-26T14:01:18.052Z",
+   "planned_lead_s": 752.169412505,
+   "risk_level": "yellow",
+   "delay_s": 86.66065680799713,
+   "late_probability": 0.6656442668602368,
+   "latest_prediction_at": "2026-01-06 10:13:27.830587495",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опоздание 87 с",
+     "value": 87.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 5,5 км",
+     "value": 5499.426223060184
+    }
+   ]
+  },
+  {
+   "alert_id": "run-20260926T140051Z-6fdc:122048:53699019172",
+   "tr_id": "122048",
+   "target_stop_id": "53699019172",
+   "target_planned_at": "2026-01-06 10:29:00",
+   "first_alert_at": "2026-01-06 10:18:49.385749809",
+   "first_alert_at_wall": "2026-09-26T14:01:19.127Z",
+   "planned_lead_s": 610.614250191,
+   "risk_level": "yellow",
+   "delay_s": -84.67370336655217,
+   "late_probability": 0.0421592876693916,
+   "latest_prediction_at": "2026-01-06 10:18:49.385749809",
+   "updates": 1,
+   "state": "expired",
+   "acknowledged_at": null,
+   "evidence": [
+    {
+     "kind": "current_deviation",
+     "text": "На последней пройденной остановке опережение 70 с",
+     "value": -70.0
+    },
+    {
+     "kind": "distance_to_target",
+     "text": "До целевой остановки по прямой 3,2 км",
+     "value": 3199.9660390118247
+    }
+   ]
+  }
+ ]
+}
