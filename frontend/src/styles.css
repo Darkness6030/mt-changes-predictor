@@ -140,7 +140,7 @@ input[type="search"], select {
 
 .map-wrap { position: relative; flex: 1; min-width: 0; }
 #map { position: absolute; inset: 0; background: #0b1016; }
-/* Scope API 2.1 footer overrides to the requested text/actions; keep the map logo. */
+/* Scope API 2.1 footer overrides to the requested text/actions. */
 #map [class$="-gotoymaps"],
 #map [class$="-gototech"],
 #map [class$="-copyright__content"] { display: none !important; }

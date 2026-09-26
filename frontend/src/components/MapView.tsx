@@ -41,7 +41,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       if (cancelled || !container.current) return;
       instance = new api.Map(container.current, {
         center: MOSCOW, zoom: 10, controls: ["zoomControl"],
-      }, { suppressMapOpenBlock: true });
+      }, { suppressMapOpenBlock: true, copyrightLogoVisible: false });
       map.current = instance;
       resize = new ResizeObserver(() => instance?.container.fitToViewport());
       resize.observe(container.current);

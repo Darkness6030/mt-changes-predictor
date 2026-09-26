@@ -79,7 +79,7 @@
     "suppress_map_open_block": true,
     "terms_link_visible": false,
     "copyright_text_visible": false,
-    "logo_visible": true,
+    "logo_visible": false,
     "legend_vehicle_colour_alignment": "center"
   },
   "ui_demo": {
