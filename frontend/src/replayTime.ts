@@ -15,8 +15,7 @@ export function timeLabel(value: number): string {
   return sourceInput(value).slice(11);
 }
 
-export function fitWindow(center: number, span: number, first: number, last: number) {
-  const size = Math.min(span, last - first);
-  const start = Math.max(first, Math.min(last - size, center - size / 2));
-  return { start: Math.round(start / 1000) * 1000, end: Math.round((start + size) / 1000) * 1000 };
+export function fitWindow(center: number, span: number) {
+  const start = Math.round((center - span / 2) / 1000) * 1000;
+  return { start, end: start + Math.round(span / 1000) * 1000 };
 }

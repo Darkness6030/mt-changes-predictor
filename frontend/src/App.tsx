@@ -6,6 +6,7 @@ import { Queue, type Filter } from "./components/Queue";
 import { ReplayControls } from "./components/ReplayControls";
 import { SystemPanel } from "./components/SystemPanel";
 import { VehicleCard } from "./components/VehicleCard";
+import { sourceMs } from "./replayTime";
 import { usePolling } from "./usePolling";
 import type { Snapshot, Status, VehicleDetail } from "./types";
 
@@ -46,17 +47,29 @@ export default function App() {
 
   useEffect(() => { setSelected(null); }, [snapshot?.run_id]);
 
+  const sourceClock = snapshot?.clock;
+  const sourceNow = sourceMs(sourceClock?.source_time);
+  const noReplayData = snapshot?.mode === "replay" && Number.isFinite(sourceNow) && (
+    sourceNow < sourceMs(sourceClock?.source_window?.first) ||
+    sourceNow > sourceMs(sourceClock?.source_window?.last)
+  );
+  const displaySnapshot = useMemo(() => noReplayData && snapshot ? {
+    ...snapshot, vehicles: [], alerts: [],
+    summary: { vehicles: 0, with_prediction: 0, attention: 0, red: 0,
+      no_prediction: 0, stale: 0, unmapped: 0, alerts_active: 0 },
+  } : snapshot, [snapshot, noReplayData]);
+
   const detail = useMemo(() => {
-    const current = snapshot?.vehicles.find((item) => item.tr_id === selected);
-    if (!current || !snapshot) return null;
+    const current = displaySnapshot?.vehicles.find((item) => item.tr_id === selected);
+    if (!current || !displaySnapshot) return null;
     const loaded = detailPoll.data;
-    const usable = loaded?.tr_id === selected && loaded?.run_id === snapshot.run_id && !detailPoll.error;
+    const usable = loaded?.tr_id === selected && loaded?.run_id === displaySnapshot.run_id && !detailPoll.error;
     if (usable) {
-      return { ...loaded, ...(loaded.revision > snapshot.revision ? {} : current) };
+      return { ...loaded, ...(loaded.revision > displaySnapshot.revision ? {} : current) };
     }
-    return { ...current, run_id: snapshot.run_id, revision: snapshot.revision,
+    return { ...current, run_id: displaySnapshot.run_id, revision: displaySnapshot.revision,
       track: [], plan: [], prediction_history: [] } as VehicleDetail;
-  }, [detailPoll.data, detailPoll.error, snapshot, selected]);
+  }, [detailPoll.data, detailPoll.error, displaySnapshot, selected]);
 
   const acknowledge = useCallback(async (alertId: string) => {
     try {
@@ -95,7 +108,8 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header snapshot={snapshot} status={statusPoll.data} ageMs={ageMs} />
+      <Header snapshot={displaySnapshot} status={statusPoll.data} ageMs={ageMs}
+        error={commandError ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
       {connectionLost ? (
         <div className="banner">
           Связь с Backend потеряна: {snapshotPoll.error ?? "состояние давно не обновлялось"}. Показано последнее полученное состояние
@@ -117,7 +131,7 @@ export default function App() {
       </div> : null}
       <div className="body">
         <Queue
-          snapshot={snapshot}
+          snapshot={displaySnapshot}
           filter={filter}
           search={search}
           selected={selected}
@@ -125,13 +139,13 @@ export default function App() {
           onSearch={setSearch}
           onSelect={setSelected}
         />
-        <MapView snapshot={snapshot} detail={detail} selected={selected} onSelect={setSelected} />
+        <MapView snapshot={displaySnapshot} detail={detail} selected={selected} onSelect={setSelected} />
         {showSystem ? (
           <SystemPanel status={statusPoll.data} quality={qualityPoll.data} />
         ) : (
           <VehicleCard
             detail={detail}
-            alerts={snapshot?.alerts ?? []}
+            alerts={displaySnapshot?.alerts ?? []}
             policy={snapshot?.risk_policy ?? null}
             onAcknowledge={acknowledge}
           />
@@ -143,7 +157,6 @@ export default function App() {
         onCommand={command}
         showSystem={showSystem}
         onToggleSystem={() => setShowSystem((value) => !value)}
-        error={commandError}
       />
     </div>
   );

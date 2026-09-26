@@ -10,14 +10,13 @@ interface Props {
   pending: boolean;
   showSystem: boolean;
   onToggleSystem: () => void;
-  error: string | null;
 }
 interface NavigationRange { sourceFirst: number; sourceLast: number; start: number; end: number }
 const SPEEDS = [1, 10, 30, 60, 120, 300];
 const PRESETS = [{ label: "15м", span: 900000 }, { label: "1ч", span: 3600000 }, { label: "6ч", span: 21600000 }];
 
 /** Compact time toolbar and ruler. All timestamps retain dataset calendar fields. */
-export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem, error }: Props) {
+export function ReplayControls({ status, onCommand, pending, showSystem, onToggleSystem }: Props) {
   const replay = status?.mode === "replay" && status.replay?.control_enabled;
   const clock = status?.clock;
   const first = Math.ceil(sourceMs(clock?.source_window?.first) / 1000) * 1000;
@@ -39,16 +38,16 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
   }, [editor]);
 
   const seek = async (value: number) => {
-    if (!hasPeriod || !Number.isFinite(value) || value < range.start || value > range.end) {
-      setLocalError("Выберите время внутри выбранного диапазона"); return;
+    if (!hasPeriod || !Number.isFinite(value)) {
+      setLocalError("Укажите корректную дату и время"); return;
     }
     setLocalError(null);
     setEditor(null);
     await onCommand("seek", undefined, sourceLabel(value));
   };
   const applyRange = async (start: number, end: number) => {
-    if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end) || start < first || end > last || start >= end) {
-      setLocalError("Начало должно быть раньше конца, обе границы — внутри доступного периода"); return;
+    if (!hasPeriod || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+      setLocalError("Начало диапазона должно быть раньше конца"); return;
     }
     setSelection({ sourceFirst: first, sourceLast: last, start, end });
     setLocalError(null);
@@ -57,7 +56,7 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
   };
   const shiftRange = (direction: number) => {
     const size = range.end - range.start;
-    const shifted = fitWindow((range.start + range.end) / 2 + direction * size, size, first, last);
+    const shifted = fitWindow((range.start + range.end) / 2 + direction * size, size);
     void applyRange(shifted.start, shifted.end);
   };
 
@@ -85,9 +84,9 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
                       void applyRange(sourceMs(String(values.get("from"))), sourceMs(String(values.get("to"))));
                     }}>
                       <label>Начало диапазона<input name="from" type="datetime-local" step="1" required
-                        min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.start)} /></label>
+                        defaultValue={sourceInput(range.start)} /></label>
                       <label>Конец диапазона<input name="to" type="datetime-local" step="1" required
-                        min={sourceInput(first)} max={sourceInput(last)} defaultValue={sourceInput(range.end)} /></label>
+                        defaultValue={sourceInput(range.end)} /></label>
                       <button type="submit">Применить диапазон</button>
                     </form>
                   ) : (
@@ -96,7 +95,7 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
                       void seek(sourceMs(String(values.get("start_at"))));
                     }}>
                       <label>Перейти к дате и времени<input name="start_at" type="datetime-local" step="1" required
-                        min={sourceInput(range.start)} max={sourceInput(range.end)} defaultValue={sourceInput(current)} /></label>
+                        defaultValue={sourceInput(current)} /></label>
                       <button type="submit">Перейти</button>
                     </form>
                   )}
@@ -106,11 +105,11 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
               ) : null}
             </div>
             <div className="range-shortcuts" role="group" aria-label="Навигация по диапазонам">
-              <button disabled={pending || range.start <= first} aria-label="Предыдущий диапазон" onClick={() => shiftRange(-1)}>‹</button>
-              <button disabled={pending || range.end >= last} aria-label="Следующий диапазон" onClick={() => shiftRange(1)}>›</button>
+              <button disabled={pending} aria-label="Предыдущий диапазон" onClick={() => shiftRange(-1)}>‹</button>
+              <button disabled={pending} aria-label="Следующий диапазон" onClick={() => shiftRange(1)}>›</button>
               {PRESETS.map((preset) => <button key={preset.label} disabled={pending}
                 className={range.end - range.start === preset.span ? "active" : ""}
-                onClick={() => { const next = fitWindow(current, preset.span, first, last); void applyRange(next.start, next.end); }}>{preset.label}</button>)}
+                onClick={() => { const next = fitWindow(current, preset.span); void applyRange(next.start, next.end); }}>{preset.label}</button>)}
               <button disabled={pending} className={range.start === first && range.end === last ? "active" : ""}
                 onClick={() => void applyRange(first, last)}>Всё</button>
             </div>
@@ -132,10 +131,6 @@ export function ReplayControls({ status, onCommand, pending, showSystem, onToggl
       </div>
       {replay && hasPeriod ? <ReplayTimeline first={first} last={last} start={range.start} end={range.end}
         current={current} disabled={pending} onRange={applyRange} onSeek={seek} /> : null}
-      {error || (localError && !editor) ? <span className="risk-red" role="alert">{error ?? localError}</span> : null}
-      {hasPeriod && (current < range.start || current > range.end) ? <div className="hint timeline-warning">
-        Текущее время вне выбранного диапазона. <button disabled={pending} onClick={() => void seek(range.start)}>К началу диапазона</button>
-      </div> : null}
     </footer>
   );
 }

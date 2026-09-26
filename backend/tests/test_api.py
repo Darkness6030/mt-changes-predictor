@@ -118,12 +118,21 @@ def test_seek_freezes_at_exact_time_with_restored_history(client):
     assert snapshot["clock"]["source_time"] == "2026-01-06 11:30:15"
 
 
-@pytest.mark.parametrize(
-    "start_at", [None, "invalid", "NaT", "2026-01-05", "2026-01-06T11:30:00+03:00"]
-)
+@pytest.mark.parametrize("start_at", [None, "invalid", "NaT", "2026-01-06T11:30:00+03:00"])
 def test_invalid_seek_does_not_reset_current_run(client, start_at):
     run_id = client.get("/api/v1/status").json()["run_id"]
     response = client.post("/api/v1/replay/control", json={"action": "seek", "start_at": start_at})
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "bad_request"
     assert client.get("/api/v1/status").json()["run_id"] == run_id
+
+
+@pytest.mark.parametrize("start_at", ["2026-01-05 12:00:15", "2026-01-08 12:00:15"])
+def test_seek_outside_data_moves_clock_and_returns_empty_snapshot(client, start_at):
+    response = client.post("/api/v1/replay/control", json={"action": "seek", "start_at": start_at})
+    assert response.status_code == 200
+    assert response.json()["clock"]["source_time"] == start_at
+    assert response.json()["clock"]["paused"] is True
+    snapshot = client.get("/api/v1/snapshot").json()
+    assert snapshot["vehicles"] == []
+    assert snapshot["alerts"] == []

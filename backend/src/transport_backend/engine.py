@@ -327,15 +327,18 @@ class Engine:
         if self.replay is None:
             raise ValueError("Перемотка доступна только для исторического replay")
         target_ns = parse_source(start_at)
+        # Validation precedes reset, so a rejected seek cannot destroy the current run.
+        await self.reset(start_at)
+        self.clock.start(target_ns, paused=True)
         if (
             self.replay.first_ns is None
             or self.replay.last_ns is None
             or not self.replay.first_ns <= target_ns <= self.replay.last_ns
         ):
-            raise ValueError("Выберите время внутри периода исторических данных")
-        # Validation precedes reset, so a rejected seek cannot destroy the current run.
-        await self.reset(start_at)
-        self.clock.start(target_ns, paused=True)
+            # Navigation outside the log is valid and intentionally displays an empty state.
+            # Resuming before its first event will deliver data once the clock reaches it.
+            self.replay.reset(target_ns)
+            return
         self.replay.reset(target_ns - int(self.settings.history_window_s * SECOND_NS))
         while events := self.replay.due(target_ns):
             for event in events:

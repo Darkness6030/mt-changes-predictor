@@ -31,6 +31,8 @@ def format_source(nanoseconds: int | None) -> str | None:
 
 def parse_source(value: str) -> int:
     stamp = pd.Timestamp(value)
+    if pd.isna(stamp):
+        raise ValueError("Expected a valid, non-null source timestamp")
     if stamp.tzinfo is not None:
         raise ValueError("Source timestamps are timezone-naive in this dataset")
     return int(stamp.value)

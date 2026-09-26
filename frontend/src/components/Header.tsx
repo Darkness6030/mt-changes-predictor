@@ -5,10 +5,11 @@ interface Props {
   snapshot: Snapshot | null;
   status: Status | null;
   ageMs: number | null;
+  error: string | null;
 }
 
 /** Dispatcher summary; replay clock and speed are shown in the navigation panel. */
-export function Header({ snapshot, status, ageMs }: Props) {
+export function Header({ snapshot, status, ageMs, error }: Props) {
   const clock = snapshot?.clock ?? status?.clock ?? null;
   const mode = snapshot?.mode ?? status?.mode ?? "—";
   const modeLabel = mode === "ndtp" ? "Живой NDTP" : "Исторический replay";
@@ -30,6 +31,7 @@ export function Header({ snapshot, status, ageMs }: Props) {
           )}
           {ageMs !== null ? <span>Обновлено {Math.round(ageMs / 1000)} с назад</span> : null}
         </div>
+        <div className="header-data-status" role={error ? "alert" : undefined} title={error ?? undefined}>{error}</div>
       </div>
       <div className="kpis">
         <div className="kpi">

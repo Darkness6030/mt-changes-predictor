@@ -316,10 +316,29 @@ async def test_seek_accepts_endpoints_and_rejects_invalid_time_without_reset():
             assert engine.clock.now_ns() == target
         old_run = engine.run_id
         old_cursor = engine.replay.cursor
-        for value in ("invalid", "NaT", "2026-01-05", "2026-01-08", "2026-01-06T12:00:00Z"):
+        for value in ("invalid", "NaT", "2026-01-06T12:00:00Z"):
             with pytest.raises(ValueError):
                 await engine.seek(value)
             assert engine.run_id == old_run
             assert engine.replay.cursor == old_cursor
+    finally:
+        await engine.stop()
+
+
+@pytest.mark.parametrize("target", ["2026-01-05 12:00:15", "2026-01-08 12:00:15"])
+async def test_seek_outside_data_is_empty_and_can_return(target):
+    engine = make_engine()
+    try:
+        await engine.seek("2026-01-06 11:30:15")
+        assert engine.snapshot()["vehicles"]
+        await engine.seek(target)
+        await engine._cycle()
+        snapshot = engine.snapshot()
+        assert snapshot["clock"]["source_time"] == target
+        assert snapshot["clock"]["paused"] is True
+        assert snapshot["vehicles"] == []
+        assert snapshot["alerts"] == []
+        await engine.seek("2026-01-06 11:30:15")
+        assert engine.snapshot()["vehicles"]
     finally:
         await engine.stop()

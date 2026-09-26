@@ -38,6 +38,24 @@
       3600,
       21600
     ],
-    "playhead_at": "2026-01-06 11:30:15"
+    "playhead_at": "2026-01-06 11:30:15",
+    "unrestricted": true
+  },
+  "outside_data_example": {
+    "request": {
+      "action": "seek",
+      "start_at": "2026-01-08 12:00:15"
+    },
+    "expected": {
+      "source_time": "2026-01-08 12:00:15",
+      "paused": true,
+      "vehicles": [],
+      "alerts": []
+    },
+    "ui": {
+      "playhead_at": "2026-01-08 12:00:15",
+      "header_error": "Нет данных в выбранный момент",
+      "map_empty": true
+    }
   }
 }
