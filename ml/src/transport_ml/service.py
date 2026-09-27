@@ -42,6 +42,23 @@ class PredictRequest(BaseModel):
     feature_schema_version: str
     items: Annotated[list[PredictItem], Field(min_length=1, max_length=MAX_ITEMS)]
     no_hint: bool = False
+    explain: bool = True
+
+
+class ContributionGroup(BaseModel):
+    group: str
+    label: str
+    seconds: float
+
+
+class Explanation(BaseModel):
+    """Exact additive split of ``delay_s``: base + groups + other = total (model arithmetic)."""
+
+    base_s: float
+    groups: list[ContributionGroup]
+    other_s: float
+    total_s: float
+    model_used: str
 
 
 class PredictResult(BaseModel):
@@ -52,6 +69,7 @@ class PredictResult(BaseModel):
     late_probability: float | None
     late_threshold_s: float | None
     calibration: dict[str, Any]
+    explanation: Explanation | None = None
 
 
 class PredictResponse(BaseModel):
@@ -84,7 +102,7 @@ def load_model(directory: Path) -> DelayModel:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the artifact once at startup; readiness stays false if it cannot be loaded."""
-    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v4"))
+    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v5"))
     app.state.model_dir = directory
     app.state.model = None
     app.state.load_error = None
@@ -227,6 +245,11 @@ def predict(payload: PredictRequest, request: Request) -> PredictResponse:
     started = perf_counter()
     try:
         inference = model.infer(frame, no_hint=payload.no_hint)
+        explanations = (
+            model.explain(frame, no_hint=payload.no_hint)
+            if payload.explain
+            else [None] * len(frame)
+        )
     except ValueError as error:
         raise HTTPException(
             status_code=422, detail={"code": "bad_request", "detail": str(error)}
@@ -242,6 +265,7 @@ def predict(payload: PredictRequest, request: Request) -> PredictResponse:
             late_probability=None if probability is None else float(probability[index]),
             late_threshold_s=inference["late_threshold_s"],
             calibration=inference["calibration"],
+            explanation=explanations[index],
         )
         for index, item in enumerate(payload.items)
     ]

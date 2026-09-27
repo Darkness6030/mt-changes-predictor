@@ -10,6 +10,7 @@ import {
   sourceTime,
 } from "../format";
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
+import { PredictionExplanation } from "./PredictionExplanation";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -21,7 +22,7 @@ interface Props {
 }
 
 const CALIBRATION_NOTE: Record<string, string> = {
-  validated: "вероятность проверена на отложенной выборке",
+  validated: "калибровка проверена вне фолдов на размеченном test (один день)",
   fitted_on_development: "калибровка подобрана на development-фолде того же дня",
   weak: "калибровка слабая, вероятность использовать осторожно",
   unavailable: "модель вероятности отсутствует",
@@ -140,6 +141,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               {prediction!.calibration?.report ? ` · ${prediction!.calibration.report}` : ""}
             </div>
           </div>
+
+          <PredictionExplanation value={prediction!.explanation} />
 
           <div className="section">
             <h3>Наблюдаемые основания</h3>
