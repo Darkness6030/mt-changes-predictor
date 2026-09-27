@@ -445,6 +445,13 @@ a { color: var(--accent); }
   .mobile-tabs button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-tabs button.active { border-top-color: var(--accent); color: var(--accent); background: #1d2f45; }
   .mobile-tab-count { flex: none; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; line-height: 18px; }
+  /* Tabs at the bottom edge; the replay bar keeps time, pause, speed and source only
+     (range selection and the ruler stay on the desktop console). */
+  .mobile-tabs { order: 10; }
+  .replay-footer .time-range-button, .replay-footer .range-shortcuts, .replay-footer .ruler-row { display: none; }
+  .replay-footer .time-editor-root { width: auto; }
+  .replay-toolbar { padding: 6px 10px; gap: 6px; }
+  .header-data-status:empty { display: none; }
   .header { padding: 8px 12px; gap: 6px; }
   .header .kpis { display: flex; overflow-x: auto; scrollbar-width: none; gap: 4px; }
   .header .kpi { flex: 0 0 auto; min-width: 78px; padding: 4px 6px; }
