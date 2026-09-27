@@ -15,7 +15,7 @@
 | Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
 | Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 172 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
+| Тесты | 174 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 ## Запуск за одну команду
 
@@ -95,7 +95,7 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 172 тестов
+.venv/bin/python -m pytest -q                                  # 174 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
