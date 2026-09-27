@@ -42,7 +42,8 @@ class PredictRequest(BaseModel):
     feature_schema_version: str
     items: Annotated[list[PredictItem], Field(min_length=1, max_length=MAX_ITEMS)]
     no_hint: bool = False
-    explain: bool = True
+    # SHAP costs ~2 ms per row and member: request it only for a prediction a user opened.
+    explain: bool = False
 
 
 class ContributionGroup(BaseModel):

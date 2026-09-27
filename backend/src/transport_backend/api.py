@@ -1,7 +1,8 @@
 """Dispatcher API. Schemas are published through OpenAPI at /openapi.json and /docs.
 
-The API only reads the engine's already computed snapshot: an HTTP request never triggers
-inference, so refreshing the browser cannot change the measured latency of the stream.
+The API only reads the engine's already computed snapshot: an HTTP request never creates a
+prediction, so refreshing the browser cannot change the measured latency of the stream. The
+explanation endpoint only splits an already published prediction, on demand and cached.
 """
 
 import os
@@ -16,7 +17,7 @@ from transport_backend import SCHEMA_VERSION, __version__
 from transport_backend.clock import parse_source
 from transport_backend.config import Settings
 from transport_backend.demo import DemoController, DemoError, DemoSource
-from transport_backend.engine import Engine
+from transport_backend.engine import Engine, PredictionChanged
 from transport_backend.view_history import HistoryUnavailable
 
 
@@ -133,6 +134,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return engine.vehicle_detail(tr_id)
         except KeyError as missing:
             raise error(404, "unknown_vehicle", f"No state or plan for {tr_id}") from missing
+
+    @app.get("/api/v1/vehicles/{tr_id}/explanation", tags=["dispatcher"])
+    async def vehicle_explanation(
+        tr_id: str,
+        engine: EngineDep,
+        prediction_id: Annotated[str, Query(min_length=1, max_length=64)],
+    ) -> dict:
+        """Why the current prediction has this value; computed on demand and cached."""
+        try:
+            return await engine.explanation(tr_id, prediction_id)
+        except PredictionChanged as changed:
+            raise error(
+                409, "prediction_changed", "Прогноз обновился: объяснение относится к новому"
+            ) from changed
+        except Exception as failure:  # noqa: BLE001 - ML transport/contract errors alike
+            raise error(
+                503, "ml_unavailable", f"Объяснение недоступно: {type(failure).__name__}"
+            ) from failure
 
     @app.get("/api/v1/history", tags=["dispatcher"])
     def history(

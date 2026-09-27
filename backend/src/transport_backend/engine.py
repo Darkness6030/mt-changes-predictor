@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 import json
 import secrets
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
@@ -60,6 +60,7 @@ class Alert:
     state: str = "active"
     acknowledged_at: str | None = None
     evidence: list = field(default_factory=list)
+    attention: str | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -164,6 +165,23 @@ class Sidecar:
         return report
 
 
+EXPLANATION_CACHE = 256
+
+
+def needs_attention(vehicle: dict) -> bool:
+    prediction = vehicle.get("prediction") or {}
+    if prediction.get("status") not in {"ok", "ml_unavailable"}:
+        return False
+    if prediction.get("attention") is not None:
+        return True
+    # Older views without the field: the delay colour alone.
+    return prediction.get("risk_level") in {"yellow", "red"}
+
+
+class PredictionChanged(LookupError):
+    """The requested prediction is no longer the vehicle's current one."""
+
+
 class Engine:
     """One run: a fixed data source, one clock and one mutable fleet state."""
 
@@ -183,6 +201,10 @@ class Engine:
             settings.current_deviation_max_age_s, settings.risk
         )
         self.predictions: dict[str, dict] = {}
+        # Feature row of each vehicle's current prediction: one per vehicle, so bounded by
+        # the fleet. It lets a dispatcher ask why, without explaining every cycle.
+        self.feature_rows: dict[str, dict] = {}
+        self.explanations: OrderedDict[str, dict] = OrderedDict()
         self.prediction_log: deque[dict] = deque(maxlen=settings.max_predictions_kept)
         self.alerts: dict[str, Alert] = {}
         self.sidecar: Sidecar | None = None
@@ -310,6 +332,8 @@ class Engine:
         self.history_latency = Latency()
         self.current_deviation.clear()
         self.predictions.clear()
+        self.feature_rows.clear()
+        self.explanations.clear()
         self.prediction_log.clear()
         self.alerts.clear()
         self.prediction_seq = 0
@@ -723,6 +747,7 @@ class Engine:
             ),
             "risk_level": policy.level(delay_s),
             "risk_basis": policy.basis(delay_s),
+            "attention": policy.attention(delay_s, result.get("late_probability")),
             "late_probability": result.get("late_probability"),
             "late_threshold_s": result.get("late_threshold_s"),
             "calibration": result.get("calibration"),
@@ -736,14 +761,22 @@ class Engine:
             "prediction_age_s": 0.0,
             "stale": False,
             "evidence": items,
-            # Exact split of delay_s from the ML service (model arithmetic, not a cause).
-            "explanation": result.get("explanation"),
-            "recommendation": recommendation(delay_s, items, policy),
+            "recommendation": recommendation(
+                delay_s, items, policy, result.get("late_probability")
+            ),
             "quality_flags": (
                 track.quality_flags(cutoff_ns, self.settings.stale_after_s) if track else []
             ),
         }
         self.predictions[tr_id] = view
+        self.feature_rows[tr_id] = {
+            "prediction_id": view["prediction_id"],
+            "schema_version": self.feature_config.schema_version,
+            "features": {
+                name: (None if value is None or np.isnan(value) else float(value))
+                for name, value in features.items()
+            },
+        }
         self.prediction_log.append(view)
         if request["trigger"] == "point":
             self.predicted_points += 1
@@ -753,10 +786,45 @@ class Engine:
 
     # ------------------------------------------------------------------ alerts
 
+    async def explanation(self, tr_id: str, prediction_id: str) -> dict:
+        """Exact split of the vehicle's current prediction, computed once on demand."""
+        current = self.predictions.get(tr_id)
+        row = self.feature_rows.get(tr_id)
+        if current is None or row is None or current.get("status") != "ok":
+            raise PredictionChanged(tr_id)
+        if current["prediction_id"] != prediction_id or row["prediction_id"] != prediction_id:
+            raise PredictionChanged(tr_id)
+        key = f"{self.run_id}:{prediction_id}"
+        if key in self.explanations:
+            self.explanations.move_to_end(key)
+            return self.explanations[key]
+        run_id = self.run_id
+        item = {"request_id": prediction_id, "tr_id": tr_id, "features": row["features"]}
+        result = await self.ml.explain(item, row["schema_version"])
+        if run_id != self.run_id:
+            raise PredictionChanged(tr_id)
+        # The explanation must describe exactly the published number, not a newer model.
+        if result.get("model_version") != current.get("model_version") or not np.isclose(
+            float(result["delay_s"]), float(current["delay_s"]), atol=1e-6
+        ):
+            raise PredictionChanged(tr_id)
+        answer = {
+            "run_id": run_id,
+            "tr_id": tr_id,
+            "prediction_id": prediction_id,
+            "model_version": result["model_version"],
+            "delay_s": current["delay_s"],
+            "explanation": result["explanation"],
+        }
+        self.explanations[key] = answer
+        while len(self.explanations) > EXPLANATION_CACHE:
+            self.explanations.popitem(last=False)
+        return answer
+
     def _update_alert(self, view: dict) -> None:
         alert_id = f"{self.run_id}:{view['tr_id']}:{view['target_stop_id']}"
         existing = self.alerts.get(alert_id)
-        risky = view["risk_level"] in {"yellow", "red"}
+        risky = view.get("attention") is not None
         if existing is None:
             if not risky:
                 return
@@ -773,6 +841,7 @@ class Engine:
                 late_probability=view.get("late_probability"),
                 latest_prediction_at=view["cutoff_t"],
                 evidence=view["evidence"],
+                attention=view.get("attention"),
             )
             return
         existing.updates += 1
@@ -781,6 +850,7 @@ class Engine:
         existing.late_probability = view.get("late_probability")
         existing.risk_level = view["risk_level"]
         existing.evidence = view["evidence"]
+        existing.attention = view.get("attention") or existing.attention
         existing.state = "active" if risky else "resolved"
 
     def _expire_alerts(self, now_ns: int) -> None:
@@ -896,11 +966,7 @@ class Engine:
             "with_prediction": sum(
                 1 for v in vehicles if v["prediction"] and v["prediction"]["status"] == "ok"
             ),
-            "attention": sum(
-                1
-                for v in vehicles
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
-            ),
+            "attention": sum(1 for v in vehicles if needs_attention(v)),
             "red": sum(
                 1
                 for v in vehicles
@@ -919,11 +985,7 @@ class Engine:
                 v for v in filtered if v["prediction"] and v["prediction"].get("risk_level") == risk
             ]
         if only_attention:
-            filtered = [
-                v
-                for v in filtered
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
-            ]
+            filtered = [v for v in filtered if needs_attention(v)]
         if stale is not None:
             filtered = [v for v in filtered if v["stale"] is stale]
         if limit is not None:

@@ -142,7 +142,13 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             </div>
           </div>
 
-          <PredictionExplanation value={prediction!.explanation} />
+          {ok && prediction!.prediction_id ? (
+            <PredictionExplanation
+              trId={detail.tr_id}
+              predictionId={prediction!.prediction_id}
+              readOnly={readOnly}
+            />
+          ) : null}
 
           <div className="section">
             <h3>Наблюдаемые основания</h3>
