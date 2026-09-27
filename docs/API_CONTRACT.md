@@ -394,6 +394,17 @@ edge_trips_at_risk` — ТС в очереди внимания на перво�
 `state`: `active`, `resolved` (прогноз вернулся в зелёную зону), `expired` (плановое время
 цели прошло). Ack — отметка диспетчера, не команда транспортному средству.
 
+
+**Паспорт предупреждения** (совместимое дополнение): после планового времени Backend ищет
+прибытие к целевому посещению в уже полученных доверенных GPS-точках (≤60 м, середина
+стоянки, окно план −5…+15 мин, только события ≤ текущего времени; разметка не читается,
+работает на живом NDTP). Поля алерта: `observed_arrival_at`, `observed_delay_s`,
+`observed_distance_m`, `warning_lead_s` (первое предупреждение → наблюдаемое прибытие),
+`warning_outcome`: `confirmed` (отклонение вне зелёного коридора в предупреждённую
+сторону), `within_norm`, `opposite`. `GET /api/v1/metrics/quality` → `early_warning`:
+`observed`, `confirmed`, `confirmed_share`, `lead_s {min,p50,max}`, `lead_at_least_600s_share`.
+Закрытые алерты в snapshot — самые свежие (до 20), активные — по |delay_s|.
+
 ### 5.5 Replay control
 
 ```json

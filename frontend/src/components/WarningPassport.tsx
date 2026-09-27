@@ -1,6 +1,12 @@
 import { duration, signedDelay, sourceTime, stopLabel } from "../format";
 import type { Alert, VehicleDetail } from "../types";
 
+const OUTCOME: Record<string, { label: string; tone: string }> = {
+  confirmed: { label: "подтвердилось", tone: "badge stale" },
+  within_norm: { label: "уложился в норму", tone: "badge" },
+  opposite: { label: "отклонение в другую сторону", tone: "badge" },
+};
+
 interface Props {
   detail: VehicleDetail;
   alerts: Alert[];
@@ -64,12 +70,10 @@ export function WarningPassport({ detail, alerts }: Props) {
           <div className="hint passport-caption">Что произошло после прошлых предупреждений</div>
           <ul className="passport-outcomes">
             {outcomes.map((alert) => {
-              const confirmed = Math.abs(alert.observed_delay_s ?? 0) > 60;
+              const outcome = OUTCOME[alert.warning_outcome ?? "within_norm"];
               return (
                 <li key={alert.alert_id}>
-                  <span className={confirmed ? "badge stale" : "badge"}>
-                    {confirmed ? "подтвердилось" : "обошлось"}
-                  </span>
+                  <span className={outcome.tone}>{outcome.label}</span>
                   <span>
                     предупредили {sourceTime(alert.first_alert_at)} → прибыл{" "}
                     {sourceTime(alert.observed_arrival_at)} ({signedDelay(alert.observed_delay_s)})
