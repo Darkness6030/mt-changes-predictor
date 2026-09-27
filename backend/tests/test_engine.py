@@ -543,3 +543,40 @@ def test_acknowledgement_carries_to_the_next_stop_of_the_same_episode():
     # A new episode long after the last acknowledged prediction must be seen again.
     engine._update_alert(view("s9", "2026-01-06 11:00:00"))
     assert engine.alerts[f"{engine.run_id}:bus:s9"].acknowledged_at is None
+
+
+@pytest.mark.parametrize(("date", "days"), [("2026-09-28", 265), ("2026-01-06", 0)])
+def test_live_stream_date_aligns_the_timetable_by_whole_days(date, days):
+    from transport_backend.events import TelemetryEvent
+
+    engine = make_engine(mode="ndtp", plan_shift_auto=True, use_points=False)
+    unit, tr_id = next(iter(engine.mapping.items()))
+    event = TelemetryEvent(
+        source="ndtp_live",
+        unit_id=unit,
+        event_time_ns=pd.Timestamp(f"{date} 08:00:00").value,
+        gps_valid=True,
+        lon=37.6,
+        lat=55.7,
+        speed_kmh=20.0,
+        heading_deg=90.0,
+    )
+    engine._ingest(event)
+    assert engine._plan_shift_s == days * 86_400
+    assert engine.state.plan is engine.plan
+    assert tr_id in engine.state.tracks  # Accepted, not rejected as a far-future packet.
+    # The next plan visit is on the stream's day at the same time of day as in the dataset.
+    first = engine.plan.plan.time_begin.min()
+    assert first.date() == (pd.Timestamp("2026-01-06") + pd.Timedelta(days=days)).date()
+    assert first.time() == pd.Timestamp("2026-01-06 02:18:00").time()
+
+
+def test_env_defaults_align_live_streams_but_not_replay(monkeypatch):
+    monkeypatch.delenv("BACKEND_PLAN_SHIFT_S", raising=False)
+    monkeypatch.setenv("BACKEND_MODE", "ndtp")
+    assert Settings.from_env().plan_shift_auto
+    monkeypatch.setenv("BACKEND_MODE", "replay")
+    assert not Settings.from_env().plan_shift_auto
+    monkeypatch.setenv("BACKEND_MODE", "ndtp")
+    monkeypatch.setenv("BACKEND_PLAN_SHIFT_S", "0")
+    assert not Settings.from_env().plan_shift_auto

@@ -236,8 +236,8 @@ class Engine:
 
     def _load_sources(self) -> None:
         settings = self.settings
-        if settings.plan_shift_auto:
-            self._plan_shift_s = self._auto_shift()
+        # "auto" is resolved from the first mapped event of the stream (see _align_plan).
+        self._plan_aligned = not settings.plan_shift_auto
         self.plan = PlanStore.from_csv(self._plan_path(), self._plan_shift_s)
         traffic_path = settings.data_root / settings.split / "traffic.csv"
         self.mapping = load_mapping(traffic_path)
@@ -263,19 +263,33 @@ class Engine:
         if settings.labels is not None and settings.labels.exists():
             self.sidecar = Sidecar(settings.labels)
 
-    def _auto_shift(self) -> float:
-        """Whole-day shift so a live stream of today lands inside the historical plan window.
+    def _align_plan(self, event_ns: int) -> None:
+        """Whole-day shift so the stream's date lands on the same timetable (``auto``).
 
-        Only used when explicitly requested; the applied shift is published in every
-        snapshot so a demo alignment can never look like real schedule data.
+        The organisers confirmed the check uses the same routes and timetable; an emulator
+        stamps packets with the current time. Only the date moves, never the time of day,
+        and the applied shift is published in every snapshot. A stream already on the plan's
+        date keeps shift 0.
         """
-        import pandas as pd
-
-        plan = pd.read_csv(self._plan_path(), usecols=["time_begin"])
-        median = pd.to_datetime(plan.time_begin).median()
-        today = pd.Timestamp(wall_now().replace(tzinfo=None).date())
-        days = (today - pd.Timestamp(median.date())).days
-        return float(days * 86400)
+        self._plan_aligned = True
+        times = self.plan.plan.time_begin.astype("int64")
+        if times.empty:
+            return
+        base_ns = int(times.min()) - int(self._plan_shift_s * SECOND_NS)
+        margin = int(self.settings.history_window_s * SECOND_NS)
+        span_ns = int(times.max()) - int(times.min())
+        day_ns = 86_400 * SECOND_NS
+        if base_ns - margin <= event_ns <= base_ns + span_ns + margin:
+            days = 0
+        else:
+            days = (event_ns - base_ns) // day_ns
+        shift_s = float(days * 86_400)
+        if shift_s == self._plan_shift_s:
+            return
+        self._plan_shift_s = shift_s
+        self.plan = PlanStore.from_csv(self._plan_path(), shift_s)
+        self.state.plan = self.plan
+        self.revision += 1
 
     def _replay_start_ns(self) -> int:
         settings = self.settings
@@ -397,6 +411,8 @@ class Engine:
             self.state.key(event)
             return
         now_ns = self.clock.now_ns()
+        if now_ns is None and not self._plan_aligned:
+            self._align_plan(event.event_time_ns)
         if now_ns is None:
             # Bootstrap is constrained by the explicitly loaded plan, not host UTC.
             times = self.plan.plan.time_begin.astype("int64")
