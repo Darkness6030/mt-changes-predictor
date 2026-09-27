@@ -50,6 +50,31 @@ export interface Trip {
   end_at: string;
 }
 
+export interface WhatIfTrip {
+  trip: number;
+  planned_start_at: string;
+  delay_without_s: number;
+  delay_with_s: number;
+  served_by: "vehicle" | "reserve";
+}
+
+export interface WhatIfAnswer {
+  tr_id: string;
+  available: boolean;
+  reason?: string;
+  prediction_id?: string;
+  current_trip?: number;
+  trips_total?: number;
+  reserve_in_min?: number;
+  reserve_ready_at?: string;
+  reserve_takes_trip?: number | null;
+  trips?: WhatIfTrip[];
+  late_trips_without?: number;
+  late_trips_with?: number;
+  delay_saved_s?: number;
+  assumptions?: string[];
+}
+
 export interface ExplanationAnswer {
   run_id: string;
   tr_id: string;

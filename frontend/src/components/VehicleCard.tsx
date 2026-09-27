@@ -13,6 +13,7 @@ import {
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import { PredictionExplanation } from "./PredictionExplanation";
 import { WarningPassport } from "./WarningPassport";
+import { WhatIfReserve } from "./WhatIfReserve";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -175,6 +176,10 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               в источнике нет.
             </div>
           </div>
+
+          {ok && !readOnly && prediction!.trip && prediction!.prediction_id ? (
+            <WhatIfReserve trId={detail.tr_id} predictionId={prediction!.prediction_id} />
+          ) : null}
 
           <div className="section">
             <h3>Предлагаемое действие</h3>
