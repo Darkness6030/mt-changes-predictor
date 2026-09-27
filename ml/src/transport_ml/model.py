@@ -85,6 +85,19 @@ class DelayModel:
             "fit_rows": spec["calibration"]["fit_rows"],
         }
 
+    def _member_predict(self, name: str, index: int, model, frame: pd.DataFrame) -> np.ndarray:
+        """One ensemble member; an alternative runtime overrides only this and _raw_scores."""
+        return np.asarray(model.predict(frame), dtype=float)
+
+    def _raw_scores(self, name: str, frame: pd.DataFrame) -> np.ndarray:
+        return np.asarray(
+            self.classifiers[name].predict(frame, prediction_type="RawFormulaVal"), dtype=float
+        )
+
+    @property
+    def runtime(self) -> str:
+        return "catboost"
+
     def _check(self, features: pd.DataFrame) -> None:
         if list(features.columns) != self.manifest["features"] or not features.columns.is_unique:
             raise ValueError("Feature names/order do not match the model manifest")
@@ -103,8 +116,10 @@ class DelayModel:
             if not mask.any():
                 continue
             values = np.zeros(int(mask.sum()))
-            for spec, model, weight in self.models[name]:
-                member = model.predict(features.loc[mask, spec["features"]])
+            for index, (spec, model, weight) in enumerate(self.models[name]):
+                member = self._member_predict(
+                    name, index, model, features.loc[mask, spec["features"]]
+                )
                 if spec["residual"]:
                     member += features.loc[mask, "cur_dev_s"].to_numpy()
                 values += weight * member
@@ -126,9 +141,7 @@ class DelayModel:
             if not mask.any():
                 continue
             spec = self.manifest["classifiers"][name]
-            scores = self.classifiers[name].predict(
-                features.loc[mask, spec["features"]], prediction_type="RawFormulaVal"
-            )
+            scores = self._raw_scores(name, features.loc[mask, spec["features"]])
             result[mask] = self.calibration[name].apply(np.asarray(scores, dtype=float))
         if not np.isfinite(result).all():
             raise ValueError("Classifier returned a non-finite probability")
