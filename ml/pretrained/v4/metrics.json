@@ -1,0 +1,209 @@
+{
+  "protocol": "Audit refit of the frozen recipe on train only (real + synthetic with copies of test/validate moments purged); the shipped bundle additionally uses test labels, so its own test error is NOT an out-of-sample number.",
+  "training_data": {
+    "splits": [
+      "train"
+    ],
+    "synthetic": "purged",
+    "protected": [
+      "test",
+      "validate"
+    ],
+    "protected_sha256": {
+      "test": "7c7b0206d7ee6ee66af6baafba311755d5e033cd291410972eb89a231079df95",
+      "validate": "284d35f25cf7b13ed3f1ef0556c41910c6e6abfe5c523d2c2d1d36f3d67c64a6"
+    },
+    "synthetic_kept": 1598,
+    "synthetic_dropped": 1695,
+    "train_rows": 2739,
+    "train_sha256": {
+      "dataset/labels/labels_train.csv": "b3058d52683091e77d190d6a99b717ad5c44ae02de37cadf47123dd3c534361d",
+      "dataset/train/traffic.csv": "1890b36e19765c970b3db3c15fc372e2c6dfcc2b20380679637be9115fe303cd"
+    }
+  },
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 66.68020875457425,
+    "no_hint_mae_s": 76.32217004057475,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "absolute_error_p50_s": 48.206625436083755,
+    "absolute_error_p90_s": 141.56003646111145,
+    "late_probability": {
+      "threshold_s": 120.0,
+      "calibration": {
+        "method": "platt",
+        "status": "fitted_on_development",
+        "report": "ml/reports/ml-v2.md",
+        "fit_rows": 287
+      },
+      "with_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.13950472496942737,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.42763842817202147,
+        "roc_auc": 0.8176552565107569,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 178,
+            "mean_predicted": 0.08554395317162229,
+            "observed_rate": 0.07303370786516854
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 71,
+            "mean_predicted": 0.29296760601790767,
+            "observed_rate": 0.323943661971831
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 66,
+            "mean_predicted": 0.4891523357303237,
+            "observed_rate": 0.3333333333333333
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 29,
+            "mean_predicted": 0.6879352445136049,
+            "observed_rate": 0.7241379310344828
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 9,
+            "mean_predicted": 0.853048514348655,
+            "observed_rate": 0.7777777777777778
+          }
+        ],
+        "status": "validated"
+      },
+      "no_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.17631862440732882,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.5250707209571354,
+        "roc_auc": 0.6934500479052348,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 108,
+            "mean_predicted": 0.12626235396616894,
+            "observed_rate": 0.08333333333333333
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 151,
+            "mean_predicted": 0.29012076331235026,
+            "observed_rate": 0.2582781456953642
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 78,
+            "mean_predicted": 0.48114429219749355,
+            "observed_rate": 0.41025641025641024
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 14,
+            "mean_predicted": 0.695713080719077,
+            "observed_rate": 0.2857142857142857
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 2,
+            "mean_predicted": 0.8360505714510232,
+            "observed_rate": 1.0
+          }
+        ],
+        "status": "validated"
+      }
+    },
+    "slices": {
+      "vehicle:122048": {
+        "rows": 24,
+        "mae_s": 143.46967970457973
+      },
+      "vehicle:122613": {
+        "rows": 25,
+        "mae_s": 41.20117491165343
+      },
+      "vehicle:122658": {
+        "rows": 17,
+        "mae_s": 65.22956429388998
+      },
+      "vehicle:129964": {
+        "rows": 26,
+        "mae_s": 55.24818751689913
+      },
+      "vehicle:130072": {
+        "rows": 2,
+        "mae_s": 41.83709791874746
+      },
+      "vehicle:130238": {
+        "rows": 7,
+        "mae_s": 29.936453314962343
+      },
+      "vehicle:131672": {
+        "rows": 38,
+        "mae_s": 53.16501489719786
+      },
+      "vehicle:132430": {
+        "rows": 32,
+        "mae_s": 90.56743072031733
+      },
+      "vehicle:133300": {
+        "rows": 28,
+        "mae_s": 54.653056374302814
+      },
+      "vehicle:133957": {
+        "rows": 41,
+        "mae_s": 60.612413665293765
+      },
+      "vehicle:134040": {
+        "rows": 52,
+        "mae_s": 58.30420963609158
+      },
+      "vehicle:134494": {
+        "rows": 6,
+        "mae_s": 1.2948070713391344
+      },
+      "vehicle:135081": {
+        "rows": 55,
+        "mae_s": 77.32393701417693
+      }
+    }
+  }
+}
