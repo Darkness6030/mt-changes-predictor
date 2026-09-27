@@ -1,4 +1,4 @@
-import { duration, signedDelay, sourceTime } from "../format";
+import { stopLabel, duration, signedDelay, sourceTime } from "../format";
 import { deviationNote } from "../mapPresentation";
 import type { CurrentDeviation } from "../types";
 
@@ -15,7 +15,7 @@ export function CurrentDeviationCard({ value }: { value?: CurrentDeviation }) {
       <div className="hint">{deviationNote(value)}</div>
       {available ? <>
         <div className="hint">Наблюдение {sourceTime(value!.observed_at)} · {duration(value!.age_s)} назад</div>
-        <div className="hint">{value!.visit_address ?? `Посещение ${value!.visit_id}`}</div>
+        <div className="hint">{stopLabel(value!.visit_address, value!.visit_id)}</div>
       </> : null}
     </div>
   );

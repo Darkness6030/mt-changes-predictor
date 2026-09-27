@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 import json
 import secrets
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
@@ -60,6 +60,9 @@ class Alert:
     state: str = "active"
     acknowledged_at: str | None = None
     evidence: list = field(default_factory=list)
+    attention: str | None = None
+    # Set when the acknowledgement was carried over from the vehicle's previous incident.
+    acknowledged_from: str | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -164,6 +167,26 @@ class Sidecar:
         return report
 
 
+EXPLANATION_CACHE = 256
+# A dispatcher who took a vehicle into work is not re-alerted at each next stop of the same
+# episode: an acknowledgement carries over to a new alert opened within this source time.
+ACK_CARRY_S = 900.0
+
+
+def needs_attention(vehicle: dict) -> bool:
+    prediction = vehicle.get("prediction") or {}
+    if prediction.get("status") not in {"ok", "ml_unavailable"}:
+        return False
+    if prediction.get("attention") is not None:
+        return True
+    # Older views without the field: the delay colour alone.
+    return prediction.get("risk_level") in {"yellow", "red"}
+
+
+class PredictionChanged(LookupError):
+    """The requested prediction is no longer the vehicle's current one."""
+
+
 class Engine:
     """One run: a fixed data source, one clock and one mutable fleet state."""
 
@@ -183,6 +206,10 @@ class Engine:
             settings.current_deviation_max_age_s, settings.risk
         )
         self.predictions: dict[str, dict] = {}
+        # Feature row of each vehicle's current prediction: one per vehicle, so bounded by
+        # the fleet. It lets a dispatcher ask why, without explaining every cycle.
+        self.feature_rows: dict[str, dict] = {}
+        self.explanations: OrderedDict[str, dict] = OrderedDict()
         self.prediction_log: deque[dict] = deque(maxlen=settings.max_predictions_kept)
         self.alerts: dict[str, Alert] = {}
         self.sidecar: Sidecar | None = None
@@ -310,6 +337,8 @@ class Engine:
         self.history_latency = Latency()
         self.current_deviation.clear()
         self.predictions.clear()
+        self.feature_rows.clear()
+        self.explanations.clear()
         self.prediction_log.clear()
         self.alerts.clear()
         self.prediction_seq = 0
@@ -723,6 +752,7 @@ class Engine:
             ),
             "risk_level": policy.level(delay_s),
             "risk_basis": policy.basis(delay_s),
+            "attention": policy.attention(delay_s, result.get("late_probability")),
             "late_probability": result.get("late_probability"),
             "late_threshold_s": result.get("late_threshold_s"),
             "calibration": result.get("calibration"),
@@ -736,12 +766,22 @@ class Engine:
             "prediction_age_s": 0.0,
             "stale": False,
             "evidence": items,
-            "recommendation": recommendation(delay_s, items, policy),
+            "recommendation": recommendation(
+                delay_s, items, policy, result.get("late_probability")
+            ),
             "quality_flags": (
                 track.quality_flags(cutoff_ns, self.settings.stale_after_s) if track else []
             ),
         }
         self.predictions[tr_id] = view
+        self.feature_rows[tr_id] = {
+            "prediction_id": view["prediction_id"],
+            "schema_version": self.feature_config.schema_version,
+            "features": {
+                name: (None if value is None or np.isnan(value) else float(value))
+                for name, value in features.items()
+            },
+        }
         self.prediction_log.append(view)
         if request["trigger"] == "point":
             self.predicted_points += 1
@@ -751,10 +791,60 @@ class Engine:
 
     # ------------------------------------------------------------------ alerts
 
+    async def explanation(self, tr_id: str, prediction_id: str) -> dict:
+        """Exact split of the vehicle's current prediction, computed once on demand."""
+        current = self.predictions.get(tr_id)
+        row = self.feature_rows.get(tr_id)
+        if current is None or row is None or current.get("status") != "ok":
+            raise PredictionChanged(tr_id)
+        if current["prediction_id"] != prediction_id or row["prediction_id"] != prediction_id:
+            raise PredictionChanged(tr_id)
+        key = f"{self.run_id}:{prediction_id}"
+        if key in self.explanations:
+            self.explanations.move_to_end(key)
+            return self.explanations[key]
+        run_id = self.run_id
+        item = {"request_id": prediction_id, "tr_id": tr_id, "features": row["features"]}
+        result = await self.ml.explain(item, row["schema_version"])
+        if run_id != self.run_id:
+            raise PredictionChanged(tr_id)
+        # The explanation must describe exactly the published number, not a newer model.
+        if result.get("model_version") != current.get("model_version") or not np.isclose(
+            float(result["delay_s"]), float(current["delay_s"]), atol=1e-6
+        ):
+            raise PredictionChanged(tr_id)
+        answer = {
+            "run_id": run_id,
+            "tr_id": tr_id,
+            "prediction_id": prediction_id,
+            "model_version": result["model_version"],
+            "delay_s": current["delay_s"],
+            "explanation": result["explanation"],
+        }
+        self.explanations[key] = answer
+        while len(self.explanations) > EXPLANATION_CACHE:
+            self.explanations.popitem(last=False)
+        return answer
+
+    def _carry_acknowledgement(self, alert: Alert) -> None:
+        opened_ns = parse_source(alert.first_alert_at)
+        previous = [
+            item
+            for item in self.alerts.values()
+            if item.tr_id == alert.tr_id
+            and item.alert_id != alert.alert_id
+            and item.acknowledged_at is not None
+            and opened_ns - parse_source(item.latest_prediction_at) <= ACK_CARRY_S * SECOND_NS
+        ]
+        if previous:
+            source = max(previous, key=lambda item: parse_source(item.latest_prediction_at))
+            alert.acknowledged_at = source.acknowledged_at
+            alert.acknowledged_from = source.acknowledged_from or source.alert_id
+
     def _update_alert(self, view: dict) -> None:
         alert_id = f"{self.run_id}:{view['tr_id']}:{view['target_stop_id']}"
         existing = self.alerts.get(alert_id)
-        risky = view["risk_level"] in {"yellow", "red"}
+        risky = view.get("attention") is not None
         if existing is None:
             if not risky:
                 return
@@ -771,7 +861,9 @@ class Engine:
                 late_probability=view.get("late_probability"),
                 latest_prediction_at=view["cutoff_t"],
                 evidence=view["evidence"],
+                attention=view.get("attention"),
             )
+            self._carry_acknowledgement(self.alerts[alert_id])
             return
         existing.updates += 1
         existing.latest_prediction_at = view["cutoff_t"]
@@ -779,6 +871,7 @@ class Engine:
         existing.late_probability = view.get("late_probability")
         existing.risk_level = view["risk_level"]
         existing.evidence = view["evidence"]
+        existing.attention = view.get("attention") or existing.attention
         existing.state = "active" if risky else "resolved"
 
     def _expire_alerts(self, now_ns: int) -> None:
@@ -805,6 +898,13 @@ class Engine:
             raise KeyError(alert_id)
         if alert.acknowledged_at is None:
             alert.acknowledged_at = wall_iso()
+            # The dispatcher took the vehicle into work: its other open alerts (later stops of
+            # the same episode, opened before this click) are covered by the same mark.
+            for other in self.alerts.values():
+                if other.tr_id == alert.tr_id and other.state == "active" and other is not alert:
+                    if other.acknowledged_at is None:
+                        other.acknowledged_at = alert.acknowledged_at
+                        other.acknowledged_from = alert.alert_id
             self.revision += 1
         return alert
 
@@ -819,8 +919,9 @@ class Engine:
         if track is not None:
             if track.last_event_ns is not None:
                 telemetry_age_s = (now_ns - track.last_event_ns) / SECOND_NS
-            if track.last_valid is not None:
-                last = track.last_valid
+            if track.last_trusted is not None:
+                # A spoofed or jumped fix is never drawn: show the last plausible one, aged.
+                last = track.last_trusted
                 position_age_s = (now_ns - last.event_time_ns) / SECOND_NS
                 position = {
                     "lon": last.lon,
@@ -893,11 +994,7 @@ class Engine:
             "with_prediction": sum(
                 1 for v in vehicles if v["prediction"] and v["prediction"]["status"] == "ok"
             ),
-            "attention": sum(
-                1
-                for v in vehicles
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
-            ),
+            "attention": sum(1 for v in vehicles if needs_attention(v)),
             "red": sum(
                 1
                 for v in vehicles
@@ -916,11 +1013,7 @@ class Engine:
                 v for v in filtered if v["prediction"] and v["prediction"].get("risk_level") == risk
             ]
         if only_attention:
-            filtered = [
-                v
-                for v in filtered
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
-            ]
+            filtered = [v for v in filtered if needs_attention(v)]
         if stale is not None:
             filtered = [v for v in filtered if v["stale"] is stale]
         if limit is not None:
@@ -978,7 +1071,7 @@ class Engine:
         track = self.state.tracks.get(tr_id)
         track_points = []
         if track is not None:
-            events = [event for event in track.events if event.gps_valid][
+            events = [event for event in track.events if track.trusted(event)][
                 -self.settings.track_points :
             ]
             track_points = [
@@ -1099,13 +1192,23 @@ class Engine:
                 "cur_dev_mae_s": test.get("cur_dev_mae_s"),
                 "zero_mae_s": test.get("zero_mae_s"),
                 "late_probability": test.get("late_probability"),
-                "note": "Offline benchmark на размеченном test одного дня, не score платформы",
+                "note": test.get(
+                    "note", "Offline benchmark на размеченном test одного дня, не score платформы"
+                ),
             }
+        sidecar = None if self.sidecar is None else self.sidecar.report()
+        group = (self.ml.model or {}).get("training_group") or ""
+        if sidecar is not None and "test" in group.split(";")[0] and "test" in sidecar["source"]:
+            # A bundle refitted on test labels cannot be scored honestly on the same labels.
+            sidecar["in_sample"] = True
+            sidecar["in_sample_note"] = (
+                "Модель обучена в том числе на этой разметке: MAE потока in-sample, оптимистична"
+            )
         return {
             "schema_version": "1",
             "run_id": self.run_id,
             "offline": offline,
-            "replay_sidecar": (None if self.sidecar is None else self.sidecar.report()),
+            "replay_sidecar": sidecar,
             "model": self.ml.model
             and {
                 "model_version": self.ml.model.get("model_version"),

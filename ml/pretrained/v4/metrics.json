@@ -1,0 +1,146 @@
+{
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 67.869,
+    "no_hint_mae_s": 80.1205,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "late_probability": {
+      "threshold_s": 120.0,
+      "calibration": {
+        "method": "platt",
+        "status": "fitted_on_development",
+        "report": "ml/reports/ml-v2.md",
+        "fit_rows": 287
+      },
+      "with_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.13950472496942737,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.42763842817202147,
+        "roc_auc": 0.8176552565107569,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 178,
+            "mean_predicted": 0.08554395317162229,
+            "observed_rate": 0.07303370786516854
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 71,
+            "mean_predicted": 0.29296760601790767,
+            "observed_rate": 0.323943661971831
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 66,
+            "mean_predicted": 0.4891523357303237,
+            "observed_rate": 0.3333333333333333
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 29,
+            "mean_predicted": 0.6879352445136049,
+            "observed_rate": 0.7241379310344828
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 9,
+            "mean_predicted": 0.853048514348655,
+            "observed_rate": 0.7777777777777778
+          }
+        ],
+        "status": "validated"
+      },
+      "no_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.17631862440732882,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.5250707209571354,
+        "roc_auc": 0.6934500479052348,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 108,
+            "mean_predicted": 0.12626235396616894,
+            "observed_rate": 0.08333333333333333
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 151,
+            "mean_predicted": 0.29012076331235026,
+            "observed_rate": 0.2582781456953642
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 78,
+            "mean_predicted": 0.48114429219749355,
+            "observed_rate": 0.41025641025641024
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 14,
+            "mean_predicted": 0.695713080719077,
+            "observed_rate": 0.2857142857142857
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 2,
+            "mean_predicted": 0.8360505714510232,
+            "observed_rate": 1.0
+          }
+        ],
+        "status": "validated"
+      }
+    },
+    "estimate": "out_of_fold, 5 random folds of test; each fold predicted by the frozen recipe fitted on real train + other test folds",
+    "note": "Оценка вне фолдов на test одного дня: test входит в обучение v4, прямой test MAE не публикуется. Не score платформы",
+    "reference_train_only_same_folds": {
+      "model_mae_s": 70.6728,
+      "no_hint_mae_s": 83.2727
+    },
+    "whole_vehicle_folds": {
+      "train_only": 70.6728,
+      "train_plus_test": 69.5972,
+      "no_hint": {
+        "train_only": 83.2727,
+        "train_plus_test": 81.8949
+      }
+    },
+    "source": "ml/experiments/improve18-test-refit.json"
+  }
+}

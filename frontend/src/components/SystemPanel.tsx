@@ -119,6 +119,7 @@ export function SystemPanel({ status, quality }: Props) {
             <Row label="ТС в состоянии" value={String(status?.state.vehicles ?? "—")} />
             <Row label="Событий в памяти" value={String(status?.state.events_in_state ?? "—")} />
             <Row label="Дубликатов" value={String(status?.state.duplicate_events ?? "—")} />
+            <Row label="Скрыто GPS-точек" value={String(status?.state.suspect_gps_fixes ?? "—")} />
             <Row label="Событий из будущего" value={String(status?.state.rejected_future_events ?? "—")} />
             <Row label="Несопоставленных устройств" value={String(status?.state.unmapped_units ?? "—")} />
           </tbody>
@@ -156,6 +157,7 @@ export function SystemPanel({ status, quality }: Props) {
         {sidecar ? (
           <>
             <h3 style={{ marginTop: 10 }}>Этот прогон по разметке</h3>
+            {sidecar.in_sample_note ? <div className="hint">{sidecar.in_sample_note}</div> : null}
             {sidecar.measured_rows ? (
               <table>
                 <tbody>

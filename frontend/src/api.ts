@@ -1,6 +1,8 @@
 /** One thin API layer. The UI never computes risk or picks a target: it renders Backend data. */
 
-import type { DemoSource, DemoState, HistoryFrame, Quality, Snapshot, Status, VehicleDetail } from "./types";
+import type {
+  DemoSource, DemoState, ExplanationAnswer, HistoryFrame, Quality, Snapshot, Status, VehicleDetail,
+} from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -62,6 +64,11 @@ export const api = {
   quality: (signal?: AbortSignal) => request<Quality>("/api/v1/metrics/quality", signal),
   vehicle: (trId: string, signal?: AbortSignal) =>
     request<VehicleDetail>(`/api/v1/vehicles/${encodeURIComponent(trId)}`, signal),
+  explanation: (trId: string, predictionId: string, signal?: AbortSignal) =>
+    request<ExplanationAnswer>(
+      `/api/v1/vehicles/${encodeURIComponent(trId)}/explanation?${new URLSearchParams({ prediction_id: predictionId })}`,
+      signal,
+    ),
   async acknowledge(alertId: string): Promise<void> {
     const response = await fetch(`/api/v1/alerts/${encodeURIComponent(alertId)}/ack`, {
       method: "POST",

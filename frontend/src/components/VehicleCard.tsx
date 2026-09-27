@@ -8,8 +8,10 @@ import {
   percent,
   signedDelay,
   sourceTime,
+  stopLabel,
 } from "../format";
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
+import { PredictionExplanation } from "./PredictionExplanation";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -21,7 +23,7 @@ interface Props {
 }
 
 const CALIBRATION_NOTE: Record<string, string> = {
-  validated: "вероятность проверена на отложенной выборке",
+  validated: "калибровка проверена вне фолдов на размеченном test (один день)",
   fitted_on_development: "калибровка подобрана на development-фолде того же дня",
   weak: "калибровка слабая, вероятность использовать осторожно",
   unavailable: "модель вероятности отсутствует",
@@ -97,7 +99,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               <span className="v">{prediction!.target_stop_id}</span>
             </div>
             <div className="hint" style={{ marginTop: 4 }}>
-              {prediction!.target_address ?? "адрес остановки не указан"}
+              {stopLabel(prediction!.target_address, prediction!.target_stop_id)}
             </div>
             <div style={{ marginTop: 6 }}>
               <Timeline horizon={prediction!.horizon_s ?? 600} />
@@ -108,8 +110,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             <h3>Участок подхода к цели</h3>
             {detail.segment ? <>
               <div className="segment-stops">
-                <div><span className="segment-label">От</span><span>{detail.segment.from.address ?? detail.segment.from.target_stop_id}</span></div>
-                <div><span className="segment-label">До</span><span>{detail.segment.to.address ?? detail.segment.to.target_stop_id}</span></div>
+                <div><span className="segment-label">От</span><span>{stopLabel(detail.segment.from.address, detail.segment.from.target_stop_id)}</span></div>
+                <div><span className="segment-label">До</span><span>{stopLabel(detail.segment.to.address, detail.segment.to.target_stop_id)}</span></div>
               </div>
               <div className="hint">Схема двух последовательных плановых посещений; цвет линии соответствует риску ТС.</div>
             </> : <div className="hint">Участок не определён: нет предыдущего посещения либо разрыв плана больше 30 минут.</div>}
@@ -141,6 +143,14 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             </div>
           </div>
 
+          {ok && prediction!.prediction_id ? (
+            <PredictionExplanation
+              trId={detail.tr_id}
+              predictionId={prediction!.prediction_id}
+              readOnly={readOnly}
+            />
+          ) : null}
+
           <div className="section">
             <h3>Наблюдаемые основания</h3>
             {prediction!.evidence.length ? (
@@ -168,6 +178,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
                 </button>
                 <span className="hint">
                   алерт с {sourceTime(alert.first_alert_at)} · обновлений {alert.updates}
+                  {alert.acknowledged_from ? " · отметка перенесена с предыдущей остановки" : ""}
                 </span>
               </div>
             ) : null}
@@ -208,6 +219,12 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               : "—"}
           </span>
         </div>
+        {detail.quality_flags.includes("gps_spoofing_suspected") ? (
+          <div className="hint" style={{ marginTop: 4 }}>
+            Последние координаты неправдоподобны (подмена GPS или скачок) и скрыты: на карте
+            показана последняя достоверная позиция.
+          </div>
+        ) : null}
         {detail.quality_flags.length ? (
           <div className="hint" style={{ marginTop: 4 }}>
             флаги: {detail.quality_flags.join(", ")}

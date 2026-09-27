@@ -13,7 +13,7 @@ from transport_ml.model import DelayModel
 from transport_ml.service import app
 
 
-@pytest.fixture(scope="module", params=["v2", "v3"])
+@pytest.fixture(scope="module", params=["v2", "v3", "v4", "v5"])
 def bundle(request):
     return f"ml/pretrained/{request.param}"
 
@@ -62,7 +62,9 @@ def test_health_and_model_metadata(client, model_features):
     assert info["feature_schema_version"] == model.manifest["feature_schema_version"]
     assert ready.json()["feature_schema_version"] == info["feature_schema_version"]
     assert info["late_threshold_s"] == 120.0
-    assert info["calibration"]["status"] == "fitted_on_development"
+    expected = model.manifest["classifiers"]["late"]["calibration"]["status"]
+    assert info["calibration"]["status"] == expected
+    assert expected in {"fitted_on_development", "validated"}
 
 
 def test_http_matches_offline_batch_inference(client, model_features):
@@ -89,6 +91,27 @@ def test_missing_hint_routes_to_fallback(client, model_features):
     assert {row["model_used"] for row in results} == {"fallback"}
     expected = model.predict(features.assign(cur_dev_s=np.nan))
     np.testing.assert_allclose([row["delay_s"] for row in results], expected, atol=1e-9)
+
+
+@pytest.mark.parametrize("no_hint", [False, True])
+def test_explanation_adds_up_to_the_published_delay(client, model_features, no_hint):
+    _, points, features = model_features
+    body = payload(features, points)
+    assert client.post("/v1/predict", json=body).json()["results"][0]["explanation"] is None
+    body["explain"] = True
+    if no_hint:
+        for item in body["items"]:
+            item["features"]["cur_dev_s"] = None
+    for row in client.post("/v1/predict", json=body).json()["results"]:
+        explanation = row["explanation"]
+        parts = explanation["base_s"] + explanation["other_s"]
+        parts += sum(group["seconds"] for group in explanation["groups"])
+        assert parts == pytest.approx(row["delay_s"], abs=0.01)
+        assert explanation["total_s"] == pytest.approx(row["delay_s"], abs=0.01)
+        assert explanation["model_used"] == row["model_used"]
+        assert len(explanation["groups"]) <= 4 and all(g["label"] for g in explanation["groups"])
+        # Without a supplied hint the hint group cannot carry any weight.
+        assert not no_hint or "hint" not in {g["group"] for g in explanation["groups"]}
 
 
 @pytest.mark.parametrize(

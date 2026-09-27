@@ -1,0 +1,238 @@
+{
+ "candidate": {
+  "depth": 4,
+  "iterations": 300,
+  "learning_rate": 0.05,
+  "l2_leaf_reg": 5
+ },
+ "threshold_s": 120.0,
+ "rows": 353,
+ "main": {
+  "v2_classifier": {
+   "rows": 353,
+   "positive_rate": 0.24362606232294617,
+   "brier": 0.13950472496942737,
+   "base_rate_brier": 0.18427240407996212,
+   "log_loss": 0.42763842817202147,
+   "roc_auc": 0.8176552565107569,
+   "bins": [
+    {
+     "range": [
+      0.0,
+      0.2
+     ],
+     "rows": 178,
+     "mean_predicted": 0.08554395317162229,
+     "observed_rate": 0.07303370786516854
+    },
+    {
+     "range": [
+      0.2,
+      0.4
+     ],
+     "rows": 71,
+     "mean_predicted": 0.29296760601790767,
+     "observed_rate": 0.323943661971831
+    },
+    {
+     "range": [
+      0.4,
+      0.6000000000000001
+     ],
+     "rows": 66,
+     "mean_predicted": 0.4891523357303237,
+     "observed_rate": 0.3333333333333333
+    },
+    {
+     "range": [
+      0.6000000000000001,
+      0.8
+     ],
+     "rows": 29,
+     "mean_predicted": 0.6879352445136049,
+     "observed_rate": 0.7241379310344828
+    },
+    {
+     "range": [
+      0.8,
+      1.0
+     ],
+     "rows": 9,
+     "mean_predicted": 0.853048514348655,
+     "observed_rate": 0.7777777777777778
+    }
+   ],
+   "status": "validated"
+  },
+  "schema2_train_plus_test": {
+   "rows": 353,
+   "positive_rate": 0.24362606232294617,
+   "brier": 0.10653549523708435,
+   "base_rate_brier": 0.18427240407996212,
+   "log_loss": 0.3389910869334583,
+   "roc_auc": 0.8953052869959063,
+   "bins": [
+    {
+     "range": [
+      0.0,
+      0.2
+     ],
+     "rows": 210,
+     "mean_predicted": 0.07174765178986445,
+     "observed_rate": 0.05238095238095238
+    },
+    {
+     "range": [
+      0.2,
+      0.4
+     ],
+     "rows": 59,
+     "mean_predicted": 0.27444771139406454,
+     "observed_rate": 0.3050847457627119
+    },
+    {
+     "range": [
+      0.4,
+      0.6000000000000001
+     ],
+     "rows": 38,
+     "mean_predicted": 0.49323179737244816,
+     "observed_rate": 0.5526315789473685
+    },
+    {
+     "range": [
+      0.6000000000000001,
+      0.8
+     ],
+     "rows": 24,
+     "mean_predicted": 0.6884080159213594,
+     "observed_rate": 0.625
+    },
+    {
+     "range": [
+      0.8,
+      1.0
+     ],
+     "rows": 22,
+     "mean_predicted": 0.8869453265099689,
+     "observed_rate": 0.9545454545454546
+    }
+   ],
+   "status": "validated"
+  }
+ },
+ "fallback": {
+  "v2_classifier": {
+   "rows": 353,
+   "positive_rate": 0.24362606232294617,
+   "brier": 0.17631862440732882,
+   "base_rate_brier": 0.18427240407996212,
+   "log_loss": 0.5250707209571354,
+   "roc_auc": 0.6934500479052348,
+   "bins": [
+    {
+     "range": [
+      0.0,
+      0.2
+     ],
+     "rows": 108,
+     "mean_predicted": 0.12626235396616894,
+     "observed_rate": 0.08333333333333333
+    },
+    {
+     "range": [
+      0.2,
+      0.4
+     ],
+     "rows": 151,
+     "mean_predicted": 0.29012076331235026,
+     "observed_rate": 0.2582781456953642
+    },
+    {
+     "range": [
+      0.4,
+      0.6000000000000001
+     ],
+     "rows": 78,
+     "mean_predicted": 0.48114429219749355,
+     "observed_rate": 0.41025641025641024
+    },
+    {
+     "range": [
+      0.6000000000000001,
+      0.8
+     ],
+     "rows": 14,
+     "mean_predicted": 0.695713080719077,
+     "observed_rate": 0.2857142857142857
+    },
+    {
+     "range": [
+      0.8,
+      1.0
+     ],
+     "rows": 2,
+     "mean_predicted": 0.8360505714510232,
+     "observed_rate": 1.0
+    }
+   ],
+   "status": "validated"
+  },
+  "schema2_train_plus_test": {
+   "rows": 353,
+   "positive_rate": 0.24362606232294617,
+   "brier": 0.11621379169949812,
+   "base_rate_brier": 0.18427240407996212,
+   "log_loss": 0.3672875806713309,
+   "roc_auc": 0.8777545509972999,
+   "bins": [
+    {
+     "range": [
+      0.0,
+      0.2
+     ],
+     "rows": 211,
+     "mean_predicted": 0.07853387215956517,
+     "observed_rate": 0.061611374407582936
+    },
+    {
+     "range": [
+      0.2,
+      0.4
+     ],
+     "rows": 68,
+     "mean_predicted": 0.2886525308626131,
+     "observed_rate": 0.3088235294117647
+    },
+    {
+     "range": [
+      0.4,
+      0.6000000000000001
+     ],
+     "rows": 35,
+     "mean_predicted": 0.49762126546634006,
+     "observed_rate": 0.5714285714285714
+    },
+    {
+     "range": [
+      0.6000000000000001,
+      0.8
+     ],
+     "rows": 27,
+     "mean_predicted": 0.6880753325238165,
+     "observed_rate": 0.7777777777777778
+    },
+    {
+     "range": [
+      0.8,
+      1.0
+     ],
+     "rows": 12,
+     "mean_predicted": 0.8440300491268923,
+     "observed_rate": 0.9166666666666666
+    }
+   ],
+   "status": "validated"
+  }
+ }
+}

@@ -6,12 +6,16 @@
 
 | Что | Значение | Где проверить |
 |---|---|---|
-| MAE основной модели на размеченном test | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
+| Модель по умолчанию | **v5**: регрессия v4 (рецепт v3 на train + test, 1494 точки) + новая вероятность | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
+| Score платформы | **0,86126** (27.09, после публикации v4; прежний лучший 0,70106) | сообщено пользователем |
+| MAE на test вне фолдов: v3-рецепт только на train → v4 | **70,67 → 67,87 с** (без подсказки 83,27 → 80,12 с) | [проверка](ml/experiments/improve18-test-refit.json) |
+| MAE v3 на размеченном test (test не в обучении) | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
 | MAE автономного periodic replay | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
-| Вероятность `P(задержка > 120 с)` (сохранена из v2) | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
-| CSV для Data Science (151 прогноз) | [`ml/pretrained/v3/submission.csv`](ml/pretrained/v3/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 131 (ML, признаки, NDTP, состояние, движок, API, демо, история) | `python -m pytest -q` |
+| Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
+| Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
+| CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
+| Тесты | 175 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 ## Запуск за одну команду
 
@@ -91,11 +95,11 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 131 тест
+.venv/bin/python -m pytest -q                                  # 175 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
-ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
 BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.csv \
   .venv/bin/transport-backend serve --port 8010
 
@@ -108,8 +112,8 @@ npm --prefix frontend run dev
 Готовый CSV для платформы воспроизводится без обучения:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
-  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v3/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 \
+  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v5/submission.csv
 ```
 
 ## Что честно, а что ограничено
@@ -119,6 +123,12 @@ npm --prefix frontend run dev
   тесты). Цель — первое плановое посещение в `(T+600, T+900]`.
 - Отсутствие прогноза публикуется статусом (`no_target_in_horizon`, `stale`,
   `warming_up`, `ml_unavailable`, …), а не нулевой задержкой.
+- Обучение только на реальных размеченных точках train и test. Синтетические ТС train —
+  сдвинутые во времени копии реальных с почти теми же задержками, в том числе на
+  validate-посещениях; факты `time_fact_begin` train/test покрывают все validate-цели.
+  Поэтому ни то, ни другое не используется ни в признаках, ни в обучении (ML-IMPROVE-18).
+  Так как test вошёл в обучение v4, для неё публикуется только оценка вне фолдов, а
+  MAE replay на test в дашборде помечается как in-sample.
 - Вероятность опоздания калибрована на development-фолде того же дня; статус
   `fitted_on_development` виден в API и в UI. Это не проверка на независимом дне.
 - V3 отделяет supplied `cur_dev_s` от шумных оценок GPS/плана. В потоке без supplied

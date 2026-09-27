@@ -38,6 +38,9 @@ def _send_ndtp(args: argparse.Namespace) -> None:
         )
     )
     print(json.dumps(asdict(stats), ensure_ascii=False, indent=2))
+    if stats.errors:
+        # A unit that could not be delivered after all retries fails the command.
+        raise SystemExit(1)
 
 
 def _check_hint(args: argparse.Namespace) -> None:
