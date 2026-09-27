@@ -51,8 +51,8 @@ def main(backend: str, submission: Path, output: Path) -> None:
         "without_number_ids": missing,
         "statuses": dict(Counter(item.get("status") for item in first.values())),
         "note": (
-            "Points without a number got an honest status (for example stale: no trusted GPS "
-            "fix within 120 s of T) instead of a forecast; the offline CSV still has one."
+            "Points without a number got an honest status instead of a forecast (stale: the "
+            "terminal reported no valid location for over 120 s); the offline CSV has one."
         ),
     }
     output.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n")
