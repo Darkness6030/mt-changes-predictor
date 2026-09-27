@@ -9,12 +9,12 @@ not the physical cause of a delay: there is no incident, door or passenger data.
 import numpy as np
 import pandas as pd
 
-# Ordered: the first matching rule wins. Every feature of schemas 1-3 is covered.
+# Ordered: the first matching rule wins. Every feature of schemas 1–3 is covered.
 GROUPS = (
     ("hint", "Текущее отклонение (подсказка cur_dev)", ("cur_dev_s", "hint_after_slack")),
     (
         "trip",
-        "Отстой на конечной и положение в рейсе",
+        "Структура рейса: отстой на конечной",
         (
             "plan_max_gap_s",
             "layover_between",

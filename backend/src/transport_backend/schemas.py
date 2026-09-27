@@ -185,6 +185,9 @@ class Alert(Open):
     acknowledged_from: str | None = Field(
         default=None, description="Alert whose acknowledgement was carried over"
     )
+    acknowledged_by: str | None = Field(
+        default=None, description="Signed-in dispatcher, or the role name when auth is off"
+    )
 
 
 class Summary(Open):
@@ -261,3 +264,13 @@ class ExplanationAnswer(Open):
 class AlertAck(Open):
     alert: Alert
     note: str
+
+
+class AuthState(BaseModel):
+    """Who is calling. ``enabled=false``: accounts are off and everyone may act."""
+
+    enabled: bool
+    authenticated: bool
+    name: str | None = None
+    role: Literal["dispatcher", "viewer"] | None = None
+    can_act: bool

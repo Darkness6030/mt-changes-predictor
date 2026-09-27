@@ -11,9 +11,11 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
 
 from transport_backend import SCHEMA_VERSION, __version__, schemas
+from transport_backend.auth import AuthConfig, Principal, is_open
 from transport_backend.clock import parse_source
 from transport_backend.config import Settings
 from transport_backend.demo import DemoController, DemoError, DemoSource
@@ -59,15 +61,37 @@ async def lifespan(app: FastAPI):
         await demo.close()
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, auth: AuthConfig | None = None) -> FastAPI:
+    auth = auth if auth is not None else AuthConfig.from_env()
     app = FastAPI(
         title="Transport dispatcher backend",
         version=__version__,
         summary="NDTP ingestion, causal features, delay predictions and dispatcher snapshots",
         lifespan=lifespan,
+        # Only documents the scheme for Swagger's "Authorize"; the middleware enforces it.
+        dependencies=[Depends(HTTPBearer(auto_error=False))] if auth.enabled else [],
     )
     if settings is not None:
         app.state.settings = settings
+    app.state.auth = auth
+
+    def denied(status_code: int, code: str, detail: str) -> JSONResponse:
+        body = {"detail": {"code": code, "detail": detail, "schema_version": SCHEMA_VERSION}}
+        headers = {"WWW-Authenticate": "Bearer"} if status_code == 401 else None
+        return JSONResponse(status_code=status_code, content=body, headers=headers)
+
+    @app.middleware("http")
+    async def authorize(request: Request, call_next):
+        principal = auth.principal(request.headers.get("authorization"))
+        request.state.principal = principal
+        path = request.url.path
+        if is_open(path) or request.method == "OPTIONS":
+            return await call_next(request)
+        if principal is None:
+            return denied(401, "unauthorized", "Войдите: нужен токен диспетчера или наблюдателя")
+        if request.method not in {"GET", "HEAD"} and not principal.can_act:
+            return denied(403, "forbidden", "Роль «наблюдатель» только просматривает данные")
+        return await call_next(request)
 
     def get_engine(request: Request) -> Engine:
         demo = getattr(request.app.state, "demo", None)
@@ -77,6 +101,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return engine
 
     EngineDep = Annotated[Engine, Depends(get_engine)]
+
+    @app.get("/api/v1/auth", tags=["auth"], response_model=schemas.AuthState)
+    def auth_state(request: Request) -> dict:
+        principal: Principal | None = request.state.principal
+        if principal is None:
+            return {"enabled": True, "authenticated": False, "can_act": False}
+        return principal.to_dict(auth.enabled)
 
     @app.get("/api/v1/demo/sources", tags=["demo"])
     async def demo_sources(request: Request) -> dict:
@@ -219,9 +250,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"run_id": engine.run_id, "rows": len(items), "alerts": items}
 
     @app.post("/api/v1/alerts/{alert_id}/ack", tags=["dispatcher"], response_model=schemas.AlertAck)
-    async def acknowledge(alert_id: str, engine: EngineDep) -> dict:
+    async def acknowledge(alert_id: str, engine: EngineDep, request: Request) -> dict:
         try:
-            alert = engine.acknowledge(alert_id)
+            alert = engine.acknowledge(alert_id, by=request.state.principal.name)
         except KeyError as missing:
             raise error(404, "unknown_alert", f"No alert {alert_id}") from missing
         return {

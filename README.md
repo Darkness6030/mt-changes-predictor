@@ -7,7 +7,7 @@
 | Что | Значение | Где проверить |
 |---|---|---|
 | Модель по умолчанию | **v8** = v6 (ансамбль v4 и trip-модели, вероятность v5) + обучаемый нулевой гейт | [v8](ml/pretrained/v8/README.md), [отчёт ML v6](ml/reports/ml-v6.md) |
-| Score платформы | **0,90034** у v6 (27.09 20:54); v4 0,86126, trip-модель 0,85649 | сообщено пользователем |
+| Score платформы | **≈ 0,95** у v8; v6 0,90034, v4 0,86126, trip-модель 0,85649 | сообщено пользователем |
 | MAE на test вне фолдов: v3-рецепт только на train → v4 | **70,67 → 67,87 с** (без подсказки 83,27 → 80,12 с) | [проверка](ml/experiments/improve18-test-refit.json) |
 | MAE v3 на размеченном test (test не в обучении) | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
 | Исторический periodic replay v3 (до исправления ties) | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
@@ -15,7 +15,7 @@
 | Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
 | Движок инференса в Docker | **ONNX Runtime** с проверкой задержки и возвратом к CatBoost | [режимы и замеры](docs/PERFORMANCE.md) |
 | Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
-| CSV для Data Science (151 прогноз) | [`ml/pretrained/v6/submission.csv`](ml/pretrained/v6/submission.csv); v4/v5 — [`v5`](ml/pretrained/v5/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
+| CSV для Data Science (151 прогноз) | [`ml/pretrained/v8/submission.csv`](ml/pretrained/v8/submission.csv); v6 — [`v6`](ml/pretrained/v6/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
 | Тесты | 200 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
@@ -118,7 +118,7 @@ python3.12 -m venv .venv
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
-ML_MODEL_DIR=ml/pretrained/v6 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v8 ML_PORT=8011 .venv/bin/transport-ml-serve
 BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.csv \
   .venv/bin/transport-backend serve --port 8010
 
@@ -131,8 +131,8 @@ npm --prefix frontend run dev
 Готовый CSV для платформы воспроизводится без обучения:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
-  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v6/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 \
+  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v8/submission.csv
 ```
 
 ## Что честно, а что ограничено

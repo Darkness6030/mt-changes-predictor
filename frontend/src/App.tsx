@@ -3,6 +3,7 @@ import { api, type ReplayAction } from "./api";
 import { Header } from "./components/Header";
 import { DemoPanel } from "./components/DemoPanel";
 import { MapView } from "./components/MapView";
+import { MobileTabs, type MobileTab } from "./components/MobileTabs";
 import { Queue, type Filter } from "./components/Queue";
 import { ReplayControls } from "./components/ReplayControls";
 import { SystemPanel } from "./components/SystemPanel";
@@ -10,14 +11,15 @@ import { VehicleCard } from "./components/VehicleCard";
 import { sourceMs } from "./replayTime";
 import { usePolling } from "./usePolling";
 import { useHistoryView } from "./useHistoryView";
-import type { DemoSource, DemoState, Snapshot, Status, VehicleDetail } from "./types";
+import type { AuthState, DemoSource, DemoState, Snapshot, Status, VehicleDetail } from "./types";
 
-export default function App() {
+export default function App({ user, onLogout }: { user: AuthState; onLogout: () => void }) {
   const [filter, setFilter] = useState<Filter>("attention");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [mapFocus, setMapFocus] = useState<{ trId: string; sequence: number } | null>(null);
   const [showSystem, setShowSystem] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("queue");
   const [commandPending, setCommandPending] = useState(false);
   const [pollKey, setPollKey] = useState(0);
   const [commandError, setCommandError] = useState<string | null>(null);
@@ -77,6 +79,12 @@ export default function App() {
       track: [], plan: [], prediction_history: [] } as VehicleDetail;
   }, [detailPoll.data, detailPoll.error, displaySnapshot, selected, historyView.active, historyView.frame]);
 
+  // On a phone a chosen vehicle opens its card; wider layouts show every panel anyway.
+  const openCard = useCallback(() => {
+    setShowSystem(false);
+    setMobileTab("card");
+  }, []);
+
   const acknowledge = useCallback(async (alertId: string) => {
     if (historyView.active) return;
     try {
@@ -134,6 +142,7 @@ export default function App() {
   return (
     <div className="app">
       <Header snapshot={displaySnapshot} status={statusPoll.data} ageMs={ageMs}
+        user={user} onLogout={onLogout}
         historical={historyView.active}
         error={commandError ?? historyView.error ?? (noReplayData ? "Нет данных в выбранный момент" : null)} />
       {connectionLost ? (
@@ -155,7 +164,7 @@ export default function App() {
       {selected && detailPoll.error && !historyView.active ? <div className="banner warn">
         История ТС недоступна: {detailPoll.error}. Основные данные обновляются из общей очереди.
       </div> : null}
-      <div className="body">
+      <div className="body" data-mobile-tab={mobileTab === "system" ? "card" : mobileTab}>
         <Queue
           snapshot={displaySnapshot}
           filter={filter}
@@ -163,8 +172,12 @@ export default function App() {
           selected={selected}
           onFilter={setFilter}
           onSearch={setSearch}
-          onSelect={setSelected}
-          onFocus={(trId) => { setSelected(trId); setMapFocus((previous) => ({ trId, sequence: (previous?.sequence ?? 0) + 1 })); }}
+          onSelect={(trId) => { setSelected(trId); openCard(); }}
+          onFocus={(trId) => {
+            setSelected(trId);
+            setMobileTab("map");
+            setMapFocus((previous) => ({ trId, sequence: (previous?.sequence ?? 0) + 1 }));
+          }}
         />
         <MapView snapshot={displaySnapshot} detail={detail} selected={selected} onSelect={setSelected} focusRequest={mapFocus} />
         {showSystem ? (
@@ -176,9 +189,16 @@ export default function App() {
             policy={snapshot?.risk_policy ?? null}
             onAcknowledge={acknowledge}
             readOnly={historyView.active}
+            canAct={user.can_act}
           />
         )}
       </div>
+      <MobileTabs tab={mobileTab} attention={displaySnapshot?.summary.attention ?? 0} selected={selected}
+        onTab={(tab) => {
+          setMobileTab(tab);
+          if (tab === "system") setShowSystem(true);
+          if (tab === "card") setShowSystem(false);
+        }} />
       <ReplayControls
         status={navigationStatus ? { ...navigationStatus,
           clock: snapshot?.run_id === navigationStatus.run_id ? snapshot.clock : navigationStatus.clock,
@@ -188,7 +208,10 @@ export default function App() {
         pending={commandPending}
         onCommand={command}
         showSystem={showSystem}
-        onToggleSystem={() => setShowSystem((value) => !value)}
+        onToggleSystem={() => setShowSystem((value) => {
+          setMobileTab(value ? "card" : "system");
+          return !value;
+        })}
         sourceControl={<DemoPanel state={demo} pending={commandPending} error={demoPoll.error} onSwitch={switchSource} />}
       />
     </div>

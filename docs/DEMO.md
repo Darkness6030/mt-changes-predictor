@@ -247,7 +247,7 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 - `offline` — комплект v6: аудит на test моделями, обученными без test (MAE 67,82 с
   с подсказкой, 78,60 с без неё; baseline `cur_dev_s` 93,36 с), т. к. test вошёл в
-  обучение итоговой модели. Score v6 — 0,90034 (сообщено пользователем).
+  обучение итоговой модели. Score v8 ≈ 0,95, v6 — 0,90034 (сообщено пользователем).
   Подробно: [отчёт ML v6](../ml/reports/ml-v6.md).
 - `early_warning` — раннее предупреждение **на потоке без разметки**: для каждого алерта
   фактическое прибытие берётся из полученных GPS-точек; `confirmed_share`, упреждение
@@ -275,16 +275,29 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 | Пауза replay | Кнопка «Пауза» | Виртуальное время и возрасты данных останавливаются, wall-clock health продолжает считаться |
 | Сброс прогона | Кнопка «Сброс прогона» | Новый `run_id`, чистое состояние, инциденты не переносятся |
 
+## 6a. Телефон и вход по ролям
+
+- **Телефон**: откройте `http://<IP машины>:8080` с телефона в той же сети или сузьте окно
+  браузера до ≤ 640 px (DevTools → устройство). Внизу вкладки «Очередь / Карта / ТС /
+  Система»; тап по ТС в очереди открывает карточку. «Добавить на главный экран» ставит пульт
+  как приложение (манифест PWA).
+- **Вход** (по умолчанию выключен): в `.env` задайте, например,
+  `BACKEND_AUTH_USERS=dispatcher:Иванова И.:<длинный токен>;viewer:Табло:<другой токен>` и
+  выполните `docker compose up -d backend`. UI попросит токен; наблюдатель видит всё, но не
+  может отметить алерт (кнопка «Отмечает диспетчер», API → 403); у диспетчера отметка
+  подписана: «принял: Иванова И.». Swagger: кнопка Authorize. Уберите переменную — стенд
+  снова открыт без входа.
+
 ## 7. CSV для Data Science
 
-Готовый файл — `ml/pretrained/v6/submission.csv` (151 строка, `sample_id;prediction`,
-score 0,90034).
+Готовый файл — `ml/pretrained/v8/submission.csv` (151 строка, `sample_id;prediction`,
+score ≈ 0,95).
 Воспроизведение без обучения и без Docker:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 \
   --output artifacts/check/submission.csv
-shasum -a 256 artifacts/check/submission.csv ml/pretrained/v6/submission.csv
+shasum -a 256 artifacts/check/submission.csv ml/pretrained/v8/submission.csv
 ```
 
 В Docker:
