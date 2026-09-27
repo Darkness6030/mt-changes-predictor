@@ -40,9 +40,18 @@ def test_a_late_reserve_only_helps_when_it_beats_the_vehicle():
     # Reserve in 40 min (11:20): later than the late vehicle would start trip 2 (11:08).
     result = reserve_whatif(trips(), 1, 600.0, now, reserve_in_s=40 * 60)
     assert result["trips"][0]["served_by"] == "vehicle"
-    assert result["reserve_takes_trip"] == 3
+    # By trip 3 the layovers have absorbed the delay: the reserve is not needed at all.
+    assert result["reserve_takes_trip"] is None
 
 
 def test_no_following_trip_means_no_answer():
     now = parse_source("2026-01-06 14:00:00")
     assert reserve_whatif(trips(), 5, 300.0, now, 600)["available"] is False
+
+
+def test_reserve_is_not_used_when_the_layover_absorbs_the_delay():
+    now = parse_source("2026-01-06 10:40:00")
+    result = reserve_whatif(trips(), 1, 139.0, now, reserve_in_s=5 * 60)
+    assert result["reserve_takes_trip"] is None
+    assert all(row["served_by"] == "vehicle" for row in result["trips"])
+    assert result["late_trips_without"] == 0 and result["delay_saved_s"] == 0
