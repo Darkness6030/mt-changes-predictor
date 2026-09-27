@@ -194,6 +194,7 @@ export interface Alert {
   observed_delay_s?: number | null;
   observed_distance_m?: number | null;
   warning_lead_s?: number | null;
+  warning_outcome?: "confirmed" | "within_norm" | "opposite" | null;
   evidence: Evidence[];
 }
 

@@ -71,6 +71,9 @@ class Alert:
     observed_distance_m: float | None = None
     # First warning to the observed arrival: how early the dispatcher was told.
     warning_lead_s: float | None = None
+    # confirmed: deviation in the warned direction outside the green band; within_norm;
+    # opposite: a real deviation, but in the other direction than warned.
+    warning_outcome: str | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -179,6 +182,15 @@ EXPLANATION_CACHE = 256
 # A dispatcher who took a vehicle into work is not re-alerted at each next stop of the same
 # episode: an acknowledgement carries over to a new alert opened within this source time.
 ACK_CARRY_S = 900.0
+
+
+def warning_outcome(predicted_s: float, observed_s: float, policy) -> str:
+    """Did the observed arrival bear out the warning, in the warned direction?"""
+    if policy.level(observed_s) == "green":
+        return "within_norm"
+    warned_late = predicted_s >= 0
+    observed_late = observed_s > policy.green_max_delay_s
+    return "confirmed" if warned_late == observed_late else "opposite"
 
 
 def trip_edge(trip: dict | None) -> str | None:
@@ -934,7 +946,8 @@ class Engine:
             alert.warning_lead_s = (seen.arrival_ns - parse_source(alert.first_alert_at)) / (
                 SECOND_NS
             )
-            confirmed = self.settings.risk.level(seen.seconds) != "green"
+            alert.warning_outcome = warning_outcome(alert.delay_s, seen.seconds, self.settings.risk)
+            confirmed = alert.warning_outcome == "confirmed"
             self.warning_outcomes.append((alert.warning_lead_s, seen.seconds, confirmed))
             self.revision += 1
 
@@ -958,7 +971,7 @@ class Engine:
             },
             "lead_at_least_600s_share": float(np.mean(lead >= 600)),
             "note": "Первое предупреждение → прибытие, наблюдаемое по GPS (без разметки). "
-            "Подтверждено: фактическое отклонение вне зелёного коридора",
+            "Подтверждено: фактическое отклонение вне зелёного коридора в ту же сторону",
         }
 
     def _expire_alerts(self, now_ns: int) -> None:

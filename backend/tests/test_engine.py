@@ -592,3 +592,13 @@ def test_recommendation_prioritises_first_and_last_trips():
     assert "рейса дня" not in recommendation(150.0, [], policy, 0.9, middle)
     # An on-time first trip needs no escalation.
     assert "рейса дня" not in recommendation(20.0, [], policy, 0.1, {**last, "first": True})
+
+
+def test_warning_outcome_respects_the_warned_direction():
+    from transport_backend.engine import warning_outcome
+
+    policy = RiskPolicy()
+    assert warning_outcome(150.0, 180.0, policy) == "confirmed"
+    assert warning_outcome(150.0, 30.0, policy) == "within_norm"
+    assert warning_outcome(150.0, -276.0, policy) == "opposite"  # Warned late, came early.
+    assert warning_outcome(-120.0, -90.0, policy) == "confirmed"  # Early warning held.
