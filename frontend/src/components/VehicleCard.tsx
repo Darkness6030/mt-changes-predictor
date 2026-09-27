@@ -12,6 +12,7 @@ import {
 } from "../format";
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import { PredictionExplanation } from "./PredictionExplanation";
+import { WarningPassport } from "./WarningPassport";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -149,6 +150,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               {prediction!.calibration?.report ? ` · ${prediction!.calibration.report}` : ""}
             </div>
           </div>
+
+          <WarningPassport detail={detail} alerts={alerts} />
 
           {ok && prediction!.prediction_id ? (
             <PredictionExplanation

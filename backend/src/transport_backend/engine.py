@@ -65,6 +65,12 @@ class Alert:
     trip_edge: str | None = None
     # Set when the acknowledgement was carried over from the vehicle's previous incident.
     acknowledged_from: str | None = None
+    # Warning passport: the arrival actually seen in GPS after the planned time (no labels).
+    observed_arrival_at: str | None = None
+    observed_delay_s: float | None = None
+    observed_distance_m: float | None = None
+    # First warning to the observed arrival: how early the dispatcher was told.
+    warning_lead_s: float | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -218,6 +224,8 @@ class Engine:
         # the fleet. It lets a dispatcher ask why, without explaining every cycle.
         self.feature_rows: dict[str, dict] = {}
         self.explanations: OrderedDict[str, dict] = OrderedDict()
+        # Passport outcomes survive alert trimming: (lead s, observed delay s, confirmed).
+        self.warning_outcomes: deque[tuple[float, float, bool]] = deque(maxlen=5000)
         self.prediction_log: deque[dict] = deque(maxlen=settings.max_predictions_kept)
         self.alerts: dict[str, Alert] = {}
         self.sidecar: Sidecar | None = None
@@ -361,6 +369,7 @@ class Engine:
         self.predictions.clear()
         self.feature_rows.clear()
         self.explanations.clear()
+        self.warning_outcomes.clear()
         self.prediction_log.clear()
         self.alerts.clear()
         self.prediction_seq = 0
@@ -904,8 +913,57 @@ class Engine:
         existing.attention = view.get("attention") or existing.attention
         existing.state = "active" if risky else "resolved"
 
+    def _observe_arrivals(self, now_ns: int) -> None:
+        """Fill the warning passport once the target visit is seen in received GPS."""
+        early = 300 * SECOND_NS
+        late = 900 * SECOND_NS
+        for alert in self.alerts.values():
+            if alert.observed_arrival_at is not None:
+                continue
+            planned_ns = parse_source(alert.target_planned_at)
+            if not planned_ns - early <= now_ns <= planned_ns + late + 60 * SECOND_NS:
+                continue
+            seen = self.state.observed_arrival(alert.tr_id, alert.target_stop_id, now_ns)
+            # Wait until the vehicle has left the stop radius or the window is over, so the
+            # dwell middle does not move after publication.
+            if seen is None or now_ns - seen.arrival_ns < 60 * SECOND_NS:
+                continue
+            alert.observed_arrival_at = format_source(seen.arrival_ns)
+            alert.observed_delay_s = seen.seconds
+            alert.observed_distance_m = seen.distance_m
+            alert.warning_lead_s = (seen.arrival_ns - parse_source(alert.first_alert_at)) / (
+                SECOND_NS
+            )
+            confirmed = self.settings.risk.level(seen.seconds) != "green"
+            self.warning_outcomes.append((alert.warning_lead_s, seen.seconds, confirmed))
+            self.revision += 1
+
+    def warning_report(self) -> dict:
+        """Early warning on the stream: first alert vs the arrival later seen in GPS."""
+        rows = list(self.warning_outcomes)
+        if not rows:
+            return {
+                "observed": 0,
+                "note": "Появится после фактического прибытия ТС с алертом (по GPS)",
+            }
+        lead = np.array([row[0] for row in rows])
+        return {
+            "observed": len(rows),
+            "confirmed": int(sum(row[2] for row in rows)),
+            "confirmed_share": float(np.mean([row[2] for row in rows])),
+            "lead_s": {
+                "min": float(lead.min()),
+                "p50": float(np.median(lead)),
+                "max": float(lead.max()),
+            },
+            "lead_at_least_600s_share": float(np.mean(lead >= 600)),
+            "note": "Первое предупреждение → прибытие, наблюдаемое по GPS (без разметки). "
+            "Подтверждено: фактическое отклонение вне зелёного коридора",
+        }
+
     def _expire_alerts(self, now_ns: int) -> None:
         """Expire incidents whose target time has passed and keep the store bounded."""
+        self._observe_arrivals(now_ns)
         stale_before = now_ns - int(self.settings.alert_retention_s * SECOND_NS)
         for alert_id, alert in list(self.alerts.items()):
             planned_ns = parse_source(alert.target_planned_at)
@@ -1245,6 +1303,7 @@ class Engine:
             "run_id": self.run_id,
             "offline": offline,
             "replay_sidecar": sidecar,
+            "early_warning": self.warning_report(),
             "model": self.ml.model
             and {
                 "model_version": self.ml.model.get("model_version"),

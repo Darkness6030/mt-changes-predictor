@@ -189,6 +189,11 @@ export interface Alert {
   acknowledged_at: string | null;
   acknowledged_from?: string | null;
   attention?: "delay" | "probability" | null;
+  trip_edge?: "first" | "last" | null;
+  observed_arrival_at?: string | null;
+  observed_delay_s?: number | null;
+  observed_distance_m?: number | null;
+  warning_lead_s?: number | null;
   evidence: Evidence[];
 }
 
@@ -341,6 +346,14 @@ export interface Quality {
     late_probability?: Record<string, unknown>;
     note: string;
   } | null;
+  early_warning?: {
+    observed: number;
+    confirmed?: number;
+    confirmed_share?: number;
+    lead_s?: { min: number; p50: number; max: number };
+    lead_at_least_600s_share?: number;
+    note: string;
+  };
   replay_sidecar: {
     source: string;
     measured_rows: number;

@@ -458,6 +458,47 @@ class FleetState:
             )
         return best
 
+    def observed_arrival(
+        self,
+        tr_id: str,
+        visit_id: str,
+        at_ns: int,
+        radius_m: float = 60.0,
+        early_s: float = 300.0,
+        late_s: float = 900.0,
+    ) -> Deviation | None:
+        """Arrival at one planned visit seen in already received trusted GPS, else None.
+
+        Same geometry and dwell-middle rule as :meth:`estimate_deviation`; only events with
+        ``event_time <= at_ns`` are used, so a result is never read from the future.
+        """
+        track = self.tracks.get(tr_id)
+        visits = self.plan.visits.get(tr_id)
+        if track is None or visits is None:
+            return None
+        matches = np.flatnonzero(visits.tt_action_item_id.astype(str).eq(str(visit_id)))
+        if not len(matches):
+            return None
+        visit = visits.iloc[int(matches[0])]
+        planned = int(visit.time_begin.value)
+        times, lon, lat = track.valid_arrays()
+        high = min(at_ns, planned + int(late_s * SECOND_NS))
+        window = np.flatnonzero((times >= planned - int(early_s * SECOND_NS)) & (times <= high))
+        if not len(window):
+            return None
+        distances = distance_m(lon[window], lat[window], float(visit.lon), float(visit.lat))
+        near = np.flatnonzero(distances <= radius_m)
+        if not len(near):
+            return None
+        chosen = window[near[len(near) // 2]]
+        return Deviation(
+            seconds=(times[chosen] - planned) / SECOND_NS,
+            arrival_ns=int(times[chosen]),
+            visit_id=str(visit_id),
+            distance_m=float(distances[near[len(near) // 2]]),
+            matched_visits=1,
+        )
+
     def summary(self, at_ns: int | None) -> dict:
         return {
             "vehicles": len(self.tracks),
