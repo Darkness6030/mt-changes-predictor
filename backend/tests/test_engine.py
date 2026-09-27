@@ -533,6 +533,13 @@ def test_acknowledgement_carries_to_the_next_stop_of_the_same_episode():
     second = engine.alerts[f"{engine.run_id}:bus:s2"]
     assert second.acknowledged_at == first.acknowledged_at
     assert second.acknowledged_from == first.alert_id
+    # Alerts already open for the vehicle's later stops are covered by the click as well.
+    engine._update_alert(view("s3", "2026-01-06 10:06:00"))
+    engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_at = None
+    engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_from = None
+    engine.alerts[f"{engine.run_id}:bus:s1"].acknowledged_at = None
+    engine.acknowledge(f"{engine.run_id}:bus:s1")
+    assert engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_from == first.alert_id
     # A new episode long after the last acknowledged prediction must be seen again.
     engine._update_alert(view("s9", "2026-01-06 11:00:00"))
     assert engine.alerts[f"{engine.run_id}:bus:s9"].acknowledged_at is None
