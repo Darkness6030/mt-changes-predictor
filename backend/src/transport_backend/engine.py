@@ -1100,13 +1100,23 @@ class Engine:
                 "cur_dev_mae_s": test.get("cur_dev_mae_s"),
                 "zero_mae_s": test.get("zero_mae_s"),
                 "late_probability": test.get("late_probability"),
-                "note": "Offline benchmark на размеченном test одного дня, не score платформы",
+                "note": test.get(
+                    "note", "Offline benchmark на размеченном test одного дня, не score платформы"
+                ),
             }
+        sidecar = None if self.sidecar is None else self.sidecar.report()
+        group = (self.ml.model or {}).get("training_group") or ""
+        if sidecar is not None and "test" in group.split(";")[0] and "test" in sidecar["source"]:
+            # A bundle refitted on test labels cannot be scored honestly on the same labels.
+            sidecar["in_sample"] = True
+            sidecar["in_sample_note"] = (
+                "Модель обучена в том числе на этой разметке: MAE потока in-sample, оптимистична"
+            )
         return {
             "schema_version": "1",
             "run_id": self.run_id,
             "offline": offline,
-            "replay_sidecar": (None if self.sidecar is None else self.sidecar.report()),
+            "replay_sidecar": sidecar,
             "model": self.ml.model
             and {
                 "model_version": self.ml.model.get("model_version"),

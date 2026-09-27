@@ -314,6 +314,8 @@ export interface Quality {
     late_probability_brier?: number;
     hint_sources?: Record<string, number>;
     note?: string;
+    in_sample?: boolean;
+    in_sample_note?: string;
   } | null;
   model: Record<string, unknown> | null;
 }
