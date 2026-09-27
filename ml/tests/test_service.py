@@ -97,6 +97,8 @@ def test_missing_hint_routes_to_fallback(client, model_features):
 def test_explanation_adds_up_to_the_published_delay(client, model_features, no_hint):
     _, points, features = model_features
     body = payload(features, points)
+    assert client.post("/v1/predict", json=body).json()["results"][0]["explanation"] is None
+    body["explain"] = True
     if no_hint:
         for item in body["items"]:
             item["features"]["cur_dev_s"] = None
@@ -110,8 +112,6 @@ def test_explanation_adds_up_to_the_published_delay(client, model_features, no_h
         assert len(explanation["groups"]) <= 4 and all(g["label"] for g in explanation["groups"])
         # Without a supplied hint the hint group cannot carry any weight.
         assert not no_hint or "hint" not in {g["group"] for g in explanation["groups"]}
-    body["explain"] = False
-    assert client.post("/v1/predict", json=body).json()["results"][0]["explanation"] is None
 
 
 @pytest.mark.parametrize(

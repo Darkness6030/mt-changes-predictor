@@ -50,6 +50,14 @@ class RiskPolicy:
             return f"delay_s < {self.early_yellow_s:g} (опережение)"
         return "в пределах допустимого отклонения"
 
+    def attention(self, delay_s: float, late_probability: float | None) -> str | None:
+        """Why a dispatcher should look: a risky delay first, else a likely late arrival."""
+        if self.level(delay_s) != "green":
+            return "delay"
+        if late_probability is not None and late_probability >= self.late_probability_red:
+            return "probability"
+        return None
+
     def to_dict(self) -> dict:
         return {
             **asdict(self),

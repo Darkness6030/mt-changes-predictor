@@ -423,3 +423,86 @@ async def test_incompatible_model_contract_cannot_send_wrong_features():
     assert not engine.ml.ready
     assert "disagree" in engine.ml.last_error
     assert engine.ml.seen == []
+
+
+class ExplainingMl(FakeMl):
+    """Adds the on-demand explanation call and counts how often it is used."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.explain_calls = 0
+        self.delay_override: float | None = None
+
+    async def explain(self, item, feature_schema_version):
+        self.explain_calls += 1
+        delay = self.delay_s if self.delay_override is None else self.delay_override
+        groups = [{"group": "movement", "label": "Скорость и движение", "seconds": delay - 10}]
+        return {
+            "request_id": item["request_id"],
+            "delay_s": delay,
+            "model_version": "fake",
+            "explanation": {
+                "base_s": 10.0,
+                "groups": groups,
+                "other_s": 0.0,
+                "total_s": delay,
+                "model_used": "main",
+            },
+        }
+
+
+async def test_explanation_is_on_demand_cached_and_bound_to_the_prediction():
+    from transport_backend.engine import PredictionChanged
+
+    engine = make_engine(replay_speed=600.0, replay_autostart=True)
+    engine.ml = ExplainingMl()
+    await engine.start()
+    try:
+        deadline = asyncio.get_running_loop().time() + 20
+        while asyncio.get_running_loop().time() < deadline and engine.predicted_points < 3:
+            await asyncio.sleep(0.2)
+    finally:
+        await engine.stop()  # Freeze the current predictions for the checks below.
+    ready = [tr for tr, view in engine.predictions.items() if view["status"] == "ok"]
+    assert ready and engine.ml.explain_calls == 0  # The cycle never explains.
+    tr_id = ready[0]
+    prediction_id = engine.predictions[tr_id]["prediction_id"]
+    first = await engine.explanation(tr_id, prediction_id)
+    again = await engine.explanation(tr_id, prediction_id)
+    assert first is again and engine.ml.explain_calls == 1
+    assert first["explanation"]["total_s"] == engine.predictions[tr_id]["delay_s"]
+    with pytest.raises(PredictionChanged):
+        await engine.explanation(tr_id, "p-999999")
+    # A different number from ML (e.g. a swapped model) is refused, not shown as the reason.
+    engine.explanations.clear()
+    engine.ml.delay_override = 1.0
+    with pytest.raises(PredictionChanged):
+        await engine.explanation(tr_id, prediction_id)
+    await engine.reset()
+    assert not engine.feature_rows and not engine.explanations
+
+
+def test_attention_uses_delay_first_then_calibrated_probability():
+    from transport_backend.engine import needs_attention
+
+    policy = RiskPolicy()
+    assert policy.attention(150.0, 0.1) == "delay"
+    assert policy.attention(-90.0, None) == "delay"  # Early running is also a risk.
+    assert policy.attention(30.0, 0.7) == "probability"
+    assert policy.attention(30.0, 0.2) is None
+    assert policy.attention(30.0, None) is None
+    ok = {"status": "ok", "risk_level": "green", "attention": "probability"}
+    assert needs_attention({"prediction": ok})
+    assert not needs_attention({"prediction": {**ok, "status": "stale"}})
+    assert not needs_attention({"prediction": None})
+
+
+def test_recommendation_escalates_a_likely_late_arrival():
+    from transport_backend.explain import recommendation
+
+    policy = RiskPolicy()
+    calm = recommendation(80.0, [], policy, 0.2)
+    likely = recommendation(80.0, [], policy, 0.6)
+    assert "наблюдением" in calm and "60%" in likely
+    assert recommendation(80.0, [], policy) == calm  # Without a classifier: delay only.
+    assert "Опережение" in recommendation(-90.0, [], policy, 0.9)

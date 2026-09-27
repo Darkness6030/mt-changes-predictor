@@ -40,6 +40,15 @@ export interface Explanation {
   model_used: string;
 }
 
+export interface ExplanationAnswer {
+  run_id: string;
+  tr_id: string;
+  prediction_id: string;
+  model_version: string;
+  delay_s: number;
+  explanation: Explanation;
+}
+
 export interface Prediction {
   prediction_id: string;
   run_id: string;
@@ -59,6 +68,7 @@ export interface Prediction {
   expected_arrival_at?: string | null;
   risk_level: RiskLevel | null;
   risk_basis: string | null;
+  attention?: "delay" | "probability" | null;
   late_probability: number | null;
   late_threshold_s?: number | null;
   calibration?: Calibration | null;
@@ -72,7 +82,6 @@ export interface Prediction {
   prediction_age_s: number | null;
   stale: boolean;
   evidence: Evidence[];
-  explanation?: Explanation | null;
   recommendation: string | null;
   quality_flags: string[];
   detail?: string | null;

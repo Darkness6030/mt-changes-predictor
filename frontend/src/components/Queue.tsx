@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import {
-  HINT_LABEL,
   RISK_LABEL,
   RISK_SIGN,
   STATUS_LABEL,
@@ -40,7 +39,8 @@ function matches(vehicle: Vehicle, filter: Filter): boolean {
     case "all":
       return true;
     case "attention":
-      return available && (prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
+      return available && (prediction!.attention != null ||
+        prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
     case "late":
       return available && (prediction!.delay_s ?? 0) > 0;
     case "early":
@@ -138,21 +138,24 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                 </div>
                 <div className="row-badges">
                   <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
-                  {ok &&
-                  prediction!.late_probability !== null &&
-                  policy &&
-                  prediction!.late_probability >= policy.late_probability_red ? (
-                    <span className="badge stale" title="Калиброванная вероятность опоздания">
-                      P {Math.round(prediction!.late_probability * 100)}%
+                  {ok && prediction!.late_probability !== null ? (
+                    <span
+                      className={policy && prediction!.late_probability >= policy.late_probability_red
+                        ? "badge stale" : "badge"}
+                      title={`Вероятность задержки больше ${Math.round(prediction!.late_threshold_s ?? 120)} с`}
+                    >
+                      опоздание {Math.round(prediction!.late_probability * 100)}%
+                    </span>
+                  ) : null}
+                  {ok && prediction!.attention === "probability" ? (
+                    <span className="badge stale" title="Задержка в норме, но опоздание вероятно">
+                      по вероятности
                     </span>
                   ) : null}
                 </div>
                 {ok ? (
                   <div className="addr" title={prediction!.target_address ?? ""}>
                     {prediction!.target_address ?? "адрес остановки не указан"}
-                    {prediction!.cur_dev_source
-                      ? ` · ${HINT_LABEL[prediction!.cur_dev_source] ?? prediction!.cur_dev_source}`
-                      : ""}
                   </div>
                 ) : null}
               </button>
