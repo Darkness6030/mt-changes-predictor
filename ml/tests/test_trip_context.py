@@ -119,3 +119,45 @@ def test_synthetic_copies_near_protected_moments_are_purged():
     keep = keep_synthetic(copies, families, protected, margin_s=1200)
     # real-time counterparts: AT (10 min away), AT+1h (kept), AT-1315 s (~32 min, kept)
     assert keep.tolist() == [False, True, True]
+
+
+def test_zero_gate_sends_confident_rows_to_exact_zero(tmp_path):
+    import json
+    import shutil
+    from pathlib import Path
+
+    from catboost import CatBoostClassifier
+    from transport_ml.model import DelayModel, sha256
+
+    source = Path("ml/pretrained/v6")
+    bundle = tmp_path / "gated"
+    shutil.copytree(source, bundle)
+    model = DelayModel(bundle)
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(rng.normal(size=(40, len(model.features))), columns=model.features).assign(
+        cur_dev_s=np.r_[np.zeros(20), np.full(20, 90.0)]
+    )
+    gate = CatBoostClassifier(iterations=30, depth=2, verbose=False, allow_writing_files=False)
+    gate.fit(frame[["cur_dev_s"]], (frame.cur_dev_s == 0).astype(int))
+    gate.save_model(str(bundle / "zero_gate.cbm"))
+    manifest = json.loads((bundle / "manifest.json").read_text())
+    manifest["zero_gate"] = {
+        "file": "zero_gate.cbm",
+        "sha256": sha256(bundle / "zero_gate.cbm"),
+        "features": ["cur_dev_s"],
+        "threshold": 0.5,
+        "mode": "main",
+    }
+    (bundle / "manifest.json").write_text(json.dumps(manifest))
+    gated = DelayModel(bundle)
+    plain = model.predict(frame)
+    result = gated.predict(frame)
+    assert (result[:20] == 0).all()
+    np.testing.assert_allclose(result[20:], plain[20:])
+    # The gate never touches the hint-free fallback, and explanations stay consistent.
+    np.testing.assert_allclose(
+        gated.predict(frame, no_hint=True), model.predict(frame, no_hint=True)
+    )
+    explanation = gated.explain(frame.iloc[[0, 25]])
+    assert explanation[0]["zero_gate"] and explanation[0]["total_s"] == 0
+    assert "zero_gate" not in explanation[1]

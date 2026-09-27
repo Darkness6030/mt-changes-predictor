@@ -1,0 +1,271 @@
+{
+  "protocol": "Audit of v8 WITHOUT test labels: v3 + trip recipe refitted on train only, equal weights, plus the zero gate trained on train only (synthetic copies of test/validate moments purged). Shipped v8 also uses test labels, so its own test error is not out-of-sample.",
+  "test": {
+    "rows": 353,
+    "vehicles": 13,
+    "model_mae_s": 67.28183831198939,
+    "no_hint_mae_s": 78.6045305512398,
+    "zero_mae_s": 103.33711048158641,
+    "cur_dev_mae_s": 93.35977337110482,
+    "absolute_error_p50_s": 50.555117050837964,
+    "absolute_error_p90_s": 139.32894195734025,
+    "components": {
+      "v3_main": 71.73766247721835,
+      "trip_audit_main": 67.07690911056514,
+      "union_main": 67.82329866486128,
+      "v3_fallback": 83.71547474888857,
+      "trip_audit_fallback": 75.91419426946035,
+      "union_fallback": 78.6045305512398,
+      "union_main_gated": 67.28183831198939
+    },
+    "late_probability": {
+      "threshold_s": 120.0,
+      "calibration": {
+        "method": "platt",
+        "status": "validated",
+        "report": "ml/experiments/improve18-late.json"
+      },
+      "with_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.10653549523708435,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.3389910869334583,
+        "roc_auc": 0.8953052869959063,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 210,
+            "mean_predicted": 0.07174765178986445,
+            "observed_rate": 0.05238095238095238
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 59,
+            "mean_predicted": 0.27444771139406454,
+            "observed_rate": 0.3050847457627119
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 38,
+            "mean_predicted": 0.49323179737244816,
+            "observed_rate": 0.5526315789473685
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 24,
+            "mean_predicted": 0.6884080159213594,
+            "observed_rate": 0.625
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 22,
+            "mean_predicted": 0.8869453265099689,
+            "observed_rate": 0.9545454545454546
+          }
+        ],
+        "status": "validated"
+      },
+      "no_hint": {
+        "rows": 353,
+        "positive_rate": 0.24362606232294617,
+        "brier": 0.11621379169949812,
+        "base_rate_brier": 0.18427240407996212,
+        "log_loss": 0.3672875806713309,
+        "roc_auc": 0.8777545509972999,
+        "bins": [
+          {
+            "range": [
+              0.0,
+              0.2
+            ],
+            "rows": 211,
+            "mean_predicted": 0.07853387215956517,
+            "observed_rate": 0.061611374407582936
+          },
+          {
+            "range": [
+              0.2,
+              0.4
+            ],
+            "rows": 68,
+            "mean_predicted": 0.2886525308626131,
+            "observed_rate": 0.3088235294117647
+          },
+          {
+            "range": [
+              0.4,
+              0.6000000000000001
+            ],
+            "rows": 35,
+            "mean_predicted": 0.49762126546634006,
+            "observed_rate": 0.5714285714285714
+          },
+          {
+            "range": [
+              0.6000000000000001,
+              0.8
+            ],
+            "rows": 27,
+            "mean_predicted": 0.6880753325238165,
+            "observed_rate": 0.7777777777777778
+          },
+          {
+            "range": [
+              0.8,
+              1.0
+            ],
+            "rows": 12,
+            "mean_predicted": 0.8440300491268923,
+            "observed_rate": 0.9166666666666666
+          }
+        ],
+        "status": "validated"
+      },
+      "estimate": "out_of_fold on 5 random test folds, same as the regression estimate",
+      "reference_v2_classifier": {
+        "with_hint": {
+          "rows": 353,
+          "positive_rate": 0.24362606232294617,
+          "brier": 0.13950472496942737,
+          "base_rate_brier": 0.18427240407996212,
+          "log_loss": 0.42763842817202147,
+          "roc_auc": 0.8176552565107569,
+          "bins": [
+            {
+              "range": [
+                0.0,
+                0.2
+              ],
+              "rows": 178,
+              "mean_predicted": 0.08554395317162229,
+              "observed_rate": 0.07303370786516854
+            },
+            {
+              "range": [
+                0.2,
+                0.4
+              ],
+              "rows": 71,
+              "mean_predicted": 0.29296760601790767,
+              "observed_rate": 0.323943661971831
+            },
+            {
+              "range": [
+                0.4,
+                0.6000000000000001
+              ],
+              "rows": 66,
+              "mean_predicted": 0.4891523357303237,
+              "observed_rate": 0.3333333333333333
+            },
+            {
+              "range": [
+                0.6000000000000001,
+                0.8
+              ],
+              "rows": 29,
+              "mean_predicted": 0.6879352445136049,
+              "observed_rate": 0.7241379310344828
+            },
+            {
+              "range": [
+                0.8,
+                1.0
+              ],
+              "rows": 9,
+              "mean_predicted": 0.853048514348655,
+              "observed_rate": 0.7777777777777778
+            }
+          ],
+          "status": "validated"
+        },
+        "no_hint": {
+          "rows": 353,
+          "positive_rate": 0.24362606232294617,
+          "brier": 0.17631862440732882,
+          "base_rate_brier": 0.18427240407996212,
+          "log_loss": 0.5250707209571354,
+          "roc_auc": 0.6934500479052348,
+          "bins": [
+            {
+              "range": [
+                0.0,
+                0.2
+              ],
+              "rows": 108,
+              "mean_predicted": 0.12626235396616894,
+              "observed_rate": 0.08333333333333333
+            },
+            {
+              "range": [
+                0.2,
+                0.4
+              ],
+              "rows": 151,
+              "mean_predicted": 0.29012076331235026,
+              "observed_rate": 0.2582781456953642
+            },
+            {
+              "range": [
+                0.4,
+                0.6000000000000001
+              ],
+              "rows": 78,
+              "mean_predicted": 0.48114429219749355,
+              "observed_rate": 0.41025641025641024
+            },
+            {
+              "range": [
+                0.6000000000000001,
+                0.8
+              ],
+              "rows": 14,
+              "mean_predicted": 0.695713080719077,
+              "observed_rate": 0.2857142857142857
+            },
+            {
+              "range": [
+                0.8,
+                1.0
+              ],
+              "rows": 2,
+              "mean_predicted": 0.8360505714510232,
+              "observed_rate": 1.0
+            }
+          ],
+          "status": "validated"
+        }
+      }
+    },
+    "note": "late_probability section copied from v5 (same classifiers).",
+    "zero_gate": {
+      "gated_rows": 24,
+      "zero_rate_among_gated": 0.9583333333333334,
+      "union_main_before_gate": 67.82329866486128,
+      "v3_main": [
+        71.73766247721835,
+        71.29265945870502
+      ],
+      "trip_main": [
+        67.07690911056514,
+        66.36231146293433
+      ]
+    }
+  }
+}
