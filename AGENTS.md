@@ -28,11 +28,11 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v5/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v6/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
@@ -49,7 +49,7 @@ DOCS-ONNX-30: **195 Python-тестов**, Ruff ML/Backend, Docker build/up,
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | v5: 73 причинных признака, ансамбли 3+3, refit real train+test, OOF-калибровка и SHAP | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v5.md`, `ml/pretrained/v5/` |
+| ML | v6 (platform 0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v6/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict, объяснение по запросу | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
 | Backend | NDTP/CSV, GPS-фильтр, alerts/ack/паспорт, what-if/hotspots, история, автосдвиг даты | BE-03: оставшиеся ответы; BE-04: caps/clock cases | `backend/src/transport_backend/` |
 | Frontend | Яндекс Карты, очередь/карточка, SHAP/резерв/паспорт, история и таймлайн | FE-QA-01: полный E2E и понятность диспетчеру | `frontend/src/` |
@@ -133,7 +133,12 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
-- Default v5: регрессия v4 на real train+test, новые классификаторы на 73 признаках,
+- Обновление 27.09 (ML-IMPROVE-13): default **v6** (platform 0,90034) = 1/2 v4 (рецепт v3, train+test, platform
+  0,86126) + 1/2 trip-модели (schema 3 / 82 признака: +9 признаков структуры рейса по плану;
+  train+test + синтетика без копий моментов validate; platform 0,85649). Синтетика — сдвинутые
+  копии реальных ТС того же дня: без очистки это утечка ответов validate. Классификаторы v5.
+  Отчёт — `ml/reports/ml-v6.md`. Ниже — описание v3, сохранённого для сравнения.
+- v5 (до v6 default): регрессия v4 на real train+test, новые классификаторы на 73 признаках,
   Platt по OOF, `status=validated`. Это внутридневная проверка, не перенос на новый день.
 - GPS-паспорт даёт наблюдаемое упреждение по времени источника, what-if работает по
   явным допущениям. Сложный matcher отклонён; основной радиус/плановый matching сохранён.
@@ -189,8 +194,8 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 ## Git, артефакты и прогресс
 
 Не коммитить `.env`, токены, `.venv`, IDE, кэши, Docker-слои и большие модели.
-Исключение для передачи команде: небольшие комплекты `ml/pretrained/v1/`–`v5/`
-хранят модели, manifests и CSV. По умолчанию используется v5. Не менять эти комплекты
+Исключение для передачи команде: небольшие комплекты `ml/pretrained/v1/`–`v6/`
+хранят модели, manifests и CSV. По умолчанию используется v6. Не менять эти комплекты
 на месте; эксперименты писать в `artifacts/<run>/`.
 Исходные CSV включены в приватный репозиторий для воспроизводимости; OCI-образ остаётся
 локальным. Не менять публичность репозитория и не удалять исходные файлы по собственной

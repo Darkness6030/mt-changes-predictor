@@ -1,6 +1,7 @@
 # ML: прогноз задержки и оценка риска
 
-Текущий комплект — [`pretrained/v5`](pretrained/v5/README.md). Общий FeatureBuilder
+Текущий комплект — [`pretrained/v6`](pretrained/v6/README.md) (schema 3, ансамбль v4 +
+trip-модели, [отчёт](reports/ml-v6.md)); v1–v5 сохранены. Общий FeatureBuilder
 используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
 Обучение выполняется отдельной командой, вне HTTP.
 
@@ -9,20 +10,22 @@
 Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 \
-  --output artifacts/check-v5/submission.csv
-ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
+  --output artifacts/check-v6/submission.csv
+ML_MODEL_DIR=ml/pretrained/v6 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
-побайтово совпадает с `ml/pretrained/v5/submission.csv`; все 151 ID проверяются повторным
-чтением. Комплекты v1–v4 сохранены и поддерживаются; default Compose — v5.
+побайтово совпадает с `ml/pretrained/v6/submission.csv`; все 151 ID проверяются повторным
+чтением. Комплекты v1–v5 сохранены и поддерживаются; default Compose — v6.
 
 ## Архитектура и контракт
 
 - `data.py` — allowlist входных полей; labels загружаются отдельно.
 - `features.py` — один причинный FeatureBuilder, точность времени до наносекунд.
 - `schedule_context.py` — GPS относительно плановых посещений, ограниченное окно 30 минут.
+- `trip_context.py` — schema 3: отстои на конечных и положение в рейсе, только по плану.
+- `synthetic.py` — семьи синтетических копий и удаление копий моментов validate.
 - `onnx_runtime.py` — экспорт тех же деревьев, ONNX Runtime CPU и проверка совпадения.
 - `model.py` — native CatBoost, контроль schema/checksum, main/fallback и взвешенные ансамбли.
 - `research.py` — фиксированные group/forward splits, подбор кандидатов, refit рецепта.
@@ -45,9 +48,23 @@ GPS/плановый контекст рассчитывается общим bu
 Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
 1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
 
+## Результаты trip-модели (ML-IMPROVE-13, половина v6)
+
+| Проверка | v3, MAE с | trip, MAE с |
+|---|---:|---:|
+| Same-day block CV, main | 68,59 | **62,97** |
+| Аудит без test labels → test, main | 71,77 | **66,68** |
+| Тот же аудит, без hint | 83,80 | **76,32** |
+
+Trip-модель обучена на train+test labels и очищенной синтетике; platform score 0,85649
+(v4: 0,86126). V6 = их среднее; аудит v6 без test labels на test — 67,82 с (v3 71,74).
+Подробно — [отчёт v6](reports/ml-v6.md).
+
+## Результаты v3
+
 ## Движки инференса
 
-Модель v5 не переобучалась. Compose выбирает `ML_RUNTIME=onnx`: шесть регрессоров и
+Движок одинаков для v5 и v6 (в v6 — двенадцать регрессоров). Compose выбирает `ML_RUNTIME=onnx`: шесть регрессоров и
 два классификатора экспортируются при старте во временный каталог и исполняются
 через ONNX Runtime CPU. Файлы `ml/pretrained/` остаются неизменными. Классификаторы
 экспортируются как raw score, затем применяется та же Platt-калибровка.
@@ -113,6 +130,23 @@ Test уже был исследован до этой работы, но не и
 таблица выше сохраняет исходные измерения ML-IMPROVE-12.
 
 ## Воспроизведение исторического протокола v3
+
+V6 (default): trip-рецепт, аудит, block CV и сборка ансамбля.
+
+```bash
+.venv/bin/python -m transport_ml train-recipe \
+  --recipe ml/experiments/improve13-recipe.json --model artifacts/trip-repeat
+.venv/bin/python ml/experiments/improve13_audit.py --recipe ml/experiments/improve13-recipe.json \
+  --bundle artifacts/trip-repeat --output artifacts/trip-audit/metrics.json
+.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/trip-block-cv.json
+.venv/bin/python ml/experiments/improve13_build_v6.py --trip artifacts/trip-repeat \
+  --output artifacts/v6-repeat
+.venv/bin/python -m transport_ml predict --model artifacts/v6-repeat \
+  --output artifacts/v6-repeat/submission.csv
+```
+
+V3 и ниже. Все каталоги результата должны быть новыми. Обучение v3 использует только
+1141 real train точку; синтетика там исключена. Исходные CSV неизменны.
 
 Все каталоги результата должны быть новыми. Обучение использует только 1141 real train
 точку. Синтетические семейства исключены; позднее ML-AUDIT-18 установил, что это копии

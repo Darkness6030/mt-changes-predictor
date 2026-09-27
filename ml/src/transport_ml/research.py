@@ -15,6 +15,8 @@ from transport_ml.data import load_inputs, load_labels, load_points, point_path
 from transport_ml.features import FeatureBuilder, FeatureConfig
 from transport_ml.model import sha256, write_json
 from transport_ml.schedule_context import CONTEXT_COLUMNS
+from transport_ml.synthetic import is_synthetic, keep_synthetic, synthetic_families
+from transport_ml.trip_context import HINT_COLUMNS
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,7 @@ class Candidate:
     l2: float = 5.0
     seed: int = 42
     augmentation: bool = False
+    learning_rate: float = 0.05
 
     def __post_init__(self):
         if self.mode not in {"main", "fallback"}:
@@ -66,7 +69,7 @@ def feature_columns(features: pd.DataFrame, kind: str, mode: str) -> list[str]:
         ] + extra
     else:
         raise ValueError(f"Unknown feature set: {kind}")
-    return [name for name in result if mode != "fallback" or name != "cur_dev_s"]
+    return [name for name in result if mode != "fallback" or name not in HINT_COLUMNS]
 
 
 def inner_folds(points: pd.DataFrame, target: np.ndarray, protocol: dict):
@@ -156,7 +159,7 @@ def fit_candidate(candidate, features, target, fit, *, augmented=None, cutoff=No
     model = CatBoostRegressor(
         iterations=candidate.iterations,
         depth=candidate.depth,
-        learning_rate=0.05,
+        learning_rate=candidate.learning_rate,
         loss_function=candidate.loss,
         random_seed=candidate.seed,
         thread_count=threads,
@@ -271,6 +274,61 @@ def run_research(root: Path, directory: Path, protocol: dict, configs: list[dict
     return summary
 
 
+def load_training_data(root: Path, config: FeatureConfig, spec: dict | None):
+    """Assemble labelled rows; each split's features come from its own traffic and plan.
+
+    Default (``spec is None``) is the v3 behaviour: real train vehicles only. A spec may add
+    labelled test points (same day as validate, disjoint visits) and synthetic train
+    vehicles with their copies of protected validate moments removed (see ``synthetic``).
+    Validate is read only as ``points.csv`` inputs (tr_id, T) for that purge; never labels.
+    """
+    spec = spec or {}
+    splits = spec.get("splits", ["train"])
+    if not set(splits) <= {"train", "test"} or len(set(splits)) != len(splits):
+        raise ValueError("training_splits must be distinct labelled splits: train, test")
+    if "train" not in splits:
+        raise ValueError("training_splits must include train")
+    frames, matrices, targets = [], [], []
+    report = {"splits": splits, "synthetic": spec.get("synthetic", "exclude")}
+    for split in splits:
+        points = load_points(root, split)
+        traffic, plan = load_inputs(root, split)
+        synthetic = is_synthetic(points.tr_id)
+        keep = ~synthetic
+        if split == "train" and spec.get("synthetic", "exclude") == "purged":
+            families = synthetic_families(plan)
+            guarded = spec.get("protect", ["validate"])
+            if "validate" not in guarded:
+                raise ValueError("Synthetic copies of validate moments must always be purged")
+            protected = pd.concat(
+                [load_points(root, name)[["tr_id", "T"]] for name in guarded], ignore_index=True
+            )
+            report["protected"] = guarded
+            report["protected_sha256"] = {name: sha256(point_path(root, name)) for name in guarded}
+            copies = points[synthetic]
+            keep[np.flatnonzero(synthetic)] = keep_synthetic(
+                copies, families, protected, float(spec["purge_margin_s"])
+            )
+            report["synthetic_families"] = {key: list(value) for key, value in families.items()}
+            report["synthetic_kept"] = int(keep[synthetic].sum())
+            report["synthetic_dropped"] = int((~keep[synthetic]).sum())
+        elif spec.get("synthetic", "exclude") not in {"exclude", "purged"}:
+            raise ValueError("synthetic must be 'exclude' or 'purged'")
+        points = points[keep].reset_index(drop=True)
+        builder = FeatureBuilder(traffic, plan, config)
+        frames.append(points.assign(split=split))
+        matrices.append(builder.transform(points))
+        targets.append(load_labels(root, split, points))
+        report[f"{split}_rows"] = len(points)
+        report[f"{split}_sha256"] = {
+            str(path): sha256(path)
+            for path in (point_path(root, split), root / split / "traffic.csv")
+        }
+    points = pd.concat(frames, ignore_index=True)
+    features = pd.concat(matrices, ignore_index=True)
+    return points, features, np.concatenate(targets), report
+
+
 def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
     """Refit a frozen recipe on real labelled points; preserve the existing risk classifiers.
 
@@ -295,44 +353,38 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
     directory.mkdir(parents=True, exist_ok=False)
     write_json(directory / "recipe.json", recipe)
     started = perf_counter()
-    splits = recipe.get("training_splits", ["train"])
-    if not splits or not set(splits) <= {"train", "test"} or len(set(splits)) != len(splits):
-        raise ValueError("training_splits must be distinct labelled splits: train, test")
-    parts = []
-    for split in splits:
-        split_points = load_points(root, split)
-        # Synthetic train vehicles are time-shifted copies of real ones: never used.
-        split_points = split_points[split_points.tr_id.astype("int64") < 9_000_000]
-        split_points = split_points.reset_index(drop=True).assign(split=split)
-        traffic, plan = load_inputs(root, split)
-        builder = FeatureBuilder(traffic, plan, config)
-        parts.append(
-            (split_points, builder.transform(split_points), load_labels(root, split, split_points))
-        )
-    points = pd.concat([part[0] for part in parts], ignore_index=True)
-    if points.sample_id.duplicated().any():
-        raise ValueError("Training splits share a sample_id")
-    features = pd.concat([part[1] for part in parts], ignore_index=True)
-    target = np.concatenate([part[2] for part in parts])
-    fit = np.ones(len(points), dtype=bool)
+    training_data = recipe.get("training_data")
+    if training_data is None and "training_splits" in recipe:
+        # Recipe format of ML-V4-19: real points of the listed splits, synthetic excluded.
+        training_data = {"splits": recipe["training_splits"], "synthetic": "exclude"}
     needs_augmented = any(
         member["candidate"].get("augmentation", False)
         for members in recipe["models"].values()
         for member in members
     )
-    if needs_augmented and splits != ["train"]:
-        raise ValueError("Augmentation is defined for train-only refits")
-    augmented = build_augmented(points, builder) if needs_augmented else None
+    if training_data is not None and needs_augmented:
+        raise ValueError("Augmentation is defined for the real-train-only recipe")
+    points, features, target, data_report = load_training_data(root, config, training_data)
+    if points.sample_id.duplicated().any():
+        raise ValueError("Training splits share a sample_id")
+    splits = data_report["splits"]
+    fit = np.ones(len(points), dtype=bool)
+    augmented = None
+    if needs_augmented:
+        traffic, plan = load_inputs(root, "train")
+        augmented = build_augmented(points, FeatureBuilder(traffic, plan, config))
     manifest = {
         "feature_schema_version": config.schema_version,
         "features": list(features),
         "feature_config": config.to_dict(),
         "time_basis": "dataset_naive_ns",
         "hint_policy": recipe["hint_policy"],
-        "training_group": (
-            f"real-only {'+'.join(splits)}; frozen train-only group/temporal selection"
+        "training_group": recipe.get(
+            "training_group",
+            f"real-only {'+'.join(splits)}; frozen train-only group/temporal selection",
         ),
         "training_splits": splits,
+        "training_data": data_report,
         "train_rows": len(points),
         "train_median_s": float(np.median(target)),
         "late_rate": float((target > 120).mean()),

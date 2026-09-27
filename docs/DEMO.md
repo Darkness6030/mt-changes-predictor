@@ -38,7 +38,7 @@ curl -s localhost:8011/v1/model | python3 -c "import json,sys;m=json.load(sys.st
 
 Compose запрашивает ONNX по умолчанию. Ожидается `runtime=onnx`; если проверка при
 старте отклонила ONNX или произошла ошибка, сервис работает на CatBoost и сообщает
-причину в `runtime_note`. Модель v5 и схема признаков остаются теми же.
+причину в `runtime_note`. Модель и схема признаков остаются теми же.
 Принудительный возврат: `ML_RUNTIME=catboost docker compose up -d --wait ml`.
 Включение обратно: `ML_RUNTIME=onnx docker compose up -d --wait ml`.
 Объяснения SHAP по-прежнему вычисляются CatBoost по запросу карточки.
@@ -109,7 +109,7 @@ curl -s localhost:8010/api/v1/status | python3 -m json.tool | sed -n '/"ndtp"/,/
 
 Видны `connections_total`, `handshakes`, `realtime_frames`, `crc_errors: 0`,
 `invalid_frames: 0`, список `units`. В UI появляются периодические прогнозы из бинарного потока. По умолчанию
-forecast points отключены (`status.points = null`). У default v5 `cur_dev` отсутствует:
+forecast points отключены (`status.points = null`). У default v6 (как и v3–v5) `cur_dev` отсутствует:
 GPS/плановые оценки входят отдельными признаками в модель без подсказки. Совпадение с
 supplied offline-прогнозом не обещается.
 `BACKEND_USE_POINTS=true` включает points только для явной диагностики.
@@ -245,10 +245,10 @@ curl -s localhost:8010/api/v1/metrics/quality | python3 -m json.tool   # кач�
 curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # задержки/счётчики
 ```
 
-- `offline` — комплект v5: оценка вне фолдов на test (MAE 67,87 с с подсказкой, 80,12 с без
-  неё; baseline `cur_dev_s` 93,36 с), т. к. test вошёл в обучение итоговой модели.
-  Score 0,86126 сообщён пользователем после публикации v4; точный загруженный CSV
-  не подтверждён. Подробно: [отчёт ML v4/v5](../ml/reports/ml-v5.md).
+- `offline` — комплект v6: аудит на test моделями, обученными без test (MAE 67,82 с
+  с подсказкой, 78,60 с без неё; baseline `cur_dev_s` 93,36 с), т. к. test вошёл в
+  обучение итоговой модели. Score v6 — 0,90034 (сообщено пользователем).
+  Подробно: [отчёт ML v6](../ml/reports/ml-v6.md).
 - `early_warning` — раннее предупреждение **на потоке без разметки**: для каждого алерта
   фактическое прибытие берётся из полученных GPS-точек; `confirmed_share`, упреждение
   `lead_s` и доля предупреждений за ≥10 мин. Работает и на живом NDTP.
@@ -290,14 +290,14 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 ## 7. CSV для Data Science
 
-Готовый файл — `ml/pretrained/v5/submission.csv` (151 строка, `sample_id;prediction`,
-побайтово равен v4).
+Готовый файл — `ml/pretrained/v6/submission.csv` (151 строка, `sample_id;prediction`,
+score 0,90034).
 Воспроизведение без обучения и без Docker:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 \
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
   --output artifacts/check/submission.csv
-shasum -a 256 artifacts/check/submission.csv ml/pretrained/v5/submission.csv
+shasum -a 256 artifacts/check/submission.csv ml/pretrained/v6/submission.csv
 ```
 
 В Docker:

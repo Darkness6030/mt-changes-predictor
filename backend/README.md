@@ -14,9 +14,9 @@ BACKEND_ML_URL=http://127.0.0.1:8011 .venv/bin/transport-backend serve --port 80
 [API_CONTRACT](../docs/API_CONTRACT.md), сценарии — [DEMO](../docs/DEMO.md).
 
 `BACKEND_MODE=replay` использует исторические прогнозные точки; `ndtp` по умолчанию
-выбирает цели только из плана. Для v3–v5 `cur_dev_s` остаётся отсутствующим, а GPS/плановые
+выбирает цели только из плана. Для v3–v6 `cur_dev_s` остаётся отсутствующим, а GPS/плановые
 оценки поступают отдельными признаками в обученный fallback. V1/v2 сохраняют старую
-политику GPS-estimated hint. Config, schema 1/2 и hint policy читаются из ML API;
+политику GPS-estimated hint. Config, schema 1/2/3 и hint policy читаются из ML API;
 schema 2 требует как минимум 1800 секунд окна истории.
 `BACKEND_USE_POINTS=true` явно включает офлайн-точки для диагностического прогона.
 Для NDTP нужен явный unit→tr mapping из загруженного traffic CSV и подходящий план.
