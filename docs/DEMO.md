@@ -30,6 +30,19 @@ curl -s localhost:8011/health/ready
 curl -s "localhost:8010/api/v1/snapshot?only_attention=true" | head -c 400
 ```
 
+### Проверка движка ML
+
+```bash
+curl -s localhost:8011/v1/model | python3 -c "import json,sys;m=json.load(sys.stdin);print(m['runtime'],m['runtime_note'])"
+```
+
+Compose запрашивает ONNX по умолчанию. Ожидается `runtime=onnx`; если проверка при
+старте отклонила ONNX или произошла ошибка, сервис работает на CatBoost и сообщает
+причину в `runtime_note`. Модель v5 и схема признаков остаются теми же.
+Принудительный возврат: `ML_RUNTIME=catboost docker compose up -d --wait ml`.
+Включение обратно: `ML_RUNTIME=onnx docker compose up -d --wait ml`.
+Объяснения SHAP по-прежнему вычисляются CatBoost по запросу карточки.
+
 ## 2. Сценарий A: исторический replay размеченного дня (по умолчанию)
 
 Запускается автоматически: телеметрия `dataset/test/traffic.csv` подаётся по времени
