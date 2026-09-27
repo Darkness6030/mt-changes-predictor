@@ -385,3 +385,15 @@ a { color: var(--accent); }
 .explain-bar.early { background: var(--green); }
 
 .kpi b small { font-size: 0.6em; font-weight: 500; color: var(--muted); }
+
+/* Warning passport: a vertical timeline, then outcomes of earlier warnings. */
+.passport { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--line); display: grid; gap: 6px; }
+.passport li { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 8px; font-size: 12px; position: relative; }
+.passport li::before { content: ""; position: absolute; left: -17px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow, #f2b63c); }
+.passport li > span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.passport li > em { grid-column: 2; font-style: normal; color: var(--muted); }
+.passport-trend { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.passport-pending::before { background: transparent !important; border: 1px dashed var(--muted); }
+.passport-caption { margin-top: 8px; }
+.passport-outcomes { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+.passport-outcomes li { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }

@@ -177,6 +177,10 @@ class Alert(Open):
     evidence: list[Evidence] = []
     attention: Literal["delay", "probability"] | None = None
     trip_edge: Literal["first", "last"] | None = None
+    observed_arrival_at: str | None = None
+    observed_delay_s: float | None = None
+    observed_distance_m: float | None = None
+    warning_lead_s: float | None = None
     acknowledged_from: str | None = Field(
         default=None, description="Alert whose acknowledgement was carried over"
     )

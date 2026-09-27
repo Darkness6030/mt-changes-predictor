@@ -191,3 +191,16 @@ def test_trips_split_at_turnarounds_and_long_breaks():
     assert numbers[16:] == [None, None]  # A two-visit fragment is not a trip.
     assert trips[0]["first"] and not trips[0]["last"] and trips[0]["total"] == 3
     assert trips[11]["last"] and trips[11]["end_at"] == "2026-01-06 07:04:00"
+
+
+def test_observed_arrival_uses_only_received_fixes_near_the_visit(state):
+    # "target" is planned at T+780 s at (37.62, 55.70).
+    for seconds, lon in ((700, 37.610), (790, 37.6199), (805, 37.6200), (820, 37.6201)):
+        state.add(event(seconds, lon=lon))
+    at_arrival = T.value + 800 * SECOND_NS
+    early = state.observed_arrival("bus", "target", at_arrival)
+    assert early is not None and early.seconds == 10  # Only the 790 s fix is known yet.
+    later = state.observed_arrival("bus", "target", T.value + 900 * SECOND_NS)
+    assert later.seconds == 25 and later.distance_m < 60  # Middle of the dwell: 805 s.
+    assert state.observed_arrival("bus", "target", T.value + 700 * SECOND_NS) is None
+    assert state.observed_arrival("bus", "unknown", T.value + 900 * SECOND_NS) is None
