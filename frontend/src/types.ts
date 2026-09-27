@@ -233,6 +233,7 @@ export interface Alert {
   state: "active" | "resolved" | "expired";
   acknowledged_at: string | null;
   acknowledged_from?: string | null;
+  acknowledged_by?: string | null;
   attention?: "delay" | "probability" | null;
   trip_edge?: "first" | "last" | null;
   observed_arrival_at?: string | null;
@@ -417,4 +418,12 @@ export interface Quality {
     in_sample_note?: string;
   } | null;
   model: Record<string, unknown> | null;
+}
+
+export interface AuthState {
+  enabled: boolean;
+  authenticated: boolean;
+  name?: string | null;
+  role?: "dispatcher" | "viewer" | null;
+  can_act: boolean;
 }

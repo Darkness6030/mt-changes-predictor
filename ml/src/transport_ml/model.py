@@ -58,6 +58,15 @@ class DelayModel:
                 positive_rows=parameters.get("positive_rows", 0),
             )
 
+        # Optional hurdle gate (ML-IMPROVE-15): P(delay == 0 exactly) in the main mode. When it
+        # exceeds 0.5 the conditional median, i.e. the MAE-optimal forecast, is exactly zero.
+        self.zero_gate = None
+        if "zero_gate" in self.manifest:
+            spec = self.manifest["zero_gate"]
+            if spec.get("mode", "main") != "main" or not 0 < float(spec["threshold"]) < 1:
+                raise ValueError("Zero gate applies to the main mode with a (0, 1) threshold")
+            self.zero_gate = self._load(spec, CatBoostClassifier())
+
     def _load(self, spec: dict, model):
         path = self.directory / spec["file"]
         if sha256(path) != spec["sha256"]:
@@ -85,6 +94,28 @@ class DelayModel:
             "fit_rows": spec["calibration"]["fit_rows"],
         }
 
+    def _gated(self, features: pd.DataFrame, mask: np.ndarray) -> np.ndarray:
+        """Rows (within ``mask``) that the zero gate sends to an exact zero forecast."""
+        if self.zero_gate is None or not mask.any():
+            return np.zeros(int(mask.sum()), dtype=bool)
+        spec = self.manifest["zero_gate"]
+        frame = features.loc[mask, spec["features"]]
+        probability = np.asarray(self.zero_gate.predict_proba(frame), dtype=float)[:, 1]
+        return probability > float(spec["threshold"])
+
+    def _member_predict(self, name: str, index: int, model, frame: pd.DataFrame) -> np.ndarray:
+        """One ensemble member; an alternative runtime overrides only this and _raw_scores."""
+        return np.asarray(model.predict(frame), dtype=float)
+
+    def _raw_scores(self, name: str, frame: pd.DataFrame) -> np.ndarray:
+        return np.asarray(
+            self.classifiers[name].predict(frame, prediction_type="RawFormulaVal"), dtype=float
+        )
+
+    @property
+    def runtime(self) -> str:
+        return "catboost"
+
     def _check(self, features: pd.DataFrame) -> None:
         if list(features.columns) != self.manifest["features"] or not features.columns.is_unique:
             raise ValueError("Feature names/order do not match the model manifest")
@@ -103,11 +134,15 @@ class DelayModel:
             if not mask.any():
                 continue
             values = np.zeros(int(mask.sum()))
-            for spec, model, weight in self.models[name]:
-                member = model.predict(features.loc[mask, spec["features"]])
+            for index, (spec, model, weight) in enumerate(self.models[name]):
+                member = self._member_predict(
+                    name, index, model, features.loc[mask, spec["features"]]
+                )
                 if spec["residual"]:
                     member += features.loc[mask, "cur_dev_s"].to_numpy()
                 values += weight * member
+            if name == "main":
+                values[self._gated(features, mask)] = 0.0
             result[mask] = values
         if not np.isfinite(result).all():
             raise ValueError("Model returned a non-finite prediction")
@@ -126,9 +161,7 @@ class DelayModel:
             if not mask.any():
                 continue
             spec = self.manifest["classifiers"][name]
-            scores = self.classifiers[name].predict(
-                features.loc[mask, spec["features"]], prediction_type="RawFormulaVal"
-            )
+            scores = self._raw_scores(name, features.loc[mask, spec["features"]])
             result[mask] = self.calibration[name].apply(np.asarray(scores, dtype=float))
         if not np.isfinite(result).all():
             raise ValueError("Classifier returned a non-finite probability")
@@ -154,10 +187,16 @@ class DelayModel:
                 base += weight * expected
                 residual_weight += weight if spec["residual"] else 0.0
             offset = residual_weight * rows.cur_dev_s.fillna(0.0).to_numpy()
+            gated = self._gated(features, mask) if name == "main" else np.zeros(len(rows), bool)
             for position, index in enumerate(np.flatnonzero(mask)):
-                summary = summarise(
-                    contributions.iloc[position].to_dict(), base[position], offset[position]
-                )
+                if gated[position]:
+                    # The forecast is the gate's exact zero, not a sum of tree contributions.
+                    summary = {"base_s": 0.0, "groups": [], "other_s": 0.0, "total_s": 0.0}
+                    summary["zero_gate"] = True
+                else:
+                    summary = summarise(
+                        contributions.iloc[position].to_dict(), base[position], offset[position]
+                    )
                 summary["model_used"] = name
                 result[index] = summary
         return result

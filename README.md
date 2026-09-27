@@ -6,16 +6,17 @@
 
 | Что | Значение | Где проверить |
 |---|---|---|
-| Модель по умолчанию | **v5**: регрессия v4 (рецепт v3 на train + test, 1494 точки) + новая вероятность | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
-| Score платформы | **0,86126** (27.09, после публикации v4; прежний лучший 0,70106) | сообщено пользователем |
+| Модель по умолчанию | **v8** = v6 (ансамбль v4 и trip-модели, вероятность v5) + обучаемый нулевой гейт | [v8](ml/pretrained/v8/README.md), [отчёт ML v6](ml/reports/ml-v6.md) |
+| Score платформы | **≈ 0,95** у v8; v6 0,90034, v4 0,86126, trip-модель 0,85649 | сообщено пользователем |
 | MAE на test вне фолдов: v3-рецепт только на train → v4 | **70,67 → 67,87 с** (без подсказки 83,27 → 80,12 с) | [проверка](ml/experiments/improve18-test-refit.json) |
 | MAE v3 на размеченном test (test не в обучении) | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
-| MAE автономного periodic replay | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
+| Исторический periodic replay v3 (до исправления ties) | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
 | Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
+| Движок инференса в Docker | **ONNX Runtime** с проверкой задержки и возвратом к CatBoost | [режимы и замеры](docs/PERFORMANCE.md) |
 | Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
-| CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 175 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
+| CSV для Data Science (151 прогноз) | [`ml/pretrained/v8/submission.csv`](ml/pretrained/v8/submission.csv); v6 — [`v6`](ml/pretrained/v6/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
+| Тесты | 200 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
 [DEMO.md](docs/DEMO.md); тексты формы сдачи — [SUBMISSION.md](docs/SUBMISSION.md).
@@ -26,9 +27,17 @@
 Ключ JavaScript API используется браузером; после его изменения пересоберите UI.
 Без ключа очередь и управление временем работают, карта показывает сообщение настройки.
 
+Требуются Git и Docker с Compose v2. Из новой рабочей директории:
+
 ```bash
-docker compose up --build            # ML + Backend + UI
+git clone https://github.com/Darkness6030/mt-changes-predictor.git
+cd mt-changes-predictor
+# При необходимости создайте .env по .env.example и укажите ключ карты.
+docker compose up -d --build --wait  # ML + Backend + UI
 ```
+
+Для уже клонированного проекта достаточно последней команды из его корня.
+Пока репозиторий приватный, клонирование требует доступа к нему.
 
 | Сервис | Адрес по умолчанию | Назначение |
 |---|---|---|
@@ -42,6 +51,12 @@ docker compose up --build            # ML + Backend + UI
 8000/8001 специально не заняты, чтобы не конфликтовать с другими проектами.
 По умолчанию запускается **исторический replay размеченного дня** со скоростью 60×
 с 08:00 — на нём сразу видны алерты, и по факту события считается MAE потока.
+
+В Compose по умолчанию `ML_RUNTIME=onnx`; фактически выбранный движок и причина
+возврата к CatBoost видны в http://localhost:8011/v1/model (`runtime`, `runtime_note`).
+Принудительный CatBoost: `ML_RUNTIME=catboost docker compose up -d --wait ml`.
+Локальный запуск сервиса без этой переменной использует CatBoost. Модель остаётся v5;
+деревья экспортируются при старте во временный каталог, комплект модели не меняется.
 
 **Пошаговая инструкция для проверяющего — [`docs/DEMO.md`](docs/DEMO.md)**: подача
 живого NDTP, официальный эмулятор, просмотр алертов и метрик, проверка деградации.
@@ -83,8 +98,9 @@ Backend импортирует её, а не пишет вторую верси�
 | [`ml/README.md`](ml/README.md) | Признаки, обучение, модели, вероятность, CLI, сервис |
 | [`backend/README.md`](backend/README.md) | NDTP, часы, состояние, инциденты, endpoints |
 | [`frontend/README.md`](frontend/README.md) | Экраны, состояния, пороги, сборка |
+| [`ml/reports/ml-v6.md`](ml/reports/ml-v6.md) | trip-модель и ансамбль v6: структура рейса, утечка синтетики и её очистка, block CV |
 | [`ml/reports/ml-v3.md`](ml/reports/ml-v3.md) | 109 конфигураций, holdout, автономная оценка и ограничения |
-| `docs/sphinx/` | PyDoc/Sphinx по коду: `python -m sphinx -b html docs/sphinx docs/sphinx/_build/html` |
+| [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md) | Готовый HTML Sphinx, OpenAPI JSON и Swagger обоих сервисов, воспроизведение |
 | [`docs/RULES.md`](docs/RULES.md), [`docs/PLAN.md`](docs/PLAN.md), [`docs/RESEARCH.md`](docs/RESEARCH.md) | Требования, план, исследование до реализации |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Журнал фактически выполненного |
 | [`docs/HACKATHON_STRATEGY.md`](docs/HACKATHON_STRATEGY.md) | Приоритеты по критериям, вау-фичи и план до дедлайна |
@@ -98,11 +114,11 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 175 тестов
+.venv/bin/python -m pytest -q                                  # 195 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
-ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v8 ML_PORT=8011 .venv/bin/transport-ml-serve
 BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.csv \
   .venv/bin/transport-backend serve --port 8010
 
@@ -115,8 +131,8 @@ npm --prefix frontend run dev
 Готовый CSV для платформы воспроизводится без обучения:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 \
-  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v5/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 \
+  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v8/submission.csv
 ```
 
 ## Что честно, а что ограничено
@@ -132,8 +148,9 @@ npm --prefix frontend run dev
   Поэтому ни то, ни другое не используется ни в признаках, ни в обучении (ML-IMPROVE-18).
   Так как test вошёл в обучение v4, для неё публикуется только оценка вне фолдов, а
   MAE replay на test в дашборде помечается как in-sample.
-- Вероятность опоздания калибрована на development-фолде того же дня; статус
-  `fitted_on_development` виден в API и в UI. Это не проверка на независимом дне.
+- У v5 вероятность калибрована Platt по out-of-fold оценкам и проверена вне фолдов
+  одного дня; статус `validated` виден в API/UI. Перенос на независимый день не доказан.
+  У исторических v2–v4 сохранена development-калибровка.
 - V3 отделяет supplied `cur_dev_s` от шумных оценок GPS/плана. В потоке без supplied
   подсказки работает обученная автономная модель с отдельными признаками matching.
   Старые v1/v2 сохраняют GPS-estimated hint; сравнение — в отчёте v3.

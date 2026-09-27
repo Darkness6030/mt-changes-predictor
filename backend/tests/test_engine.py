@@ -528,10 +528,11 @@ def test_acknowledgement_carries_to_the_next_stop_of_the_same_episode():
 
     engine._update_alert(view("s1", "2026-01-06 10:00:00"))
     first = next(iter(engine.alerts.values()))
-    engine.acknowledge(first.alert_id)
+    engine.acknowledge(first.alert_id, by="Иванова И.")
     engine._update_alert(view("s2", "2026-01-06 10:05:00"))
     second = engine.alerts[f"{engine.run_id}:bus:s2"]
     assert second.acknowledged_at == first.acknowledged_at
+    assert first.acknowledged_by == second.acknowledged_by == "Иванова И."
     assert second.acknowledged_from == first.alert_id
     # Alerts already open for the vehicle's later stops are covered by the click as well.
     engine._update_alert(view("s3", "2026-01-06 10:06:00"))

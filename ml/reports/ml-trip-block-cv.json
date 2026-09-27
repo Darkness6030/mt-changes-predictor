@@ -1,0 +1,12 @@
+{
+  "folds": "10 block folds x 2 repeats, seeds 100/101",
+  "mae_s": {
+    "v3_main|synthetic=exclude|trip=False": 68.585,
+    "v3_fallback|synthetic=exclude|trip=False": 76.23,
+    "v4_main|synthetic=exclude|trip=True": 65.118,
+    "v4_main|synthetic=purged|trip=False": 65.202,
+    "v4_main|synthetic=purged|trip=True": 62.974,
+    "v4_fallback|synthetic=purged|trip=True": 72.126
+  },
+  "note": "leak run (all synthetic) measured in the exploratory harness: 56.29 s (single d6 model)"
+}

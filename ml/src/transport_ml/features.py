@@ -7,8 +7,8 @@ import pandas as pd
 
 from transport_ml.data import PLAN_COLUMNS, POINT_COLUMNS, TRAFFIC_COLUMNS, timestamps
 
-SCHEMA_VERSION = "1"  # Default/legacy configuration; context features use schema 2.
-SUPPORTED_SCHEMAS = {"1", "2"}
+SCHEMA_VERSION = "1"  # Default/legacy configuration; context features use schema 2/3.
+SUPPORTED_SCHEMAS = {"1", "2", "3"}
 SECOND = 1_000_000_000
 
 
@@ -20,9 +20,16 @@ class FeatureConfig:
     max_gap_s: float = 60.0
     stale_after_s: float = 120.0
     schedule_context: bool = False
+    trip_context: bool = False
+
+    def __post_init__(self):
+        if self.trip_context and not self.schedule_context:
+            raise ValueError("trip_context extends schedule_context (schema 3)")
 
     @property
     def schema_version(self) -> str:
+        if self.trip_context:
+            return "3"
         return "2" if self.schedule_context else SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -111,6 +118,9 @@ class FeatureBuilder:
             from transport_ml.schedule_context import ScheduleContext
 
             self.context = ScheduleContext(self.visits, self.history, self.config)
+        self.plan_ns = {
+            key: rows.time_begin.astype("int64").to_numpy() for key, rows in self.visits.items()
+        }
 
     def target(self, tr_id: str, at: pd.Timestamp) -> pd.Series | None:
         visits = self.visits.get(str(tr_id))
@@ -229,6 +239,14 @@ class FeatureBuilder:
             features.update({f"{key}_{window}s": value for key, value in values.items()})
         if self.context is not None:
             features.update(self.context.one(str(point["tr_id"]), at.value, visit, features))
+        if self.config.trip_context:
+            from transport_ml.trip_context import trip_features
+
+            features.update(
+                trip_features(
+                    self.plan_ns[str(point["tr_id"])], at.value, visit.time_begin.value, hint
+                )
+            )
         return features
 
     def transform(self, points: pd.DataFrame) -> pd.DataFrame:

@@ -1,0 +1,84 @@
+{
+ "main:catboost": [
+  76.5502,
+  75.4024,
+  75.9763
+ ],
+ "main:sequence_net": [
+  88.8004,
+  102.585,
+  95.6927
+ ],
+ "main:blend w_catboost=0.9": [
+  76.0425,
+  76.0469,
+  76.0447
+ ],
+ "main:blend w_catboost=0.8": [
+  75.9672,
+  77.2374,
+  76.6023
+ ],
+ "main:blend w_catboost=0.7": [
+  76.4302,
+  79.1857,
+  77.808
+ ],
+ "main:blend w_catboost=0.6": [
+  77.308,
+  81.6355,
+  79.4718
+ ],
+ "main:blend w_catboost=0.5": [
+  78.588,
+  84.4144,
+  81.5012
+ ],
+ "main:selected_weight": 1.0,
+ "main:outer": {
+  "catboost_v3": 74.37249193342618,
+  "sequence_net": 103.47806719900335,
+  "selected_blend": 74.37249193342618
+ },
+ "fallback:catboost": [
+  82.9801,
+  86.5047,
+  84.7424
+ ],
+ "fallback:sequence_net": [
+  95.9639,
+  107.5128,
+  101.7384
+ ],
+ "fallback:blend w_catboost=0.9": [
+  82.4777,
+  86.7153,
+  84.5965
+ ],
+ "fallback:blend w_catboost=0.8": [
+  82.3447,
+  87.5749,
+  84.9598
+ ],
+ "fallback:blend w_catboost=0.7": [
+  82.7119,
+  89.1729,
+  85.9424
+ ],
+ "fallback:blend w_catboost=0.6": [
+  83.589,
+  91.0709,
+  87.3299
+ ],
+ "fallback:blend w_catboost=0.5": [
+  84.9141,
+  93.1639,
+  89.039
+ ],
+ "fallback:selected_weight": 0.9,
+ "fallback:outer": {
+  "catboost_v3": 73.56227288243907,
+  "sequence_net": 95.42170473766848,
+  "selected_blend": 73.70070900240256
+ }
+}

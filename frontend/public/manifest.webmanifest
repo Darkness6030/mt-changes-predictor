@@ -1,0 +1,12 @@
+{
+  "name": "Пульт диспетчера · прогноз задержек",
+  "short_name": "Диспетчер",
+  "description": "Ранний прогноз задержек наземного транспорта за 10–15 минут",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1419",
+  "theme_color": "#161c24",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

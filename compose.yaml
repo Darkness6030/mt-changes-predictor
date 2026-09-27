@@ -22,9 +22,11 @@ services:
       ML_MODEL_DIR: /app/model
       ML_PORT: "8001"
       ML_MAX_ITEMS: "256"
+      # Same trees in ONNX Runtime after a parity check; "catboost" switches back.
+      ML_RUNTIME: ${ML_RUNTIME:-onnx}
     volumes:
       # Read-only model bundle: the container holds no dataset and no writable artifact.
-      - ./ml/pretrained/${MODEL_VERSION:-v5}:/app/model:ro
+      - ./ml/pretrained/${MODEL_VERSION:-v8}:/app/model:ro
     ports:
       - "${ML_HOST_PORT:-8011}:8001"
     restart: unless-stopped
@@ -58,11 +60,12 @@ services:
       BACKEND_NDTP_PORT: "9201"
       BACKEND_PLAN_SHIFT_S: ${BACKEND_PLAN_SHIFT_S:-}
       BACKEND_DEMO_ENABLED: ${BACKEND_DEMO_ENABLED:-true}
+      BACKEND_AUTH_USERS: ${BACKEND_AUTH_USERS:-}
       BACKEND_EMULATOR_URL: http://emulator:18080
       BACKEND_EMULATOR_TARGET_HOST: backend
     volumes:
       - ./dataset:/app/dataset:ro
-      - ./ml/pretrained/${MODEL_VERSION:-v5}:/app/model:ro
+      - ./ml/pretrained/${MODEL_VERSION:-v8}:/app/model:ro
     ports:
       - "${BACKEND_HOST_PORT:-8010}:8000"
       - "${NDTP_HOST_PORT:-9201}:9201"
@@ -115,7 +118,7 @@ services:
     volumes:
       - ./dataset:/app/dataset:ro
       - ./artifacts:/app/artifacts
-      - ./ml/pretrained/${MODEL_VERSION:-v5}:/app/model:ro
+      - ./ml/pretrained/${MODEL_VERSION:-v8}:/app/model:ro
     logging: *logging
 
   # Official emulator from the distribution. The image must be imported locally first:

@@ -9,7 +9,8 @@
 Затем прочитать [RULES](docs/RULES.md), [PLAN](docs/PLAN.md) и [README датасета](dataset/README.md).
 [RESEARCH](docs/RESEARCH.md) и `docs/research-*.md` — обоснование решений, не статус реализации.
 [Стратегия хакатона](docs/HACKATHON_STRATEGY.md) — приоритеты и кандидаты WOW-01–04;
-они не реализованы и не заменяют текущую очередь/статус в PROGRESS.
+это исторический план. WOW-01/02/04 реализованы, сложный WOW-03 отклонён;
+текущая очередь/статус — в PROGRESS.
 При работе с потоком обязательна `dataset/docs/Emulator-and-Telematic-Packets-Specification.md`.
 Первичные требования: `docs/description.md`, `docs/messages.md`, PDF задания в `docs/`.
 
@@ -27,29 +28,32 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v3/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v8/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
 ## Карта проекта и точка продолжения
 
-Срез кода: `2f03b9e`, 27.09.2026: объединены ML v3, история NDTP и Яндекс Карты.
-Последняя полная проверка ML-IMPROVE-12: **131 Python-тест**, Ruff ML/Backend;
-карта/таймлайн отдельно проверены сборкой TypeScript/Vite и в браузере. Текущие
-Docker-проверки — в PROGRESS. Это результаты выполненных проверок, а не требование
-запускать все проверки при редакционной правке.
+Срез кода: `1eff547`, 27.09.2026: объединены ML v5, SHAP, паспорт предупреждения,
+what-if, hotspots, приоритет крайних рейсов и основные типизированные API-ответы.
+Добавлен ONNX Runtime (`8e0961e`): Compose default `ML_RUNTIME=onnx`, проверка
+задержки при старте и возврат к CatBoost; `/v1/model` показывает `runtime/runtime_note`.
+Прямой запуск сервиса и CLI по умолчанию остаются CatBoost.
+DOCS-ONNX-30: **195 Python-тестов**, Ruff ML/Backend, Docker build/up,
+проверены ONNX/прогнозы/SHAP; UI не менялся, TypeScript/Vite проверен в DELIVERY-29.
+Это результаты проверок, а не требование повторять всё при редакционной правке.
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | v3: 73 причинных признака, main/fallback ансамбли; train-only подбор, periodic event-time оценка; классификаторы v2 | LIVE-EVAL-01: доставка/публикация; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/ml-v3.md`, `ml/pretrained/v3/` |
-| ML API | FastAPI, health/ready, model/schema, batch predict | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
-| Backend | CSV replay, NDTP TCP, state, GPS-оценки, alerts/ack, snapshot, runtime metrics, смена демо-источника и история NDTP | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
-| Frontend | React/Vite/TS/Яндекс Карты API 2.1; очередь, карта, карточка, системная/демо-панели, свободный таймлайн с отдельным drag красной метки, просмотр истории NDTP | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
-| Интеграция | Compose ML/Backend/UI, trainer, NDTP sender, официальный emulator smoke | INT-02: длительная нагрузка, cold start и чистый clone текущей поставки | `compose.yaml`, `docs/DEMO.md`, `docs/PERFORMANCE.md` |
+| ML | v8 (platform ≈0,95) = v6 + обучаемый гейт «задержка ровно 0»; v6 (0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v8/` |
+| ML API | FastAPI, health/ready, model/schema, batch predict, объяснение по запросу | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
+| Backend | NDTP/CSV, GPS-фильтр, alerts/ack/паспорт, what-if/hotspots, история, автосдвиг даты | BE-03: оставшиеся ответы; BE-04: caps/clock cases | `backend/src/transport_backend/` |
+| Frontend | Яндекс Карты, очередь/карточка, SHAP/резерв/паспорт, история и таймлайн | FE-QA-01: полный E2E и понятность диспетчеру | `frontend/src/` |
+| Интеграция/сдача | Три Docker-модуля, DEMO, Sphinx ZIP/OpenAPI, тексты формы | INT-02: многочасовая нагрузка/cold start; передача материалов | `docs/SUBMISSION.md`, `docs/DOCUMENTATION.md`, `docs/PERFORMANCE.md` |
 
 Запуск полного стенда: `docker compose up -d --build --wait`.
 UI: `http://localhost:8080`, Backend: `http://localhost:8010`, ML: `http://localhost:8011`,
@@ -129,6 +133,21 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
+- Обновление 27.09 (ML-IMPROVE-15): default **v8** (platform ≈0,95) = v6 + классификатор
+  P(задержка = 0) на тех же признаках, при P > 0,5 main-прогноз 0 (`ml/pretrained/v8/README.md`).
+- Обновление 27.09 (ML-IMPROVE-13): v6 (platform 0,90034) = 1/2 v4 (рецепт v3, train+test, platform
+  0,86126) + 1/2 trip-модели (schema 3 / 82 признака: +9 признаков структуры рейса по плану;
+  train+test + синтетика без копий моментов validate; platform 0,85649). Синтетика — сдвинутые
+  копии реальных ТС того же дня: без очистки это утечка ответов validate. Классификаторы v5.
+  Отчёт — `ml/reports/ml-v6.md`. Ниже — описание v3, сохранённого для сравнения.
+- v5 (до v6 default): регрессия v4 на real train+test, новые классификаторы на 73 признаках,
+  Platt по OOF, `status=validated`. Это внутридневная проверка, не перенос на новый день.
+- GPS-паспорт даёт наблюдаемое упреждение по времени источника, what-if работает по
+  явным допущениям. Сложный matcher отклонён; основной радиус/плановый matching сохранён.
+- NDTP auto сдвигает дату плана к первому mapped пакету. CSV timezone явно не задан;
+  интерпретацию UTC в LIVE-DATE-23 не считать доказанным свойством источника.
+- Следующие пункты сохраняют исторические численные ориентиры v3/v2.
+
 - Обновление 27.09: v3 использует schema 2 / 73 признака и `hint_policy=supplied_only`.
   Backend получает config из ML API; GPS-оценки входят отдельными признаками, а не
   подставляются в `cur_dev_s`. V1/v2 сохраняют schema 1 и старую политику.
@@ -136,7 +155,7 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
   MAE 71,7707 с supplied / 83,7950 с no-hint. Bounded periodic replay без points:
   91,1775 с (1311 прогнозов, 322 размеченных посещения). Это event-time оценка одного
   дня, не полный benchmark доставки/публикации. Рецепт, ограничения: `ml/reports/ml-v3.md`.
-- Старые численные ориентиры v2 ниже сохранены для сравнения; текущий default — v3.
+- Старые численные ориентиры v2 ниже сохранены для сравнения; текущий default — v5.
 
 - `BACKEND_MODE=ndtp` по умолчанию отключает forecast points; пустой
   `BACKEND_USE_POINTS` выбирает режимный default, `true` — явная offline-диагностика.
@@ -177,8 +196,8 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 ## Git, артефакты и прогресс
 
 Не коммитить `.env`, токены, `.venv`, IDE, кэши, Docker-слои и большие модели.
-Исключение для передачи команде: небольшие `ml/pretrained/v1/`, `ml/pretrained/v2/` и
-`ml/pretrained/v3/` хранят модели, manifests и CSV. По умолчанию используется v3. Не менять эти комплекты
+Исключение для передачи команде: небольшие комплекты `ml/pretrained/v1/`–`v6/`
+хранят модели, manifests и CSV. По умолчанию используется v6. Не менять эти комплекты
 на месте; эксперименты писать в `artifacts/<run>/`.
 Исходные CSV включены в приватный репозиторий для воспроизводимости; OCI-образ остаётся
 локальным. Не менять публичность репозитория и не удалять исходные файлы по собственной

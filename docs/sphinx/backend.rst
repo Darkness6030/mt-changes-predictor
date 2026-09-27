@@ -89,3 +89,18 @@ CLI
 -----------------
 
 .. automodule:: transport_backend.schemas
+
+Сценарий выпуска резерва
+--------------------------------------------------
+
+.. automodule:: transport_backend.whatif
+
+Участки накопления опоздания
+--------------------------------------------------
+
+.. automodule:: transport_backend.hotspots
+
+Вход и роли (опционально)
+-------------------------
+
+.. automodule:: transport_backend.auth
