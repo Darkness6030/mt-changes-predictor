@@ -7,8 +7,8 @@ every answer):
 * at a terminal the planned layover above ``min_layover_s`` absorbs delay; the rest carries
   to the next trip start and persists along it;
 * the reserve reaches the terminal ``reserve_in_s`` after now and takes the first following
-  trip it can start; from then on it runs with only its own start delay, and the late
-  vehicle leaves the line (e.g. to recover at the depot).
+  trip it would start earlier than the late vehicle; from then on it runs with only its own
+  start delay, and the late vehicle leaves the line (e.g. to recover at the depot).
 
 In the dataset every vehicle serves its own line, so the line's next trips are the
 vehicle's planned next trips.
@@ -64,9 +64,11 @@ def reserve_whatif(
     for trip in following:
         slack_s = max(0.0, (trip.start_ns - previous_end) / SECOND_NS - min_layover_s)
         without_s = max(0.0, carried - slack_s)
-        if reserve_carried is None and reserve_ready_ns <= trip.start_ns + without_s * SECOND_NS:
-            # The reserve takes the first trip it can start no later than the late vehicle.
-            reserve_carried = max(0.0, (reserve_ready_ns - trip.start_ns) / SECOND_NS)
+        reserve_start_s = max(0.0, (reserve_ready_ns - trip.start_ns) / SECOND_NS)
+        if reserve_carried is None and reserve_start_s < without_s:
+            # The reserve takes the first trip where it would leave earlier than the late
+            # vehicle; if the layover already absorbs the delay, it is not needed.
+            reserve_carried = reserve_start_s
             with_s = reserve_carried
             served_by = "reserve"
         elif reserve_carried is not None:
@@ -105,7 +107,7 @@ def reserve_whatif(
         "assumptions": [
             "Прогнозная задержка сохраняется до конца текущего рейса",
             f"Отстой на конечной сверх {min_layover_s / 60:g} мин гасит опоздание",
-            "Резерв берёт первый рейс, к которому успевает; дальше идёт по графику",
+            "Резерв берёт первый рейс, где уйдёт раньше опаздывающего ТС; дальше по графику",
             "Схема по плану линии, не транспортная модель города",
         ],
     }
