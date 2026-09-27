@@ -176,6 +176,8 @@ export interface Alert {
   updates: number;
   state: "active" | "resolved" | "expired";
   acknowledged_at: string | null;
+  acknowledged_from?: string | null;
+  attention?: "delay" | "probability" | null;
   evidence: Evidence[];
 }
 

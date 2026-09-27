@@ -178,6 +178,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
                 </button>
                 <span className="hint">
                   алерт с {sourceTime(alert.first_alert_at)} · обновлений {alert.updates}
+                  {alert.acknowledged_from ? " · отметка перенесена с предыдущей остановки" : ""}
                 </span>
               </div>
             ) : null}

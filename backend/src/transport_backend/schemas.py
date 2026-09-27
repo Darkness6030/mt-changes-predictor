@@ -164,6 +164,9 @@ class Alert(Open):
     acknowledged_at: str | None = None
     evidence: list[Evidence] = []
     attention: Literal["delay", "probability"] | None = None
+    acknowledged_from: str | None = Field(
+        default=None, description="Alert whose acknowledgement was carried over"
+    )
 
 
 class Summary(Open):

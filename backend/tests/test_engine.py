@@ -506,3 +506,33 @@ def test_recommendation_escalates_a_likely_late_arrival():
     assert "наблюдением" in calm and "60%" in likely
     assert recommendation(80.0, [], policy) == calm  # Without a classifier: delay only.
     assert "Опережение" in recommendation(-90.0, [], policy, 0.9)
+
+
+def test_acknowledgement_carries_to_the_next_stop_of_the_same_episode():
+    engine = make_engine()
+
+    def view(stop, cutoff, delay=150.0):
+        return {
+            "tr_id": "bus",
+            "target_stop_id": stop,
+            "target_planned_at": cutoff,
+            "cutoff_t": cutoff,
+            "computed_at": "wall",
+            "horizon_s": 700.0,
+            "risk_level": "red",
+            "delay_s": delay,
+            "late_probability": 0.8,
+            "evidence": [],
+            "attention": "delay",
+        }
+
+    engine._update_alert(view("s1", "2026-01-06 10:00:00"))
+    first = next(iter(engine.alerts.values()))
+    engine.acknowledge(first.alert_id)
+    engine._update_alert(view("s2", "2026-01-06 10:05:00"))
+    second = engine.alerts[f"{engine.run_id}:bus:s2"]
+    assert second.acknowledged_at == first.acknowledged_at
+    assert second.acknowledged_from == first.alert_id
+    # A new episode long after the last acknowledged prediction must be seen again.
+    engine._update_alert(view("s9", "2026-01-06 11:00:00"))
+    assert engine.alerts[f"{engine.run_id}:bus:s9"].acknowledged_at is None

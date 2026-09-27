@@ -61,6 +61,8 @@ class Alert:
     acknowledged_at: str | None = None
     evidence: list = field(default_factory=list)
     attention: str | None = None
+    # Set when the acknowledgement was carried over from the vehicle's previous incident.
+    acknowledged_from: str | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -166,6 +168,9 @@ class Sidecar:
 
 
 EXPLANATION_CACHE = 256
+# A dispatcher who took a vehicle into work is not re-alerted at each next stop of the same
+# episode: an acknowledgement carries over to a new alert opened within this source time.
+ACK_CARRY_S = 900.0
 
 
 def needs_attention(vehicle: dict) -> bool:
@@ -821,6 +826,21 @@ class Engine:
             self.explanations.popitem(last=False)
         return answer
 
+    def _carry_acknowledgement(self, alert: Alert) -> None:
+        opened_ns = parse_source(alert.first_alert_at)
+        previous = [
+            item
+            for item in self.alerts.values()
+            if item.tr_id == alert.tr_id
+            and item.alert_id != alert.alert_id
+            and item.acknowledged_at is not None
+            and opened_ns - parse_source(item.latest_prediction_at) <= ACK_CARRY_S * SECOND_NS
+        ]
+        if previous:
+            source = max(previous, key=lambda item: parse_source(item.latest_prediction_at))
+            alert.acknowledged_at = source.acknowledged_at
+            alert.acknowledged_from = source.acknowledged_from or source.alert_id
+
     def _update_alert(self, view: dict) -> None:
         alert_id = f"{self.run_id}:{view['tr_id']}:{view['target_stop_id']}"
         existing = self.alerts.get(alert_id)
@@ -843,6 +863,7 @@ class Engine:
                 evidence=view["evidence"],
                 attention=view.get("attention"),
             )
+            self._carry_acknowledgement(self.alerts[alert_id])
             return
         existing.updates += 1
         existing.latest_prediction_at = view["cutoff_t"]
