@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from transport_backend import SCHEMA_VERSION, __version__
+from transport_backend import SCHEMA_VERSION, __version__, schemas
 from transport_backend.clock import parse_source
 from transport_backend.config import Settings
 from transport_backend.demo import DemoController, DemoError, DemoSource
@@ -118,7 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def status(engine: EngineDep) -> dict:
         return engine.status()
 
-    @app.get("/api/v1/snapshot", tags=["dispatcher"])
+    @app.get("/api/v1/snapshot", tags=["dispatcher"], response_model=schemas.Snapshot)
     def snapshot(
         engine: EngineDep,
         risk: Literal["green", "yellow", "red"] | None = None,
@@ -128,14 +128,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ) -> dict:
         return engine.snapshot(risk=risk, only_attention=only_attention, stale=stale, limit=limit)
 
-    @app.get("/api/v1/vehicles/{tr_id}", tags=["dispatcher"])
+    @app.get("/api/v1/vehicles/{tr_id}", tags=["dispatcher"], response_model=schemas.VehicleDetail)
     def vehicle(tr_id: str, engine: EngineDep) -> dict:
         try:
             return engine.vehicle_detail(tr_id)
         except KeyError as missing:
             raise error(404, "unknown_vehicle", f"No state or plan for {tr_id}") from missing
 
-    @app.get("/api/v1/vehicles/{tr_id}/explanation", tags=["dispatcher"])
+    @app.get(
+        "/api/v1/vehicles/{tr_id}/explanation",
+        tags=["dispatcher"],
+        response_model=schemas.ExplanationAnswer,
+    )
     async def vehicle_explanation(
         tr_id: str,
         engine: EngineDep,
@@ -176,7 +180,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except HistoryUnavailable as exc:
             raise error(404, "history_unavailable", str(exc)) from exc
 
-    @app.get("/api/v1/predictions", tags=["dispatcher"])
+    @app.get("/api/v1/predictions", tags=["dispatcher"], response_model=schemas.PredictionList)
     def predictions(
         engine: EngineDep,
         limit: Annotated[int, Query(ge=1, le=1000)] = 100,
@@ -190,12 +194,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ]
         return {"run_id": engine.run_id, "rows": len(items[-limit:]), "predictions": items[-limit:]}
 
-    @app.get("/api/v1/alerts", tags=["dispatcher"])
+    @app.get("/api/v1/alerts", tags=["dispatcher"], response_model=schemas.AlertList)
     def alerts(engine: EngineDep, state: Literal["active", "resolved", "expired"] | None = None):
         items = engine.alert_list(state=state)
         return {"run_id": engine.run_id, "rows": len(items), "alerts": items}
 
-    @app.post("/api/v1/alerts/{alert_id}/ack", tags=["dispatcher"])
+    @app.post("/api/v1/alerts/{alert_id}/ack", tags=["dispatcher"], response_model=schemas.AlertAck)
     async def acknowledge(alert_id: str, engine: EngineDep) -> dict:
         try:
             alert = engine.acknowledge(alert_id)
