@@ -29,6 +29,17 @@ class Calibration(Open):
     fit_rows: int | None = None
 
 
+class Trip(Open):
+    """Trip of the target visit, reconstructed from the plan (no trip ids in the data)."""
+
+    number: int
+    total: int
+    first: bool
+    last: bool
+    start_at: str
+    end_at: str
+
+
 class Prediction(Open):
     """Latest prediction of one vehicle. ``delay_s`` is null unless status allows a number."""
 
@@ -43,6 +54,7 @@ class Prediction(Open):
     target_stop_id: str | None = None
     target_planned_at: str | None = None
     target_address: str | None = None
+    trip: Trip | None = None
     target_lon: float | None = None
     target_lat: float | None = None
     horizon_s: float | None = None
@@ -164,6 +176,7 @@ class Alert(Open):
     acknowledged_at: str | None = None
     evidence: list[Evidence] = []
     attention: Literal["delay", "probability"] | None = None
+    trip_edge: Literal["first", "last"] | None = None
     acknowledged_from: str | None = Field(
         default=None, description="Alert whose acknowledgement was carried over"
     )
@@ -178,6 +191,7 @@ class Summary(Open):
     stale: int
     unmapped: int
     alerts_active: int
+    edge_trips_at_risk: int = 0
 
 
 class RiskPolicy(Open):

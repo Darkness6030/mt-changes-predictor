@@ -95,6 +95,13 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               <span className="v">{duration(prediction!.horizon_s)}</span>
               <span className="k">Момент расчёта T</span>
               <span className="v">{sourceTime(prediction!.cutoff_t)}</span>
+              <span className="k">Рейс</span>
+              <span className="v">
+                {prediction!.trip
+                  ? `${prediction!.trip.number} из ${prediction!.trip.total}` +
+                    (prediction!.trip.first ? " · первый рейс дня" : prediction!.trip.last ? " · последний рейс дня" : "")
+                  : "не определён"}
+              </span>
               <span className="k">Остановка</span>
               <span className="v">{prediction!.target_stop_id}</span>
             </div>

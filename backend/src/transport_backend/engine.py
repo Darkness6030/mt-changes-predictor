@@ -61,6 +61,8 @@ class Alert:
     acknowledged_at: str | None = None
     evidence: list = field(default_factory=list)
     attention: str | None = None
+    # "first" / "last" when the target visit belongs to the vehicle's first or last trip.
+    trip_edge: str | None = None
     # Set when the acknowledgement was carried over from the vehicle's previous incident.
     acknowledged_from: str | None = None
 
@@ -171,6 +173,12 @@ EXPLANATION_CACHE = 256
 # A dispatcher who took a vehicle into work is not re-alerted at each next stop of the same
 # episode: an acknowledgement carries over to a new alert opened within this source time.
 ACK_CARRY_S = 900.0
+
+
+def trip_edge(trip: dict | None) -> str | None:
+    if not trip:
+        return None
+    return "first" if trip.get("first") else "last" if trip.get("last") else None
 
 
 def needs_attention(vehicle: dict) -> bool:
@@ -759,6 +767,7 @@ class Engine:
             "target_stop_id": request["target_stop_id"],
             "target_planned_at": format_source(target_planned_ns),
             "target_address": self.plan.address(request["target_stop_id"]),
+            "trip": self.plan.trip(request["target_stop_id"]),
             "target_lon": float(features["target_lon"]),
             "target_lat": float(features["target_lat"]),
             "horizon_s": (target_planned_ns - cutoff_ns) / SECOND_NS,
@@ -783,7 +792,11 @@ class Engine:
             "stale": False,
             "evidence": items,
             "recommendation": recommendation(
-                delay_s, items, policy, result.get("late_probability")
+                delay_s,
+                items,
+                policy,
+                result.get("late_probability"),
+                self.plan.trip(request["target_stop_id"]),
             ),
             "quality_flags": (
                 track.quality_flags(cutoff_ns, self.settings.stale_after_s) if track else []
@@ -878,6 +891,7 @@ class Engine:
                 latest_prediction_at=view["cutoff_t"],
                 evidence=view["evidence"],
                 attention=view.get("attention"),
+                trip_edge=trip_edge(view.get("trip")),
             )
             self._carry_acknowledgement(self.alerts[alert_id])
             return
@@ -1011,6 +1025,12 @@ class Engine:
                 1 for v in vehicles if v["prediction"] and v["prediction"]["status"] == "ok"
             ),
             "attention": sum(1 for v in vehicles if needs_attention(v)),
+            # First/last trips at risk: the organisers named them as financially critical.
+            "edge_trips_at_risk": sum(
+                1
+                for v in vehicles
+                if needs_attention(v) and trip_edge((v["prediction"] or {}).get("trip"))
+            ),
             "red": sum(
                 1
                 for v in vehicles

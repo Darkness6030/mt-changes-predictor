@@ -40,6 +40,16 @@ export interface Explanation {
   model_used: string;
 }
 
+/** Trip of the target visit, reconstructed from the plan (no trip ids in the data). */
+export interface Trip {
+  number: number;
+  total: number;
+  first: boolean;
+  last: boolean;
+  start_at: string;
+  end_at: string;
+}
+
 export interface ExplanationAnswer {
   run_id: string;
   tr_id: string;
@@ -69,6 +79,7 @@ export interface Prediction {
   risk_level: RiskLevel | null;
   risk_basis: string | null;
   attention?: "delay" | "probability" | null;
+  trip?: Trip | null;
   late_probability: number | null;
   late_threshold_s?: number | null;
   calibration?: Calibration | null;
@@ -221,6 +232,7 @@ export interface Snapshot {
     stale: number;
     unmapped: number;
     alerts_active: number;
+    edge_trips_at_risk?: number;
   };
   risk_policy: RiskPolicy;
   vehicles: Vehicle[];

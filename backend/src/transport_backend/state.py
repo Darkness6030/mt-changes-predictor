@@ -40,6 +40,56 @@ class Deviation:
         }
 
 
+TRIP_BREAK_S = 1800.0
+MIN_TRIP_VISITS = 3
+TURNAROUND_M = 60.0
+TURNAROUND_LOOKBACK = 3
+
+
+def plan_trips(visits: pd.DataFrame) -> list[dict | None]:
+    """Split one vehicle's ordered plan into trips; one entry per visit.
+
+    The dataset has no trip or route ids. A terminal shows up as a return to the same point
+    (within 60 m) one to three visits later: arrival and departure after a layover, possibly
+    via a turning loop. A new trip starts at that departure; a break longer than 30 minutes
+    (lunch, depot) also ends a trip. Fragments shorter than three visits are not
+    counted as trips. In this dataset every real vehicle serves its own line, so a vehicle's
+    first and last trip are also the line's first and last trip of the day.
+    """
+    if visits.empty:
+        return []
+    times = visits.time_begin.astype("int64").to_numpy()
+    lon, lat = visits.lon.to_numpy(), visits.lat.to_numpy()
+    starts = [0]
+    for index in range(1, len(visits)):
+        gap_s = (times[index] - times[index - 1]) / SECOND_NS
+        back = range(max(starts[-1], index - TURNAROUND_LOOKBACK), index)
+        returned = any(
+            distance_m(lon[prior], lat[prior], lon[index], lat[index]) <= TURNAROUND_M
+            for prior in back
+        )
+        if returned or gap_s > TRIP_BREAK_S:
+            starts.append(index)
+    bounds = [
+        (start, end)
+        for start, end in zip(starts, [*starts[1:], len(visits)], strict=True)
+        if end - start >= MIN_TRIP_VISITS
+    ]
+    result: list[dict | None] = [None] * len(visits)
+    for number, (start, end) in enumerate(bounds, start=1):
+        info = {
+            "number": number,
+            "total": len(bounds),
+            "first": number == 1,
+            "last": number == len(bounds),
+            "start_at": format_source(int(times[start])),
+            "end_at": format_source(int(times[end - 1])),
+        }
+        for index in range(start, end):
+            result[index] = info
+    return result
+
+
 class PlanStore:
     """Plan-only schedule: the fact columns are never read, not even to be ignored later."""
 
@@ -61,6 +111,13 @@ class PlanStore:
             str(key): rows.reset_index(drop=True)
             for key, rows in self.plan.groupby("tr_id", sort=False)
         }
+        self.trips: dict[str, dict] = {}
+        for rows in self.visits.values():
+            for visit_id, info in zip(
+                rows.tt_action_item_id.astype(str), plan_trips(rows), strict=True
+            ):
+                if info is not None:
+                    self.trips[visit_id] = info
 
     @classmethod
     def from_csv(cls, path: Path, shift_s: float = 0.0) -> "PlanStore":
@@ -77,6 +134,10 @@ class PlanStore:
 
     def address(self, visit_id: str) -> str | None:
         return self.addresses.get(str(visit_id))
+
+    def trip(self, visit_id: str | None) -> dict | None:
+        """Trip of a planned visit: number, total and whether it is the day's first or last."""
+        return None if visit_id is None else self.trips.get(str(visit_id))
 
     def target(self, tr_id: str, at_ns: int) -> pd.Series | None:
         """First planned visit in ``(T+600, T+900]``; the window is a plan rule, not a guess."""
