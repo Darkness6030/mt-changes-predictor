@@ -165,3 +165,42 @@ def test_spoofed_fix_is_hidden_from_display_but_kept_for_the_model(state):
     assert "gps_spoofing_suspected" not in track.quality_flags(T.value + 60 * SECOND_NS, 120)
     track.trim(T.value + 50 * SECOND_NS)
     assert track.suspect == {}
+
+
+def test_trips_split_at_turnarounds_and_long_breaks():
+    from transport_backend.state import plan_trips
+
+    t0 = pd.Timestamp("2026-01-06 06:00:00")
+    route = [(37.60 + 0.004 * i, 55.70) for i in range(5)]
+    # Out, loop at the terminal (return within 60 m two visits later), back, 45 min break,
+    # a third trip, then a two-visit fragment that is not counted as a trip.
+    places = route + [(37.6175, 55.7015), route[-1]] + route[::-1][1:] + route + route[:2]
+    minutes = list(range(0, 5)) + [6, 9] + list(range(10, 14)) + list(range(60, 65)) + [110, 111]
+    frame = pd.DataFrame(
+        {
+            "time_begin": [t0 + pd.Timedelta(minutes=m) for m in minutes],
+            "lon": [p[0] for p in places],
+            "lat": [p[1] for p in places],
+        }
+    )
+    trips = plan_trips(frame)
+    numbers = [None if t is None else t["number"] for t in trips]
+    assert numbers[:6] == [1] * 6  # Outbound trip ends at the terminal loop.
+    assert numbers[6:11] == [2] * 5  # Departure from the terminal starts trip 2.
+    assert numbers[11:16] == [3] * 5  # The long break starts trip 3.
+    assert numbers[16:] == [None, None]  # A two-visit fragment is not a trip.
+    assert trips[0]["first"] and not trips[0]["last"] and trips[0]["total"] == 3
+    assert trips[11]["last"] and trips[11]["end_at"] == "2026-01-06 07:04:00"
+
+
+def test_observed_arrival_uses_only_received_fixes_near_the_visit(state):
+    # "target" is planned at T+780 s at (37.62, 55.70).
+    for seconds, lon in ((700, 37.610), (790, 37.6199), (805, 37.6200), (820, 37.6201)):
+        state.add(event(seconds, lon=lon))
+    at_arrival = T.value + 800 * SECOND_NS
+    early = state.observed_arrival("bus", "target", at_arrival)
+    assert early is not None and early.seconds == 10  # Only the 790 s fix is known yet.
+    later = state.observed_arrival("bus", "target", T.value + 900 * SECOND_NS)
+    assert later.seconds == 25 and later.distance_m < 60  # Middle of the dwell: 805 s.
+    assert state.observed_arrival("bus", "target", T.value + 700 * SECOND_NS) is None
+    assert state.observed_arrival("bus", "unknown", T.value + 900 * SECOND_NS) is None

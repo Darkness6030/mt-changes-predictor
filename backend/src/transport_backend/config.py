@@ -141,9 +141,14 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        shift = os.environ.get("BACKEND_PLAN_SHIFT_S", "0").strip().lower()
+        mode = os.environ.get("BACKEND_MODE", "replay").strip().lower()
+        shift = os.environ.get("BACKEND_PLAN_SHIFT_S", "").strip().lower()
+        if shift == "":
+            # A live NDTP stream may carry today's date for the same timetable: align by
+            # whole days to the stream. Replay reads the dataset's own dates.
+            shift = "auto" if mode == "ndtp" else "0"
         return cls(
-            mode=os.environ.get("BACKEND_MODE", "replay").strip().lower(),
+            mode=mode,
             data_root=Path(os.environ.get("BACKEND_DATA_ROOT", "dataset")),
             split=os.environ.get("BACKEND_SPLIT", "test").strip().lower(),
             use_points=(

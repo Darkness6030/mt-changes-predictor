@@ -383,3 +383,31 @@ a { color: var(--accent); }
 .explain-bar { display: block; height: 100%; border-radius: 3px; }
 .explain-bar.late { background: var(--red); }
 .explain-bar.early { background: var(--green); }
+
+.kpi b small { font-size: 0.6em; font-weight: 500; color: var(--muted); }
+
+/* Warning passport: a vertical timeline, then outcomes of earlier warnings. */
+.passport { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--line); display: grid; gap: 6px; }
+.passport li { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 8px; font-size: 12px; position: relative; }
+.passport li::before { content: ""; position: absolute; left: -17px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow, #f2b63c); }
+.passport li > span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.passport li > em { grid-column: 2; font-style: normal; color: var(--muted); }
+.passport-trend { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.passport-pending::before { background: transparent !important; border: 1px dashed var(--muted); }
+.passport-caption { margin-top: 8px; }
+.passport-outcomes { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+.passport-outcomes li { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.system .hint + h3 { margin-top: 14px; }
+
+.whatif-control { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.whatif-control select { background: var(--panel, #161d26); color: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+.whatif-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; padding-bottom: 2px; }
+
+/* "Where delay accumulates": compact clickable rows above the queue. */
+.hotspots { padding: 8px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.hotspots-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.hotspot { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; color: inherit; cursor: pointer; font-size: 12px; }
+.hotspot:hover, .hotspot:focus-visible { border-color: var(--line); background: rgba(255, 255, 255, 0.03); }
+.hotspot-gain { grid-row: span 2; font-weight: 600; font-variant-numeric: tabular-nums; align-self: center; }
+.hotspot-where { overflow-wrap: anywhere; }
+.hotspot-meta { color: var(--muted); font-size: 11px; }

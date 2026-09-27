@@ -98,11 +98,22 @@ def recommendation(
     items: list[dict],
     policy: RiskPolicy,
     late_probability: float | None = None,
+    trip: dict | None = None,
 ) -> str:
     """A check to perform, phrased as a hypothesis for the dispatcher to confirm."""
     kinds = {item["kind"] for item in items}
     if "stale_position" in kinds:
         return "Проверить связь с бортовым терминалом: прогноз опирается на устаревшую позицию"
+    likely_late = delay_s > policy.red_min_delay_s or (
+        late_probability is not None and late_probability >= policy.late_probability_red
+    )
+    if trip and likely_late and (trip.get("first") or trip.get("last")):
+        edge = "первого" if trip.get("first") else "последнего"
+        return (
+            f"Приоритет: риск срыва {edge} рейса дня (рейс {trip['number']} из "
+            f"{trip['total']}). Связаться с водителем сейчас; при необходимости подготовить "
+            "резервное ТС или корректировку по правилам организатора перевозок"
+        )
     if delay_s > policy.red_min_delay_s:
         if "long_dwell" in kinds:
             return (
@@ -112,7 +123,11 @@ def recommendation(
             return "Вероятно затруднённое движение на участке: уточнить обстановку и интервал"
         return "Связаться с водителем и оценить оперативное регулирование по действующим правилам"
     if delay_s < policy.early_yellow_s:
-        return "Опережение графика: проверить интервал до предыдущего ТС перед целевой остановкой"
+        hold_min = max(1, round(-delay_s / 60))
+        return (
+            f"Опережение графика: придержать ТС на ближайшей остановке примерно на {hold_min} "
+            "мин, чтобы не уйти раньше расписания и не сбить интервал"
+        )
     if late_probability is not None and late_probability >= policy.late_probability_red:
         percent = round(late_probability * 100)
         return (
