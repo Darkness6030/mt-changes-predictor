@@ -1,4 +1,9 @@
 .git
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
 .venv
 .idea
 .pytest_cache
