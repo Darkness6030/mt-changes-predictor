@@ -84,3 +84,8 @@ CLI
 ---
 
 .. automodule:: transport_backend.cli
+
+Схемы ответов API
+-----------------
+
+.. automodule:: transport_backend.schemas

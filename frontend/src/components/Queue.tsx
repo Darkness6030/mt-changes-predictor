@@ -7,6 +7,7 @@ import {
   severity,
   signedDelay,
   sourceTime,
+  stopLabel,
 } from "../format";
 import type { Snapshot, Vehicle } from "../types";
 
@@ -155,7 +156,7 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                 </div>
                 {ok ? (
                   <div className="addr" title={prediction!.target_address ?? ""}>
-                    {prediction!.target_address ?? "адрес остановки не указан"}
+                    {stopLabel(prediction!.target_address, prediction!.target_stop_id)}
                   </div>
                 ) : null}
               </button>
