@@ -99,3 +99,8 @@ CLI
 --------------------------------------------------
 
 .. automodule:: transport_backend.hotspots
+
+Вход и роли (опционально)
+-------------------------
+
+.. automodule:: transport_backend.auth

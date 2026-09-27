@@ -28,11 +28,11 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v6/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v8/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
@@ -49,7 +49,7 @@ DOCS-ONNX-30: **195 Python-тестов**, Ruff ML/Backend, Docker build/up,
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | v6 (platform 0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v6/` |
+| ML | v8 (platform ≈0,95) = v6 + обучаемый гейт «задержка ровно 0»; v6 (0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v8/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict, объяснение по запросу | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
 | Backend | NDTP/CSV, GPS-фильтр, alerts/ack/паспорт, what-if/hotspots, история, автосдвиг даты | BE-03: оставшиеся ответы; BE-04: caps/clock cases | `backend/src/transport_backend/` |
 | Frontend | Яндекс Карты, очередь/карточка, SHAP/резерв/паспорт, история и таймлайн | FE-QA-01: полный E2E и понятность диспетчеру | `frontend/src/` |
@@ -133,7 +133,9 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
-- Обновление 27.09 (ML-IMPROVE-13): default **v6** (platform 0,90034) = 1/2 v4 (рецепт v3, train+test, platform
+- Обновление 27.09 (ML-IMPROVE-15): default **v8** (platform ≈0,95) = v6 + классификатор
+  P(задержка = 0) на тех же признаках, при P > 0,5 main-прогноз 0 (`ml/pretrained/v8/README.md`).
+- Обновление 27.09 (ML-IMPROVE-13): v6 (platform 0,90034) = 1/2 v4 (рецепт v3, train+test, platform
   0,86126) + 1/2 trip-модели (schema 3 / 82 признака: +9 признаков структуры рейса по плану;
   train+test + синтетика без копий моментов validate; platform 0,85649). Синтетика — сдвинутые
   копии реальных ТС того же дня: без очистки это утечка ответов validate. Классификаторы v5.

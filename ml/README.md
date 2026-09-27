@@ -10,13 +10,13 @@ trip-модели, [отчёт](reports/ml-v6.md)); v1–v5 сохранены. 
 Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v8 \
   --output artifacts/check-v6/submission.csv
-ML_MODEL_DIR=ml/pretrained/v6 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v8 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
-побайтово совпадает с `ml/pretrained/v6/submission.csv`; все 151 ID проверяются повторным
+побайтово совпадает с `ml/pretrained/v8/submission.csv`; все 151 ID проверяются повторным
 чтением. Комплекты v1–v5 сохранены и поддерживаются; default Compose — v6.
 
 ## Архитектура и контракт

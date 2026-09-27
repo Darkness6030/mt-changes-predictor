@@ -1,5 +1,5 @@
 import { duration } from "../format";
-import type { Snapshot, Status } from "../types";
+import type { AuthState, Snapshot, Status } from "../types";
 
 interface Props {
   historical?: boolean;
@@ -7,10 +7,12 @@ interface Props {
   status: Status | null;
   ageMs: number | null;
   error: string | null;
+  user?: AuthState;
+  onLogout?: () => void;
 }
 
 /** Dispatcher summary; replay clock and speed are shown in the navigation panel. */
-export function Header({ snapshot, status, ageMs, error, historical = false }: Props) {
+export function Header({ snapshot, status, ageMs, error, historical = false, user, onLogout }: Props) {
   const clock = snapshot?.clock ?? status?.clock ?? null;
   const mode = snapshot?.mode ?? status?.mode ?? "—";
   const summary = snapshot?.summary;
@@ -27,6 +29,12 @@ export function Header({ snapshot, status, ageMs, error, historical = false }: P
             </span>
           )}
           {ageMs !== null ? <span>{historical ? "Связь" : "Обновлено"} {Math.round(ageMs / 1000)} с назад</span> : null}
+          {user?.enabled && user.authenticated ? (
+            <span className="header-user">
+              {user.name} · {user.role === "viewer" ? "наблюдатель" : "диспетчер"}
+              {onLogout ? <button type="button" className="link-button" onClick={onLogout}>Выйти</button> : null}
+            </span>
+          ) : null}
         </div>
         <div className="header-data-status" role={error ? "alert" : undefined} title={error ?? undefined}>{error}</div>
       </div>

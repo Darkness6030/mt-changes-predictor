@@ -13,7 +13,7 @@ from transport_ml.model import DelayModel
 from transport_ml.service import app
 
 
-@pytest.fixture(scope="module", params=["v2", "v3", "v4", "v5"])
+@pytest.fixture(scope="module", params=["v2", "v3", "v4", "v5", "v6"])
 def bundle(request):
     return f"ml/pretrained/{request.param}"
 
@@ -49,7 +49,8 @@ def payload(features: pd.DataFrame, points: pd.DataFrame) -> dict:
                 "features": values,
             }
         )
-    return {"feature_schema_version": "2" if "arrival_matches" in features else "1", "items": items}
+    schema = "3" if "plan_max_gap_s" in features else "2" if "arrival_matches" in features else "1"
+    return {"feature_schema_version": schema, "items": items}
 
 
 def test_health_and_model_metadata(client, model_features):
