@@ -298,10 +298,29 @@ UI не смешивает карточку старого прогона с н�
     {"kind": "speed_drop", "text": "Скорость за 3 мин 4,2 км/ч против 18,0 км/ч за 10 мин",
      "value": 4.2}
   ],
+  "explanation": {
+    "base_s": 37.0,
+    "groups": [
+      {"group": "schedule_match", "label": "Положение относительно расписания по GPS",
+       "seconds": 98.0},
+      {"group": "movement", "label": "Скорость и движение", "seconds": -13.0}
+    ],
+    "other_s": 35.0,
+    "total_s": 157.0,
+    "model_used": "fallback"
+  },
   "recommendation": "Уточнить у водителя причину задержки; рассмотреть регулирование по действующим правилам",
   "quality_flags": []
 }
 ```
+
+`explanation` (совместимое дополнение, ML v2–v5; `null`, если ML его не вернул) — точное
+разложение `delay_s`: `base_s + Σ groups.seconds + other_s = total_s = delay_s` (±0,01 с).
+Для основной модели в группу `hint` входит сама подсказка `cur_dev_s`. Показаны до 4 групп
+с наибольшим |вкладом|, остальные — в `other_s`. Группы: `hint`, `schedule_match`, `dwell`,
+`movement`, `route_ahead`, `place_time`, `data_quality`. Это SHAP-арифметика CatBoost, не
+подтверждённая причина. В `POST /v1/predict` ML-сервиса поле `explain` (по умолчанию `true`)
+отключает расчёт.
 
 Статусы `status`:
 

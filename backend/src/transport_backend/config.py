@@ -64,7 +64,7 @@ class Settings:
     split: str = "test"
     use_points: bool | None = None
     labels: Path | None = None
-    offline_metrics: Path | None = Path("ml/pretrained/v4/metrics.json")
+    offline_metrics: Path | None = Path("ml/pretrained/v5/metrics.json")
 
     ml_url: str = "http://ml:8001"
     ml_timeout_s: float = 3.0
@@ -144,7 +144,7 @@ class Settings:
                 else _bool("BACKEND_USE_POINTS", False)
             ),
             labels=_path("BACKEND_LABELS", None),
-            offline_metrics=_path("BACKEND_OFFLINE_METRICS", "ml/pretrained/v4/metrics.json"),
+            offline_metrics=_path("BACKEND_OFFLINE_METRICS", "ml/pretrained/v5/metrics.json"),
             ml_url=os.environ.get("BACKEND_ML_URL", "http://ml:8001").rstrip("/"),
             ml_timeout_s=_float("BACKEND_ML_TIMEOUT_S", 3.0),
             ml_batch_size=_int("BACKEND_ML_BATCH_SIZE", 64),

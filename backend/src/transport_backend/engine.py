@@ -736,6 +736,8 @@ class Engine:
             "prediction_age_s": 0.0,
             "stale": False,
             "evidence": items,
+            # Exact split of delay_s from the ML service (model arithmetic, not a cause).
+            "explanation": result.get("explanation"),
             "recommendation": recommendation(delay_s, items, policy),
             "quality_flags": (
                 track.quality_flags(cutoff_ns, self.settings.stale_after_s) if track else []

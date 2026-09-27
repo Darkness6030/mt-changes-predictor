@@ -1,0 +1,110 @@
+{
+  "name": "v4-train-test-refit",
+  "feature_config": {
+    "schedule_context": true
+  },
+  "hint_policy": "supplied_only",
+  "models": {
+    "main": [
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_full_6_300_MAE_True_5",
+          "mode": "main",
+          "features": "full",
+          "depth": 6,
+          "iterations": 300,
+          "loss": "MAE",
+          "residual": true,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_full_4_300_MAE_True_5",
+          "mode": "main",
+          "features": "full",
+          "depth": 4,
+          "iterations": 300,
+          "loss": "MAE",
+          "residual": true,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_compact_4_300_MAE_True_5",
+          "mode": "main",
+          "features": "compact",
+          "depth": 4,
+          "iterations": 300,
+          "loss": "MAE",
+          "residual": true,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      }
+    ],
+    "fallback": [
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fallback_compact_6_300_MAE_False_5",
+          "mode": "fallback",
+          "features": "compact",
+          "depth": 6,
+          "iterations": 300,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fallback_full_4_700_MAE_False_5",
+          "mode": "fallback",
+          "features": "full",
+          "depth": 4,
+          "iterations": 700,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fallback_compact_2_300_MAE_False_5",
+          "mode": "fallback",
+          "features": "compact",
+          "depth": 2,
+          "iterations": 300,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false
+        }
+      }
+    ]
+  },
+  "classifier_source": "ml/pretrained/v3",
+  "selection_protocol": "ml/experiments/improve12-protocol.json",
+  "training_splits": [
+    "train",
+    "test"
+  ],
+  "refit_note": "Frozen v3 members and weights, no retuning. Refit on all real labelled points (train + test). Decided by ml/experiments/improve18_test_refit.py before this refit."
+}

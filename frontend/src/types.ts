@@ -25,6 +25,21 @@ export interface Calibration {
   fit_rows?: number;
 }
 
+export interface ContributionGroup {
+  group: string;
+  label: string;
+  seconds: number;
+}
+
+/** Exact split of delay_s from the ML service: base + groups + other = total. */
+export interface Explanation {
+  base_s: number;
+  groups: ContributionGroup[];
+  other_s: number;
+  total_s: number;
+  model_used: string;
+}
+
 export interface Prediction {
   prediction_id: string;
   run_id: string;
@@ -57,6 +72,7 @@ export interface Prediction {
   prediction_age_s: number | null;
   stale: boolean;
   evidence: Evidence[];
+  explanation?: Explanation | null;
   recommendation: string | null;
   quality_flags: string[];
   detail?: string | null;
