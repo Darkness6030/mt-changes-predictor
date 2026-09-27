@@ -247,7 +247,7 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 - `offline` — комплект v6: аудит на test моделями, обученными без test (MAE 67,82 с
   с подсказкой, 78,60 с без неё; baseline `cur_dev_s` 93,36 с), т. к. test вошёл в
-  обучение итоговой модели. Score v8 ≈ 0,95, v6 — 0,90034 (сообщено пользователем).
+  обучение итоговой модели. Score v8 0,95394, v6 — 0,90034 (сообщено пользователем).
   Подробно: [отчёт ML v6](../ml/reports/ml-v6.md).
 - `early_warning` — раннее предупреждение **на потоке без разметки**: для каждого алерта
   фактическое прибытие берётся из полученных GPS-точек; `confirmed_share`, упреждение
@@ -291,7 +291,7 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 ## 7. CSV для Data Science
 
 Готовый файл — `ml/pretrained/v8/submission.csv` (151 строка, `sample_id;prediction`,
-score ≈ 0,95).
+score 0,95394).
 Воспроизведение без обучения и без Docker:
 
 ```bash

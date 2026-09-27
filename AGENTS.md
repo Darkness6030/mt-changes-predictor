@@ -49,7 +49,7 @@ DOCS-ONNX-30: **195 Python-тестов**, Ruff ML/Backend, Docker build/up,
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | v8 (platform ≈0,95) = v6 + обучаемый гейт «задержка ровно 0»; v6 (0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v8/` |
+| ML | v8 (platform 0,95394) = v6 + обучаемый гейт «задержка ровно 0»; v6 (0,90034): равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); классификаторы/OOF-калибровка v5, SHAP, ONNX | LIVE-EVAL-01/CAL-01: независимый день и доставка | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v8/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict, объяснение по запросу | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
 | Backend | NDTP/CSV, GPS-фильтр, alerts/ack/паспорт, what-if/hotspots, история, автосдвиг даты | BE-03: оставшиеся ответы; BE-04: caps/clock cases | `backend/src/transport_backend/` |
 | Frontend | Яндекс Карты, очередь/карточка, SHAP/резерв/паспорт, история и таймлайн | FE-QA-01: полный E2E и понятность диспетчеру | `frontend/src/` |
@@ -133,7 +133,7 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
-- Обновление 27.09 (ML-IMPROVE-15): default **v8** (platform ≈0,95) = v6 + классификатор
+- Обновление 27.09 (ML-IMPROVE-15): default **v8** (platform 0,95394) = v6 + классификатор
   P(задержка = 0) на тех же признаках, при P > 0,5 main-прогноз 0 (`ml/pretrained/v8/README.md`).
 - Обновление 27.09 (ML-IMPROVE-13): v6 (platform 0,90034) = 1/2 v4 (рецепт v3, train+test, platform
   0,86126) + 1/2 trip-модели (schema 3 / 82 признака: +9 признаков структуры рейса по плану;
