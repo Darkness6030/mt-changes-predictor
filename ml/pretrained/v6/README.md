@@ -10,7 +10,7 @@ ML-IMPROVE-13 (schema 3: +9 признаков структуры рейса п�
 Все признаки причинные: телеметрия `event_time <= T`, плановое расписание, `cur_dev_s`.
 
 `metrics.json` — аудит без test labels (v3 + trip-рецепт на train): test main 67,82 с,
-без подсказки 78,60 с (v3: 71,74 / 83,72). Platform score v6 не проверялся.
+без подсказки 78,60 с (v3: 71,74 / 83,72). Platform score v6: **0,90034** (27.09.2026 20:54 МСК, сообщено пользователем).
 Сборка: `ml/experiments/improve13_build_v6.py`; отчёт — [ml-v6](../../reports/ml-v6.md).
 
 - `a-*.cbm`, `b-*.cbm` — члены ансамблей; `late*.cbm` — классификаторы v5.
