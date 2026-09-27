@@ -208,6 +208,12 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               : "—"}
           </span>
         </div>
+        {detail.quality_flags.includes("gps_spoofing_suspected") ? (
+          <div className="hint" style={{ marginTop: 4 }}>
+            Последние координаты неправдоподобны (подмена GPS или скачок) и скрыты: на карте
+            показана последняя достоверная позиция.
+          </div>
+        ) : null}
         {detail.quality_flags.length ? (
           <div className="hint" style={{ marginTop: 4 }}>
             флаги: {detail.quality_flags.join(", ")}

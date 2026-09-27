@@ -13,6 +13,8 @@ ML: признаки, модели, сервис
 
 .. automodule:: transport_ml.schedule_context
 
+.. automodule:: transport_ml.gps_trust
+
 Модель и артефакт
 -----------------
 
