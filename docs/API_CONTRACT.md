@@ -1,16 +1,21 @@
 # Контракт API и snapshot, версия 1
 
-Дата фиксации: 26.09.2026. OpenAPI работающего Backend
-(`/openapi.json`, Swagger `/docs`) пока содержит общие dict для ряда ответов;
-строгие response-модели остаются задачей. ML-сервис имеет типизированные схемы.
+Актуализация: 27.09.2026, код `6b33e7a`. OpenAPI Backend
+(`/openapi.json`, Swagger `/docs`) типизирует snapshot/detail/predictions/alerts/ack/explanation.
+Status/metrics/demo/history/what-if/hotspots ещё содержат общие объекты; их поля описаны ниже.
+ML-сервис имеет типизированные схемы. [Готовые OpenAPI и Sphinx](DOCUMENTATION.md).
 Этот файл описывает согласованные
 имена, единицы, статусы и правила времени, чтобы Backend, ML и UI не расходились.
 Требования, из которых он выведен: [RULES](RULES.md), [PLAN](PLAN.md),
 [README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
 
 Версии: `schema_version = "1"` для Backend snapshot; признаки — `"1"` у v1/v2 (44 поля)
-и `"2"` у v3 (73 поля). Версию определяет `FeatureConfig.schema_version` и manifest модели.
+и `"2"` у v3–v5 (73 поля). Версию определяет `FeatureConfig.schema_version` и manifest модели.
 Несовместимое изменение — новая версия строки, а не молчаливое изменение поля.
+
+Примеры с `fitted_on_development` ниже сохранены для v2–v4. У default v5
+калибровка имеет `status=validated`, `report=ml/experiments/improve18-late.json`,
+`fit_rows=1494`: оценка вне фолдов одного дня, не независимая проверка нового дня.
 
 ## 1. Границы ответственности
 
@@ -63,7 +68,7 @@
 `GET /v1/model` также возвращает `feature_config`, `hint_policy`, а в `models` —
 `member_count` для каждого режима. Backend строит признаки по полученному config;
 schema/config должны согласовываться. Schema 2 требует окна состояния не меньше 1800 с.
-`hint_policy=gps_estimated` сохраняет поведение v1/v2; `supplied_only` у v3 запрещает
+`hint_policy=gps_estimated` сохраняет поведение v1/v2; `supplied_only` у v3–v5 запрещает
 подстановку GPS-оценки в `cur_dev_s`. Наблюдаемые GPS/плановые оценки входят отдельными
 признаками schema 2. Отсутствующая supplied-подсказка остаётся `null`, источник — `missing`,
 выбирается обученный автономный `fallback`. Неизвестный контракт → `ml_unavailable`.
@@ -440,7 +445,7 @@ HTTP 400 `bad_request` без изменения текущего прогона
 часы переходят на выбранное T, состояние ТС/прогнозов/алертов пустое. Перемотка создаёт новый `run_id`,
 очищает прежние predictions/history/alerts и метрики sidecar, восстанавливает телеметрию
 из ограниченного окна `[T-history_window, T]` и **оставляет часы на паузе**, сохраняя скорость.
-Следующий цикл считает periodic-прогнозы на T по hint policy модели: v3 — missing
+Следующий цикл считает periodic-прогнозы на T по hint policy модели: v3–v5 — missing
 с отдельными GPS-признаками, v1/v2 — estimated/missing подсказка. Прошлые
 прогнозные точки и алерты не воспроизводятся; это переход для диагностики, а не оценка
 полного прогона. `start` продолжает подачу событий после T. Результаты запросов ML
