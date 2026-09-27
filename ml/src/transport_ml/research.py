@@ -272,10 +272,13 @@ def run_research(root: Path, directory: Path, protocol: dict, configs: list[dict
 
 
 def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
-    """Refit a frozen recipe on real train only; preserve the existing risk classifiers.
+    """Refit a frozen recipe on real labelled points; preserve the existing risk classifiers.
 
     Selection and final evaluation are separate commands. In particular this function
-    cannot silently inspect test or change a candidate based on its score.
+    cannot silently inspect test or change a candidate based on its score. By default only
+    train is used; ``training_splits`` may add the labelled test points for a final refit,
+    after which test is no longer an independent check of that bundle. Only plan columns
+    and label files are read: schedule facts never enter features or targets.
     """
     import shutil
 
@@ -292,18 +295,33 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
     directory.mkdir(parents=True, exist_ok=False)
     write_json(directory / "recipe.json", recipe)
     started = perf_counter()
-    points = load_points(root, "train")
-    points = points[points.tr_id.astype("int64") < 9_000_000].reset_index(drop=True)
-    traffic, plan = load_inputs(root, "train")
-    builder = FeatureBuilder(traffic, plan, config)
-    features = builder.transform(points)
-    target = load_labels(root, "train", points)
+    splits = recipe.get("training_splits", ["train"])
+    if not splits or not set(splits) <= {"train", "test"} or len(set(splits)) != len(splits):
+        raise ValueError("training_splits must be distinct labelled splits: train, test")
+    parts = []
+    for split in splits:
+        split_points = load_points(root, split)
+        # Synthetic train vehicles are time-shifted copies of real ones: never used.
+        split_points = split_points[split_points.tr_id.astype("int64") < 9_000_000]
+        split_points = split_points.reset_index(drop=True).assign(split=split)
+        traffic, plan = load_inputs(root, split)
+        builder = FeatureBuilder(traffic, plan, config)
+        parts.append(
+            (split_points, builder.transform(split_points), load_labels(root, split, split_points))
+        )
+    points = pd.concat([part[0] for part in parts], ignore_index=True)
+    if points.sample_id.duplicated().any():
+        raise ValueError("Training splits share a sample_id")
+    features = pd.concat([part[1] for part in parts], ignore_index=True)
+    target = np.concatenate([part[2] for part in parts])
     fit = np.ones(len(points), dtype=bool)
     needs_augmented = any(
         member["candidate"].get("augmentation", False)
         for members in recipe["models"].values()
         for member in members
     )
+    if needs_augmented and splits != ["train"]:
+        raise ValueError("Augmentation is defined for train-only refits")
     augmented = build_augmented(points, builder) if needs_augmented else None
     manifest = {
         "feature_schema_version": config.schema_version,
@@ -311,7 +329,10 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
         "feature_config": config.to_dict(),
         "time_basis": "dataset_naive_ns",
         "hint_policy": recipe["hint_policy"],
-        "training_group": "real-only train; frozen train-only group/temporal selection",
+        "training_group": (
+            f"real-only {'+'.join(splits)}; frozen train-only group/temporal selection"
+        ),
+        "training_splits": splits,
         "train_rows": len(points),
         "train_median_s": float(np.median(target)),
         "late_rate": float((target > 120).mean()),

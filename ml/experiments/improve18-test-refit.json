@@ -1,0 +1,18 @@
+{
+ "random:main": {
+  "train_only": 70.6728,
+  "train_plus_test": 67.869
+ },
+ "random:fallback": {
+  "train_only": 83.2727,
+  "train_plus_test": 80.1205
+ },
+ "vehicle:main": {
+  "train_only": 70.6728,
+  "train_plus_test": 69.5972
+ },
+ "vehicle:fallback": {
+  "train_only": 83.2727,
+  "train_plus_test": 81.8949
+ }
+}

@@ -157,6 +157,7 @@ export function SystemPanel({ status, quality }: Props) {
         {sidecar ? (
           <>
             <h3 style={{ marginTop: 10 }}>Этот прогон по разметке</h3>
+            {sidecar.in_sample_note ? <div className="hint">{sidecar.in_sample_note}</div> : null}
             {sidecar.measured_rows ? (
               <table>
                 <tbody>
