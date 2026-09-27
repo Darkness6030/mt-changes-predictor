@@ -20,6 +20,8 @@ ML: признаки, модели, сервис
 
 .. automodule:: transport_ml.model
 
+.. automodule:: transport_ml.explanation
+
 Калибровка вероятности
 ----------------------
 

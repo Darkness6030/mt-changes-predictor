@@ -8,6 +8,7 @@ import {
   percent,
   signedDelay,
   sourceTime,
+  stopLabel,
 } from "../format";
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import { PredictionExplanation } from "./PredictionExplanation";
@@ -98,7 +99,7 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               <span className="v">{prediction!.target_stop_id}</span>
             </div>
             <div className="hint" style={{ marginTop: 4 }}>
-              {prediction!.target_address ?? "адрес остановки не указан"}
+              {stopLabel(prediction!.target_address, prediction!.target_stop_id)}
             </div>
             <div style={{ marginTop: 6 }}>
               <Timeline horizon={prediction!.horizon_s ?? 600} />
@@ -109,8 +110,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             <h3>Участок подхода к цели</h3>
             {detail.segment ? <>
               <div className="segment-stops">
-                <div><span className="segment-label">От</span><span>{detail.segment.from.address ?? detail.segment.from.target_stop_id}</span></div>
-                <div><span className="segment-label">До</span><span>{detail.segment.to.address ?? detail.segment.to.target_stop_id}</span></div>
+                <div><span className="segment-label">От</span><span>{stopLabel(detail.segment.from.address, detail.segment.from.target_stop_id)}</span></div>
+                <div><span className="segment-label">До</span><span>{stopLabel(detail.segment.to.address, detail.segment.to.target_stop_id)}</span></div>
               </div>
               <div className="hint">Схема двух последовательных плановых посещений; цвет линии соответствует риску ТС.</div>
             </> : <div className="hint">Участок не определён: нет предыдущего посещения либо разрыв плана больше 30 минут.</div>}

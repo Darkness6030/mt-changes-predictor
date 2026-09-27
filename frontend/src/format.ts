@@ -82,3 +82,9 @@ export function severity(prediction: Prediction | null): number {
   if (prediction.risk_level === "yellow") return 3;
   return 2;
 }
+
+/** A planned-visit label a dispatcher can read when the dataset has no address. */
+export function stopLabel(address: string | null | undefined, visitId: string | null | undefined): string {
+  if (address) return address;
+  return visitId ? `остановка без адреса · №…${visitId.slice(-4)}` : "остановка без адреса";
+}
