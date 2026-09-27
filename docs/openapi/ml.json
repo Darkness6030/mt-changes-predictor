@@ -1,0 +1,560 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Transport delay ML inference",
+    "summary": "Signed delay in seconds and calibrated late probability for prepared features",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Live",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Live Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Ready",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/model": {
+      "get": {
+        "tags": [
+          "model"
+        ],
+        "summary": "Model Info",
+        "operationId": "model_info_v1_model_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/predict": {
+      "post": {
+        "tags": [
+          "model"
+        ],
+        "summary": "Predict",
+        "operationId": "predict_v1_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ContributionGroup": {
+        "properties": {
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "seconds": {
+            "type": "number",
+            "title": "Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group",
+          "label",
+          "seconds"
+        ],
+        "title": "ContributionGroup"
+      },
+      "Explanation": {
+        "properties": {
+          "base_s": {
+            "type": "number",
+            "title": "Base S"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/ContributionGroup"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "other_s": {
+            "type": "number",
+            "title": "Other S"
+          },
+          "total_s": {
+            "type": "number",
+            "title": "Total S"
+          },
+          "model_used": {
+            "type": "string",
+            "title": "Model Used"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_s",
+          "groups",
+          "other_s",
+          "total_s",
+          "model_used"
+        ],
+        "title": "Explanation",
+        "description": "Exact additive split of ``delay_s``: base + groups + other = total (model arithmetic)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ModelInfo": {
+        "properties": {
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "feature_schema_version": {
+            "type": "string",
+            "title": "Feature Schema Version"
+          },
+          "service_version": {
+            "type": "string",
+            "title": "Service Version"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "feature_config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feature Config"
+          },
+          "models": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Models"
+          },
+          "classifiers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Classifiers"
+          },
+          "late_threshold_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Late Threshold S"
+          },
+          "calibration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Calibration"
+          },
+          "train_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Train Rows"
+          },
+          "training_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Group"
+          },
+          "max_items": {
+            "type": "integer",
+            "title": "Max Items"
+          },
+          "hint_policy": {
+            "type": "string",
+            "title": "Hint Policy",
+            "default": "gps_estimated"
+          },
+          "runtime": {
+            "type": "string",
+            "title": "Runtime",
+            "default": "catboost"
+          },
+          "runtime_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_version",
+          "feature_schema_version",
+          "service_version",
+          "features",
+          "feature_config",
+          "models",
+          "classifiers",
+          "late_threshold_s",
+          "calibration",
+          "train_rows",
+          "training_group",
+          "max_items"
+        ],
+        "title": "ModelInfo"
+      },
+      "PredictItem": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Request Id"
+          },
+          "tr_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tr Id"
+          },
+          "cutoff_t": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutoff T"
+          },
+          "target_stop_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Stop Id"
+          },
+          "target_planned_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Planned At"
+          },
+          "features": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "features"
+        ],
+        "title": "PredictItem",
+        "description": "One prediction request. Target keys are metadata only and never reach the model."
+      },
+      "PredictRequest": {
+        "properties": {
+          "feature_schema_version": {
+            "type": "string",
+            "title": "Feature Schema Version"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PredictItem"
+            },
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "no_hint": {
+            "type": "boolean",
+            "title": "No Hint",
+            "default": false
+          },
+          "explain": {
+            "type": "boolean",
+            "title": "Explain",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "feature_schema_version",
+          "items"
+        ],
+        "title": "PredictRequest"
+      },
+      "PredictResponse": {
+        "properties": {
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "feature_schema_version": {
+            "type": "string",
+            "title": "Feature Schema Version"
+          },
+          "inference_ms": {
+            "type": "number",
+            "title": "Inference Ms"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/PredictResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_version",
+          "feature_schema_version",
+          "inference_ms",
+          "results"
+        ],
+        "title": "PredictResponse"
+      },
+      "PredictResult": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "delay_s": {
+            "type": "number",
+            "title": "Delay S"
+          },
+          "model_used": {
+            "type": "string",
+            "title": "Model Used"
+          },
+          "used_hint": {
+            "type": "boolean",
+            "title": "Used Hint"
+          },
+          "late_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Late Probability"
+          },
+          "late_threshold_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Late Threshold S"
+          },
+          "calibration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Calibration"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Explanation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "delay_s",
+          "model_used",
+          "used_hint",
+          "late_probability",
+          "late_threshold_s",
+          "calibration"
+        ],
+        "title": "PredictResult"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
