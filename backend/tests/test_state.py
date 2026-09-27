@@ -146,3 +146,22 @@ def test_clock_modes():
     assert follow.now_ns() >= int(T.value)
     follow.observe(int(T.value) - 10**9)  # Older event does not move the clock backwards.
     assert follow.now_ns() >= int(T.value)
+
+
+def test_spoofed_fix_is_hidden_from_display_but_kept_for_the_model(state):
+    airfield = {"lon": 37.4146, "lat": 55.9726, "speed": 99.0}
+    for seconds, kwargs in ((0, {}), (15, {"lon": 37.601}), (30, airfield), (45, airfield)):
+        assert state.add(event(seconds, **kwargs))
+    track = state.tracks["bus"]
+    assert track.last_valid.lat == 55.9726  # Device flag unchanged: model input as before.
+    assert track.last_trusted.lon == 37.601
+    assert "gps_spoofing_suspected" in track.quality_flags(T.value + 45 * SECOND_NS, 120)
+    times, lon, lat = track.valid_arrays()
+    assert list(lon) == [37.6, 37.601]
+    assert track.frame().location_valid.all()
+    assert state.summary(None)["suspect_gps_fixes"] == 2
+    # Returning to the route clears the flag; trimming forgets the old suspects.
+    state.add(event(60, lon=37.602))
+    assert "gps_spoofing_suspected" not in track.quality_flags(T.value + 60 * SECOND_NS, 120)
+    track.trim(T.value + 50 * SECOND_NS)
+    assert track.suspect == {}

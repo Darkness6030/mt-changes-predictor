@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from transport_ml.data import PLAN_COLUMNS, TRAFFIC_COLUMNS
 from transport_ml.features import distance_m, prepare_plan
+from transport_ml.gps_trust import GpsTrustFilter
 
 from transport_backend.clock import SECOND_NS, format_source
 from transport_backend.events import TelemetryEvent
@@ -149,6 +150,13 @@ class VehicleTrack:
         self.last_event_ns: int | None = None
         self.last_valid_ns: int | None = None
         self.last_valid: TelemetryEvent | None = None
+        # Device-valid fixes that failed the plausibility filter (spoofing, jumps), keyed by
+        # fingerprint. They stay in ``events`` for the model and are hidden from display.
+        self.gps_filter = GpsTrustFilter()
+        self.suspect: dict[tuple, str] = {}
+        self.suspect_fixes = 0
+        self.last_trusted: TelemetryEvent | None = None
+        self.last_suspect_reason: str | None = None
         self.received_events = 0
         # Monotonic wall clock of the newest accepted event: used only to measure the real
         # delay between ingestion and a published prediction.
@@ -175,7 +183,9 @@ class VehicleTrack:
         )
         if last_key is None or key >= last_key:
             if len(self.events) == self.events.maxlen:
-                self.fingerprints.discard(self.events.popleft().fingerprint())
+                evicted = self.events.popleft().fingerprint()
+                self.fingerprints.discard(evicted)
+                self.suspect.pop(evicted, None)
             self.events.append(event)
             self.fingerprints.add(fingerprint)
         else:
@@ -185,6 +195,9 @@ class VehicleTrack:
             )
             self.events = deque(ordered[-self.events.maxlen :], maxlen=self.events.maxlen)
             self.fingerprints = {item.fingerprint() for item in self.events}
+            self.suspect = {
+                key: value for key, value in self.suspect.items() if key in self.fingerprints
+            }
         self.received_events += 1
         self.last_received_monotonic = perf_counter()
         self.last_event_ns = max(self.last_event_ns or event.event_time_ns, event.event_time_ns)
@@ -194,12 +207,28 @@ class VehicleTrack:
         ):
             self.last_valid_ns = event.event_time_ns
             self.last_valid = event
+            # Only the newest fix advances the filter; a late packet is not re-judged and counts
+            # as device-valid. The model input does not depend on this verdict.
+            reason = self.gps_filter.update(
+                event.event_time_ns, event.lon, event.lat, event.speed_kmh
+            )
+            self.last_suspect_reason = reason
+            if reason is None:
+                self.last_trusted = event
+            else:
+                self.suspect[fingerprint] = reason
+                self.suspect_fixes += 1
         return True
+
+    def trusted(self, event: TelemetryEvent) -> bool:
+        """A device-valid fix that also passed the plausibility filter."""
+        return event.gps_valid and event.fingerprint() not in self.suspect
 
     def trim(self, before_ns: int) -> None:
         while self.events and self.events[0].event_time_ns < before_ns:
             removed = self.events.popleft()
             self.fingerprints.discard(removed.fingerprint())
+            self.suspect.pop(removed.fingerprint(), None)
             self.dropped_by_window += 1
         if self.last_valid is not None and self.last_valid.event_time_ns < before_ns:
             # The last known position is kept for display, but its real age is reported.
@@ -225,7 +254,7 @@ class VehicleTrack:
     def valid_arrays(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         times, lon, lat = [], [], []
         for event in self.events:
-            if event.gps_valid and event.lon is not None and event.lat is not None:
+            if self.trusted(event) and event.lon is not None and event.lat is not None:
                 times.append(event.event_time_ns)
                 lon.append(event.lon)
                 lat.append(event.lat)
@@ -239,6 +268,8 @@ class VehicleTrack:
             flags.append("stale_gps")
         if self.events and not all(event.gps_valid for event in self.events):
             flags.append("invalid_gps")
+        if self.last_suspect_reason is not None:
+            flags.append("gps_spoofing_suspected")
         if len(self.events) < 5:
             flags.append("sparse_history")
         if self.truncated:
@@ -372,6 +403,7 @@ class FleetState:
             "events_in_state": sum(len(track.events) for track in self.tracks.values()),
             "accepted_events": self.accepted_events,
             "duplicate_events": self.duplicate_events,
+            "suspect_gps_fixes": sum(track.suspect_fixes for track in self.tracks.values()),
             "rejected_future_events": self.rejected_future,
             "unmapped_units": len(self.unmapped),
             "last_event_at": format_source(

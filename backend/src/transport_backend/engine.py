@@ -819,8 +819,9 @@ class Engine:
         if track is not None:
             if track.last_event_ns is not None:
                 telemetry_age_s = (now_ns - track.last_event_ns) / SECOND_NS
-            if track.last_valid is not None:
-                last = track.last_valid
+            if track.last_trusted is not None:
+                # A spoofed or jumped fix is never drawn: show the last plausible one, aged.
+                last = track.last_trusted
                 position_age_s = (now_ns - last.event_time_ns) / SECOND_NS
                 position = {
                     "lon": last.lon,
@@ -978,7 +979,7 @@ class Engine:
         track = self.state.tracks.get(tr_id)
         track_points = []
         if track is not None:
-            events = [event for event in track.events if event.gps_valid][
+            events = [event for event in track.events if track.trusted(event)][
                 -self.settings.track_points :
             ]
             track_points = [

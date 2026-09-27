@@ -119,6 +119,7 @@ export function SystemPanel({ status, quality }: Props) {
             <Row label="ТС в состоянии" value={String(status?.state.vehicles ?? "—")} />
             <Row label="Событий в памяти" value={String(status?.state.events_in_state ?? "—")} />
             <Row label="Дубликатов" value={String(status?.state.duplicate_events ?? "—")} />
+            <Row label="Скрыто GPS-точек" value={String(status?.state.suspect_gps_fixes ?? "—")} />
             <Row label="Событий из будущего" value={String(status?.state.rejected_future_events ?? "—")} />
             <Row label="Несопоставленных устройств" value={String(status?.state.unmapped_units ?? "—")} />
           </tbody>
