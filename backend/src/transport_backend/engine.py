@@ -898,6 +898,13 @@ class Engine:
             raise KeyError(alert_id)
         if alert.acknowledged_at is None:
             alert.acknowledged_at = wall_iso()
+            # The dispatcher took the vehicle into work: its other open alerts (later stops of
+            # the same episode, opened before this click) are covered by the same mark.
+            for other in self.alerts.values():
+                if other.tr_id == alert.tr_id and other.state == "active" and other is not alert:
+                    if other.acknowledged_at is None:
+                        other.acknowledged_at = alert.acknowledged_at
+                        other.acknowledged_from = alert.alert_id
             self.revision += 1
         return alert
 
