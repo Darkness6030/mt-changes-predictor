@@ -1,0 +1,7 @@
+{
+  "train_rows": 4183,
+  "train_seconds": 59.18393877199969,
+  "recipe_sha256": "f87b864fd8a1c2cc633bcb6fc99c2ee3cc7eb678e9c1f17423118b82456ac437",
+  "model_version": "3b03a6c8592e83149ad33787a9263922471cfecb0471011007e57762b365dc27",
+  "probability_note": "Risk classifiers and their development calibration are unchanged from v2."
+}
