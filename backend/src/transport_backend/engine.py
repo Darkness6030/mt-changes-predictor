@@ -67,6 +67,8 @@ class Alert:
     trip_edge: str | None = None
     # Set when the acknowledgement was carried over from the vehicle's previous incident.
     acknowledged_from: str | None = None
+    # Who took the vehicle into work (the signed-in dispatcher, or the role without auth).
+    acknowledged_by: str | None = None
     # Warning passport: the arrival actually seen in GPS after the planned time (no labels).
     observed_arrival_at: str | None = None
     observed_delay_s: float | None = None
@@ -896,6 +898,7 @@ class Engine:
             source = max(previous, key=lambda item: parse_source(item.latest_prediction_at))
             alert.acknowledged_at = source.acknowledged_at
             alert.acknowledged_from = source.acknowledged_from or source.alert_id
+            alert.acknowledged_by = source.acknowledged_by
 
     def whatif_reserve(self, tr_id: str, reserve_in_min: float) -> dict:
         """What if a reserve vehicle reaches the terminal in ``reserve_in_min`` minutes."""
@@ -1027,12 +1030,13 @@ class Engine:
             for alert_id, _ in closed[:overflow]:
                 del self.alerts[alert_id]
 
-    def acknowledge(self, alert_id: str) -> Alert:
+    def acknowledge(self, alert_id: str, by: str | None = None) -> Alert:
         alert = self.alerts.get(alert_id)
         if alert is None:
             raise KeyError(alert_id)
         if alert.acknowledged_at is None:
             alert.acknowledged_at = wall_iso()
+            alert.acknowledged_by = by
             # The dispatcher took the vehicle into work: its other open alerts (later stops of
             # the same episode, opened before this click) are covered by the same mark.
             for other in self.alerts.values():
@@ -1040,6 +1044,7 @@ class Engine:
                     if other.acknowledged_at is None:
                         other.acknowledged_at = alert.acknowledged_at
                         other.acknowledged_from = alert.alert_id
+                        other.acknowledged_by = by
             self.revision += 1
         return alert
 

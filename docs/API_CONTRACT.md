@@ -61,7 +61,9 @@
 | `POST` | `/v1/predict` | Пакетный инференс по готовым признакам |
 
 `GET /v1/model` также возвращает `feature_config`, `hint_policy`, а в `models` —
-`member_count` для каждого режима. Backend строит признаки по полученному config;
+`member_count` для каждого режима. Поля `runtime` (`catboost` | `onnx`) и `runtime_note`
+(паритет ONNX с CatBoost или причина возврата на CatBoost) показывают исполняющий движок;
+выбор — переменная `ML_RUNTIME`, потоки ONNX — `ML_ONNX_THREADS`. Backend строит признаки по полученному config;
 schema/config должны согласовываться. Schema 2 требует окна состояния не меньше 1800 с.
 `hint_policy=gps_estimated` сохраняет поведение v1/v2; `supplied_only` у v3 запрещает
 подстановку GPS-оценки в `cur_dev_s`. Наблюдаемые GPS/плановые оценки входят отдельными
@@ -139,6 +141,17 @@ schema/config должны согласовываться. Schema 2 требуе
 | `GET` | `/api/v1/metrics/quality` | Измеренные offline/replay метрики, без выдуманных чисел |
 | `GET` | `/api/v1/metrics` | Технические счётчики и гистограммы latency (JSON) |
 | `POST` | `/api/v1/replay/control` | `start`/`pause`/`reset`/`speed`; только demo-режим replay |
+| `GET` | `/api/v1/auth` | Кто вызывает: `enabled`, `authenticated`, `name`, `role`, `can_act` |
+
+**Вход (совместимое дополнение, по умолчанию выключен).** Без `BACKEND_AUTH_USERS` API
+работает как раньше, `/api/v1/auth` → `enabled=false, can_act=true`. С переменной
+(`роль:имя:токен;…`, роли `dispatcher` и `viewer`) все `/api/*`, кроме `/api/v1/auth`,
+требуют `Authorization: Bearer <токен>`: без него — 401 `unauthorized` с
+`WWW-Authenticate: Bearer`; `POST` от `viewer` — 403 `forbidden`. `/health/*`, `/docs`,
+`/openapi.json` открыты (Swagger показывает кнопку Authorize). Backend хранит только
+SHA-256 токенов и сравнивает их за постоянное время; в status/логи токены не попадают.
+В алерте `acknowledged_by` — имя диспетчера, отметившего «принято в работу» (без входа —
+«Диспетчер»); при переносе отметки на следующую остановку переносится и имя.
 
 Фильтры snapshot: `risk=green|yellow|red`, `only_attention=true`, `stale=true|false`,
 `limit`. Пустой фильтр возвращает весь парк.

@@ -1,7 +1,7 @@
 /** One thin API layer. The UI never computes risk or picks a target: it renders Backend data. */
 
 import type {
-  DemoSource, DemoState, ExplanationAnswer, WhatIfAnswer, HistoryFrame, Quality, Snapshot, Status, VehicleDetail,
+  AuthState, DemoSource, DemoState, ExplanationAnswer, WhatIfAnswer, HistoryFrame, Quality, Snapshot, Status, VehicleDetail,
 } from "./types";
 
 export class ApiError extends Error {
@@ -13,6 +13,34 @@ export class ApiError extends Error {
   }
 }
 
+const TOKEN_KEY = "dispatcher-token";
+
+/** Optional sign-in token (the stand runs without accounts unless the Backend enables them). */
+export const authToken = {
+  get(): string | null {
+    try { return window.localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  },
+  set(token: string): void {
+    try { window.localStorage.setItem(TOKEN_KEY, token); } catch { /* private mode: session only */ }
+    memoryToken = token;
+  },
+  clear(): void {
+    try { window.localStorage.removeItem(TOKEN_KEY); } catch { /* nothing stored */ }
+    memoryToken = null;
+  },
+};
+let memoryToken: string | null = null;
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = memoryToken ?? authToken.get();
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
+}
+
+/** A 401 means the token expired or was revoked: the sign-in gate asks again. */
+function checkAuth(response: Response): void {
+  if (response.status === 401) window.dispatchEvent(new Event("auth-required"));
+}
+
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController();
   let timedOut = false;
@@ -21,7 +49,8 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (signal?.aborted) cancel();
   const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 5000);
   try {
-    const response = await fetch(path, { signal: controller.signal, headers: { Accept: "application/json" } });
+    const response = await fetch(path, { signal: controller.signal, headers: authHeaders({ Accept: "application/json" }) });
+    checkAuth(response);
     if (!response.ok) {
       const body = await response.json().catch(() => null);
       throw new ApiError(body?.detail?.detail ?? `${response.status} ${response.statusText}`, response.status);
@@ -39,6 +68,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 export type ReplayAction = "start" | "pause" | "reset" | "speed" | "seek";
 
 export const api = {
+  auth: (signal?: AbortSignal) => request<AuthState>("/api/v1/auth", signal),
   history: (runId: string, at: string, signal?: AbortSignal) =>
     request<HistoryFrame>(`/api/v1/history?${new URLSearchParams({ run_id: runId, at })}`, signal),
   demo: (signal?: AbortSignal) => request<DemoState>("/api/v1/demo/sources", signal),
@@ -48,9 +78,10 @@ export const api = {
     try {
       const response = await fetch("/api/v1/demo/source", {
         method: "POST", signal: controller.signal,
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ source, speed }),
       });
+      checkAuth(response);
       const body = await response.json();
       if (!response.ok) throw new ApiError(body?.detail?.detail ?? "Источник не переключён", response.status);
       return body as DemoState;
@@ -76,16 +107,21 @@ export const api = {
     ),
   async acknowledge(alertId: string): Promise<void> {
     const response = await fetch(`/api/v1/alerts/${encodeURIComponent(alertId)}/ack`, {
-      method: "POST",
+      method: "POST", headers: authHeaders(),
     });
-    if (!response.ok) throw new ApiError("Не удалось отметить алерт", response.status);
+    checkAuth(response);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(body?.detail?.detail ?? "Не удалось отметить алерт", response.status);
+    }
   },
   async replay(action: ReplayAction, speed?: number, startAt?: string): Promise<void> {
     const response = await fetch("/api/v1/replay/control", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ action, speed, start_at: startAt }),
     });
+    checkAuth(response);
     if (!response.ok) {
       const body = await response.json().catch(() => null);
       throw new ApiError(body?.detail?.detail ?? "Команда replay отклонена", response.status);
