@@ -17,6 +17,9 @@
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
 | Тесты | 175 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
+Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
+[DEMO.md](docs/DEMO.md); тексты формы сдачи — [SUBMISSION.md](docs/SUBMISSION.md).
+
 ## Запуск за одну команду
 
 Для карты укажите `VITE_YANDEX_MAPS_API_KEY` в корневом `.env` (см. `.env.example`).

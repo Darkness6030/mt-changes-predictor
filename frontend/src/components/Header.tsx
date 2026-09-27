@@ -30,51 +30,33 @@ export function Header({ snapshot, status, ageMs, error, historical = false }: P
         </div>
         <div className="header-data-status" role={error ? "alert" : undefined} title={error ?? undefined}>{error}</div>
       </div>
-      <div className="kpis">
-        <div className="kpi">
-          <b>{summary?.with_prediction ?? "—"}</b>
-          <span>с прогнозом</span>
-        </div>
-        <div className="kpi red">
+      <div className="kpis" aria-label="Сводка для диспетчера">
+        <div className="kpi red" title="ТС с риском по задержке или по вероятности опоздания">
           <b>{summary?.attention ?? "—"}</b>
           <span>требуют внимания</span>
         </div>
-        <div className="kpi grey">
-          <b>{summary?.no_prediction ?? "—"}</b>
-          <span>без прогноза</span>
+        <div
+          className={`kpi ${(summary?.edge_trips_at_risk ?? 0) > 0 ? "red" : "grey"}`}
+          title="Первый или последний рейс дня под угрозой опоздания"
+        >
+          <b>{summary?.edge_trips_at_risk ?? 0}</b>
+          <span>крайние рейсы в риске</span>
         </div>
-        <div className="kpi yellow">
-          <b>{summary?.stale ?? "—"}</b>
-          <span>устаревшие</span>
+        <div className="kpi" title="Открытые алерты раннего предупреждения">
+          <b>{summary?.alerts_active ?? "—"}</b>
+          <span>активных алертов</span>
         </div>
         <div className="kpi">
-          <b>{summary?.vehicles ?? "—"}</b>
-          <span>{historical ? "ТС в снимке" : "ТС в потоке"}</span>
+          <b>
+            {summary?.with_prediction ?? "—"}
+            <small> / {summary?.vehicles ?? "—"}</small>
+          </b>
+          <span>{historical ? "с прогнозом в снимке" : "ТС с прогнозом"}</span>
         </div>
-        {!historical && status?.performance ? (
-          <div className="kpi" title="p95 полного обращения Backend → ML → Backend">
-            <b>{status.performance.ml_round_trip_ms.p95_ms?.toFixed(0) ?? "—"}</b>
-            <span>p95 ML, мс</span>
-          </div>
-        ) : null}
-        {clock?.source_progress !== undefined ? (
-          <div className="kpi" title="Доставлено событий из всего периода данных">
-            <b>{Math.round((clock.source_progress ?? 0) * 100)}%</b>
-            <span>период пройден</span>
-          </div>
-        ) : null}
-        {!historical && status?.points ? (
-          <div className="kpi" title="Официальные прогнозные точки, обработанные в потоке">
-            <b>{status.points.predicted}</b>
-            <span>точек посчитано</span>
-          </div>
-        ) : null}
-        {status?.ndtp ? (
-          <div className="kpi" title="Принятые NDTP-пакеты телематики">
-            <b>{String(status.ndtp.realtime_frames ?? 0)}</b>
-            <span>{historical ? "пакетов сейчас" : "NDTP-пакетов"}</span>
-          </div>
-        ) : null}
+        <div className="kpi yellow" title="Позиция старше порога: показано последнее состояние">
+          <b>{summary?.stale ?? "—"}</b>
+          <span>устаревшие данные</span>
+        </div>
         {ageMs !== null && ageMs > 5000 ? (
           <div className="kpi yellow" title="Возраст последнего успешного ответа API">
             <b>{duration(ageMs / 1000)}</b>

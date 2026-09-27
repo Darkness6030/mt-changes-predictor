@@ -5,6 +5,7 @@ import {
   STATUS_LABEL,
   freshness,
   severity,
+  tripEdge,
   signedDelay,
   sourceTime,
   stopLabel,
@@ -101,6 +102,28 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
           ))}
         </div>
       </div>
+      {snapshot?.hotspots?.length ? (
+        <div className="hotspots" aria-label="Где копится опоздание">
+          <div className="hotspots-title">Где копится опоздание · за прогон</div>
+          {snapshot.hotspots.slice(0, 3).map((spot) => (
+            <button
+              key={spot.segment_id}
+              className="hotspot"
+              title="Прирост отклонения между соседними остановками, наблюдаемый по GPS. Нажмите, чтобы открыть ТС"
+              onClick={() => { onSelect(spot.tr_id); onFocus(spot.tr_id); }}
+            >
+              <span className="hotspot-gain risk-red">{signedDelay(spot.gain_total_s)}</span>
+              <span className="hotspot-where">
+                {stopLabel(spot.from.address, spot.from.target_stop_id)} →{" "}
+                {stopLabel(spot.to.address, spot.to.target_stop_id)}
+              </span>
+              <span className="hotspot-meta">
+                ТС {spot.tr_id} · проездов {spot.passes}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="list">
         {rows.length === 0 ? (
           <div className="empty">Под фильтр ничего не подходит.</div>
@@ -146,6 +169,14 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                       title={`Вероятность задержки больше ${Math.round(prediction!.late_threshold_s ?? 120)} с`}
                     >
                       опоздание {Math.round(prediction!.late_probability * 100)}%
+                    </span>
+                  ) : null}
+                  {ok && tripEdge(prediction) ? (
+                    <span
+                      className={prediction!.attention ? "badge stale" : "badge"}
+                      title={`Рейс ${prediction!.trip!.number} из ${prediction!.trip!.total}: крайние рейсы дня критичны для выполнения плана`}
+                    >
+                      {tripEdge(prediction)}
                     </span>
                   ) : null}
                   {ok && prediction!.attention === "probability" ? (

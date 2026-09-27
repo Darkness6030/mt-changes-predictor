@@ -171,3 +171,12 @@ def test_openapi_documents_typed_dispatcher_responses(client):
     assert {"Snapshot", "VehicleDetail", "Prediction", "ExplanationAnswer"} <= set(
         spec["components"]["schemas"]
     )
+
+
+def test_whatif_endpoint_answers_and_validates(client):
+    snapshot = client.get("/api/v1/snapshot").json()
+    tr_id = snapshot["vehicles"][0]["tr_id"] if snapshot["vehicles"] else "129964"
+    body = client.get(f"/api/v1/vehicles/{tr_id}/whatif", params={"reserve_in_min": 15}).json()
+    assert body["tr_id"] == tr_id and "available" in body
+    assert client.get("/api/v1/vehicles/unknown/whatif").status_code == 404
+    assert client.get(f"/api/v1/vehicles/{tr_id}/whatif?reserve_in_min=-1").status_code == 422

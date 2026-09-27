@@ -12,6 +12,8 @@ import {
 } from "../format";
 import { CurrentDeviationCard } from "./CurrentDeviationCard";
 import { PredictionExplanation } from "./PredictionExplanation";
+import { WarningPassport } from "./WarningPassport";
+import { WhatIfReserve } from "./WhatIfReserve";
 import type { Alert, RiskPolicy, VehicleDetail } from "../types";
 
 interface Props {
@@ -95,6 +97,13 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
               <span className="v">{duration(prediction!.horizon_s)}</span>
               <span className="k">Момент расчёта T</span>
               <span className="v">{sourceTime(prediction!.cutoff_t)}</span>
+              <span className="k">Рейс</span>
+              <span className="v">
+                {prediction!.trip
+                  ? `${prediction!.trip.number} из ${prediction!.trip.total}` +
+                    (prediction!.trip.first ? " · первый рейс дня" : prediction!.trip.last ? " · последний рейс дня" : "")
+                  : "не определён"}
+              </span>
               <span className="k">Остановка</span>
               <span className="v">{prediction!.target_stop_id}</span>
             </div>
@@ -168,6 +177,10 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             </div>
           </div>
 
+          {ok && !readOnly && prediction!.trip && prediction!.prediction_id ? (
+            <WhatIfReserve trId={detail.tr_id} predictionId={prediction!.prediction_id} />
+          ) : null}
+
           <div className="section">
             <h3>Предлагаемое действие</h3>
             <div className="advice">{prediction!.recommendation}</div>
@@ -200,6 +213,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
           </div>
         </>
       )}
+
+      <WarningPassport detail={detail} alerts={alerts} />
 
       <div className="section">
         <h3>Качество данных</h3>
