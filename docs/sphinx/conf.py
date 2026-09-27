@@ -30,10 +30,11 @@ autodoc_default_options = {
     "member-order": "bysource",
     "show-inheritance": True,
 }
-autodoc_mock_imports = ["catboost", "fastapi", "httpx", "pydantic", "uvicorn", "starlette"]
+viewcode_follow_imported_members = False
 autodoc_typehints = "description"
 napoleon_google_docstring = True
-intersphinx_mapping = {"python": ("https://docs.python.org/3.12", None)}
+# Release documentation must build without network after dependencies are installed.
+intersphinx_mapping = {}
 
 templates_path = []
 exclude_patterns = ["_build"]
