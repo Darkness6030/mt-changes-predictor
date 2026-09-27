@@ -192,3 +192,101 @@ async def test_connection_cap_rejects_extra_clients():
         second.close()
     finally:
         await server.stop()
+
+
+def _replay_rows(count: int):
+    import pandas as pd
+
+    start = pd.Timestamp("2026-01-06 12:00:00")
+    return pd.DataFrame(
+        {
+            "event_time": [start + pd.Timedelta(seconds=15 * i) for i in range(count)],
+            "lon": [37.6 + 0.001 * i for i in range(count)],
+            "lat": [55.7] * count,
+            "gps_valid": [True] * count,
+            "speed": [20.0] * count,
+            "heading": [90.0] * count,
+        }
+    )
+
+
+async def test_sender_reconnects_and_resumes_after_a_reset():
+    from transport_backend.ndtp_client import ReplayStats, _send_unit
+
+    received: list[int] = []
+    connections = 0
+
+    async def handle(reader, writer):
+        nonlocal connections
+        connections += 1
+        buffer = bytearray()
+        limit = 3 if connections == 1 else 10_000  # The first connection drops early.
+        seen = 0
+        while seen <= limit:
+            data = await reader.read(4096)
+            if not data:
+                break
+            buffer.extend(data)
+            frames, used = decode_stream(buffer)
+            del buffer[:used]
+            for frame in frames:
+                if frame.is_realtime:
+                    received.append(parse_nav00(parse_cells(frame.body)[0][2]).timestamp)
+                    seen += 1
+        writer.close()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    rows = _replay_rows(40)
+    stats = ReplayStats()
+    loop = asyncio.get_running_loop()
+    origin = int(rows.event_time.iloc[0].value)
+    try:
+        await _send_unit(
+            "127.0.0.1",
+            port,
+            str(UNIT),
+            rows,
+            1500.0,
+            0.0,
+            stats,
+            origin,
+            loop.time(),
+            retry_delays_s=(0.05, 0.05, 0.05),
+        )
+        await asyncio.sleep(0.2)
+    finally:
+        server.close()
+        await server.wait_closed()
+    assert connections >= 2 and stats.reconnects >= 1 and stats.errors == 0
+    last = int(rows.event_time.iloc[-1].value // 1_000_000_000)
+    assert received[-1] == last  # The replay reached the end after the reset.
+    # At most the frames in flight at the reset are lost; nothing is invented.
+    assert len(set(received)) >= len(rows) - 3
+    assert set(received) <= {int(t.value // 1_000_000_000) for t in rows.event_time}
+
+
+async def test_sender_gives_up_after_the_retry_budget():
+    from transport_backend.ndtp_client import ReplayStats, _send_unit
+
+    probe = await asyncio.start_server(lambda r, w: None, "127.0.0.1", 0)
+    port = probe.sockets[0].getsockname()[1]
+    probe.close()
+    await probe.wait_closed()  # Nothing listens on this port any more.
+    stats = ReplayStats()
+    loop = asyncio.get_running_loop()
+    rows = _replay_rows(3)
+    with pytest.raises(OSError):
+        await _send_unit(
+            "127.0.0.1",
+            port,
+            str(UNIT),
+            rows,
+            1000.0,
+            0.0,
+            stats,
+            int(rows.event_time.iloc[0].value),
+            loop.time(),
+            retry_delays_s=(0.01, 0.01),
+        )
+    assert stats.reconnects == 2 and stats.errors == 1 and stats.frames == 0
