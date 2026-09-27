@@ -29,6 +29,13 @@ def main() -> None:
     parser.add_argument("--v4", type=Path, default=Path("ml/pretrained/v4"))
     parser.add_argument("--v5", type=Path, default=Path("ml/pretrained/v5"))
     parser.add_argument("--trip", type=Path, required=True, help="trained improve13 recipe")
+    parser.add_argument(
+        "--extra",
+        action="append",
+        default=[],
+        metavar="PREFIX=DIR",
+        help="additional trained bundles for a wider equal-weight union (v7: c, d)",
+    )
     parser.add_argument("--recipe", type=Path, default=Path("ml/experiments/improve13-recipe.json"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -41,10 +48,15 @@ def main() -> None:
             check=True,
         )  # fmt: skip
     sources = {"a": DelayModel(args.v4), "b": DelayModel(args.trip)}
+    for item in args.extra:
+        prefix, path = item.split("=", 1)
+        if prefix in sources:
+            raise ValueError(f"Duplicate source prefix: {prefix}")
+        sources[prefix] = DelayModel(Path(path))
     classifiers = DelayModel(args.v5)
     config = FeatureConfig(**sources["b"].manifest["feature_config"])
-    if not set(sources["a"].features) <= set(sources["b"].features):
-        raise ValueError("Schema 3 must contain every schema 2 feature")
+    if any(not set(source.features) <= set(sources["b"].features) for source in sources.values()):
+        raise ValueError("Schema 3 must contain every member feature")
     args.output.mkdir(parents=True, exist_ok=False)
     models = {}
     for mode in ("main", "fallback"):
@@ -65,7 +77,8 @@ def main() -> None:
         "feature_config": config.to_dict(),
         "time_basis": "dataset_naive_ns",
         "hint_policy": "supplied_only",
-        "training_group": "equal-weight union of v4 (schema 2) and improve13 trip ensembles",
+        "training_group": "equal-weight union of independently trained ensembles: "
+        + ", ".join(sources),
         "train_rows": sources["b"].manifest["train_rows"],
         "models": models,
         "classifiers": classifiers.manifest["classifiers"],

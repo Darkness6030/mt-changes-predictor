@@ -1,0 +1,119 @@
+{
+  "name": "trip-no-synthetic",
+  "feature_config": {
+    "schedule_context": true,
+    "trip_context": true
+  },
+  "hint_policy": "supplied_only",
+  "training_group": "real train + test, trip features, no synthetic (v7 factorial cell c)",
+  "training_data": {
+    "splits": [
+      "train",
+      "test"
+    ],
+    "synthetic": "exclude"
+  },
+  "models": {
+    "main": [
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_res_d6_600",
+          "mode": "main",
+          "features": "full",
+          "depth": 6,
+          "iterations": 600,
+          "loss": "MAE",
+          "residual": true,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.05
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_dir_d6_1000_lr03",
+          "mode": "main",
+          "features": "full",
+          "depth": 6,
+          "iterations": 1000,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.03
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "main_dir_d8_600",
+          "mode": "main",
+          "features": "full",
+          "depth": 8,
+          "iterations": 600,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.05
+        }
+      }
+    ],
+    "fallback": [
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fb_dir_d6_600",
+          "mode": "fallback",
+          "features": "full",
+          "depth": 6,
+          "iterations": 600,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.05
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fb_dir_d4_1000_lr03",
+          "mode": "fallback",
+          "features": "full",
+          "depth": 4,
+          "iterations": 1000,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.03
+        }
+      },
+      {
+        "weight": 0.3333333333333333,
+        "candidate": {
+          "name": "fb_dir_d8_600",
+          "mode": "fallback",
+          "features": "full",
+          "depth": 8,
+          "iterations": 600,
+          "loss": "MAE",
+          "residual": false,
+          "l2": 5,
+          "seed": 42,
+          "augmentation": false,
+          "learning_rate": 0.05
+        }
+      }
+    ]
+  },
+  "classifier_source": "ml/pretrained/v2"
+}
