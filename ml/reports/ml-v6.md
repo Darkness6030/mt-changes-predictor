@@ -20,7 +20,7 @@ trip-модели после исправления детерминизма п�
 | v6 (среднее) | 67,82 | 78,60 |
 
 Сборка: `ml/experiments/improve13_build_v6.py`; [метрики](../pretrained/v6/metrics.json).
-Platform score v6 не проверялся.
+Platform score v6: **0,90034** (27.09 20:54) против 0,86126 у v4 и 0,85649 у trip-модели.
 
 ## Trip-модель (ML-IMPROVE-13)
 
