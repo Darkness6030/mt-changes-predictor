@@ -1,0 +1,180 @@
+{
+  "scored_rows": 1311,
+  "scored_visits": 322,
+  "labelled_visits": 353,
+  "visit_coverage": 0.9121813031161473,
+  "metrics": {
+    "candidate": {
+      "mae_s": 82.86282027413012,
+      "visit_weighted_mae_s": 80.94324980186911,
+      "p90_s": 169.0455097647705
+    },
+    "baseline_estimated": {
+      "mae_s": 100.45629108996629,
+      "visit_weighted_mae_s": 96.41386686008481,
+      "p90_s": 212.51523011589643
+    },
+    "baseline_no_hint": {
+      "mae_s": 94.79429411857498,
+      "visit_weighted_mae_s": 93.6434024114997,
+      "p90_s": 210.5588948139849
+    },
+    "zero": {
+      "mae_s": 107.73150266971777,
+      "visit_weighted_mae_s": 111.2919254658385,
+      "p90_s": 262.0
+    }
+  },
+  "by_vehicle": {
+    "122048": {
+      "candidate": 219.2928330259296,
+      "baseline_estimated": 226.26390963352983,
+      "baseline_no_hint": 220.8927962297797,
+      "zero": 231.52830188679246
+    },
+    "122613": {
+      "candidate": 92.14705155363939,
+      "baseline_estimated": 103.79533246406459,
+      "baseline_no_hint": 89.05918889318484,
+      "zero": 109.72727272727273
+    },
+    "122658": {
+      "candidate": 64.53594428823297,
+      "baseline_estimated": 183.19060452698545,
+      "baseline_no_hint": 70.58597715867532,
+      "zero": 83.34146341463415
+    },
+    "129964": {
+      "candidate": 53.81054438842126,
+      "baseline_estimated": 76.34096789114464,
+      "baseline_no_hint": 66.19101285742113,
+      "zero": 65.70588235294117
+    },
+    "130072": {
+      "candidate": 123.80249333128613,
+      "baseline_estimated": 191.47076239771022,
+      "baseline_no_hint": 16.132139633438445,
+      "zero": 0.0
+    },
+    "130238": {
+      "candidate": 45.32255404238704,
+      "baseline_estimated": 90.68177420533145,
+      "baseline_no_hint": 34.68170285810147,
+      "zero": 34.94736842105263
+    },
+    "131672": {
+      "candidate": 64.29613090146735,
+      "baseline_estimated": 75.90077515886213,
+      "baseline_no_hint": 92.22802309838498,
+      "zero": 92.37931034482759
+    },
+    "132430": {
+      "candidate": 101.92099127772693,
+      "baseline_estimated": 125.52542890796862,
+      "baseline_no_hint": 113.79318223858024,
+      "zero": 152.7962962962963
+    },
+    "133300": {
+      "candidate": 67.94227462720787,
+      "baseline_estimated": 83.03997482603431,
+      "baseline_no_hint": 91.35947117884335,
+      "zero": 57.83606557377049
+    },
+    "133957": {
+      "candidate": 68.68148741772823,
+      "baseline_estimated": 70.24036486750373,
+      "baseline_no_hint": 82.9977223719313,
+      "zero": 104.8695652173913
+    },
+    "134040": {
+      "candidate": 69.58246939077287,
+      "baseline_estimated": 77.81718534147902,
+      "baseline_no_hint": 74.20618444301626,
+      "zero": 111.17209302325581
+    },
+    "135081": {
+      "candidate": 76.73211843217989,
+      "baseline_estimated": 74.28970840743179,
+      "baseline_no_hint": 91.19161374388234,
+      "zero": 108.13131313131314
+    }
+  },
+  "late_probability": {
+    "rows": 1311,
+    "positive_rate": 0.23646071700991608,
+    "brier": 0.17923796533555011,
+    "base_rate_brier": 0.18054704632107246,
+    "log_loss": 0.5361005678181469,
+    "roc_auc": 0.6638297186684283,
+    "bins": [
+      {
+        "range": [
+          0.0,
+          0.2
+        ],
+        "rows": 335,
+        "mean_predicted": 0.14244440135816122,
+        "observed_rate": 0.08358208955223881
+      },
+      {
+        "range": [
+          0.2,
+          0.4
+        ],
+        "rows": 616,
+        "mean_predicted": 0.2885569176996299,
+        "observed_rate": 0.2435064935064935
+      },
+      {
+        "range": [
+          0.4,
+          0.6000000000000001
+        ],
+        "rows": 304,
+        "mean_predicted": 0.4847503452183349,
+        "observed_rate": 0.35526315789473684
+      },
+      {
+        "range": [
+          0.6000000000000001,
+          0.8
+        ],
+        "rows": 50,
+        "mean_predicted": 0.67948736523741,
+        "observed_rate": 0.4
+      },
+      {
+        "range": [
+          0.8,
+          1.0
+        ],
+        "rows": 6,
+        "mean_predicted": 0.8338645487574858,
+        "observed_rate": 0.6666666666666666
+      }
+    ],
+    "status": "validated"
+  },
+  "lead_from_cutoff_s": {
+    "min": 354.0,
+    "median": 737.0,
+    "p10": 579.0,
+    "fraction_at_least_600s": 0.8642257818459191,
+    "note": "Observed arrival minus source cutoff, not wall-clock publication time."
+  },
+  "predictions": 15077,
+  "opportunities": 16472,
+  "stale": 1361,
+  "warming_up": 34,
+  "runtime_s": 183.2764417479998,
+  "feature_and_three_model_batch_ms": {
+    "p50": 56.80986450011005,
+    "p95": 79.04999529971518
+  },
+  "limitations": [
+    "Event-time cadence, not a TCP/HTTP/delivery-latency benchmark.",
+    "Repeated cutoffs for the same target are dependent; visit-weighted MAE is also given.",
+    "Only labelled visits can be scored; unlabelled predictions remain in the archive.",
+    "One day shared with training telemetry; not a new-day external benchmark."
+  ]
+}
