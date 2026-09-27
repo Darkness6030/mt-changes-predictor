@@ -2,8 +2,8 @@
 
 ## Sphinx: код ML и Backend
 
-**[Скачать готовую HTML-документацию](code-reference.zip)** — нажмите
-**Download raw file**, распакуйте архив и откройте `index.html`.
+[Скачайте HTML-документацию](code-reference.zip) кнопкой **Download raw file**,
+распакуйте архив и откройте `index.html`.
 Python и запущенный стенд для чтения не нужны.
 
 В справочнике описаны признаки и модели, обучение, инференс, NDTP,
@@ -19,15 +19,16 @@ Python и запущенный стенд для чтения не нужны.
 | Backend | http://localhost:8080/docs | [backend.json](openapi/backend.json) |
 | ML | http://localhost:8011/docs | [ml.json](openapi/ml.json) |
 
-В Swagger Backend попробуйте `GET /api/v1/snapshot` — текущие ТС, прогнозы
-и алерты; затем `GET /api/v1/metrics/quality` — метрики качества.
+В Swagger Backend запрос `GET /api/v1/snapshot` возвращает текущие ТС, прогнозы
+и алерты. Запрос `GET /api/v1/metrics/quality` возвращает метрики качества.
 В Swagger ML запрос `GET /v1/model` покажет модель и движок инференса.
 `POST /v1/predict` принимает готовые признаки, которые рассчитывает Backend.
 
 Живые схемы доступны по `/openapi.json` на тех же адресах.
 При запуске на сервере замените `localhost` на его адрес.
 Единицы, статусы и поля диагностических ответов описаны в
-[контракте API](API_CONTRACT.md); [интерфейс — в README Frontend](../frontend/README.md).
+[контракте API](API_CONTRACT.md). Работа с интерфейсом описана
+в [README Frontend](../frontend/README.md).
 
 ## Пересборка документации
 
