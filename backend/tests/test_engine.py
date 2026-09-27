@@ -602,3 +602,10 @@ def test_warning_outcome_respects_the_warned_direction():
     assert warning_outcome(150.0, 30.0, policy) == "within_norm"
     assert warning_outcome(150.0, -276.0, policy) == "opposite"  # Warned late, came early.
     assert warning_outcome(-120.0, -90.0, policy) == "confirmed"  # Early warning held.
+
+
+def test_early_running_advice_names_a_hold_time():
+    from transport_backend.explain import recommendation
+
+    advice = recommendation(-190.0, [], RiskPolicy())
+    assert "придержать" in advice and "3 мин" in advice
