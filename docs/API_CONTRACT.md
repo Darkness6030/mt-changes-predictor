@@ -206,7 +206,16 @@ schema/config должны согласовываться. Schema 2 требуе
 
 `position = null` означает отсутствие валидной позиции в окне (не координату 0,0).
 `quality_flags` ⊂ `{invalid_gps, stale_gps, sparse_history, clock_skew, no_schedule,
-no_mapping, history_truncated}`.
+no_mapping, history_truncated, gps_spoofing_suspected}`.
+
+`position`, `position_age_s`, `track` и GPS-оценка `current_deviation` используют только
+правдоподобные фиксы (`transport_ml.gps_trust`): точку с `location_valid=True` в известной
+зоне подмены GNSS у Шереметьево или после скачка >1 км со скоростью >150 км/ч скрывают,
+пока трек не вернётся или новый трек не подтвердится 5 согласованными фиксами. Тогда
+`position` — последняя правдоподобная точка с её реальным возрастом, флаг
+`gps_spoofing_suspected` выставлен, пока новейший фикс подозрителен. Признаки ML и
+статусы прогноза по-прежнему опираются на флаг устройства. `status.state.suspect_gps_fixes`
+— число скрытых фиксов за прогон.
 
 ### 5.2.0 Текущее отклонение (совместимое дополнение v1)
 
@@ -289,10 +298,45 @@ UI не смешивает карточку старого прогона с н�
     {"kind": "speed_drop", "text": "Скорость за 3 мин 4,2 км/ч против 18,0 км/ч за 10 мин",
      "value": 4.2}
   ],
+  "attention": "delay",
   "recommendation": "Уточнить у водителя причину задержки; рассмотреть регулирование по действующим правилам",
   "quality_flags": []
 }
 ```
+
+`attention` — почему ТС в очереди внимания: `delay` (цвет риска жёлтый/красный по задержке),
+`probability` (задержка в норме, но `late_probability ≥ risk_policy.late_probability_red`),
+`null` — внимание не требуется. Алерт открывается по тому же правилу и хранит `attention`.
+Отметка «принято в работу» переносится на новый алерт того же ТС, открытый не позже 15 минут
+времени источника после последнего прогноза подтверждённого алерта (следующая остановка того
+же эпизода); такой алерт содержит `acknowledged_from` — ID исходного алерта. Подтверждение
+одного алерта сразу отмечает и остальные активные алерты этого ТС.
+
+`GET /api/v1/vehicles/{tr_id}/explanation?prediction_id=p-000123` — точное разложение
+текущего прогноза ТС, считается по запросу (ML `explain=true`) и кэшируется (до 256):
+
+```json
+{
+  "run_id": "run-…", "tr_id": "132430", "prediction_id": "p-000123",
+  "model_version": "03760ad9…", "delay_s": 76.4,
+  "explanation": {
+    "base_s": 37.0,
+    "groups": [
+      {"group": "schedule_match", "label": "Положение относительно расписания по GPS",
+       "seconds": 75.0},
+      {"group": "route_ahead", "label": "Путь до целевой остановки", "seconds": -26.0}
+    ],
+    "other_s": -9.6, "total_s": 76.4, "model_used": "fallback"
+  }
+}
+```
+
+`base_s + Σ groups.seconds + other_s = total_s = delay_s` (±0,01 с). Для основной модели в
+группу `hint` входит сама подсказка `cur_dev_s`. До 4 групп с наибольшим |вкладом|, остальные
+в `other_s`. Группы: `hint`, `schedule_match`, `dwell`, `movement`, `route_ahead`,
+`place_time`, `data_quality`. Это SHAP-арифметика CatBoost, не подтверждённая причина.
+Ошибки: `409 prediction_changed` — прогноз уже обновился или ML вернул другое число/модель;
+`503 ml_unavailable`. Основной цикл объяснения не запрашивает (задержка потока не растёт).
 
 Статусы `status`:
 

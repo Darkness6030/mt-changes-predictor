@@ -50,6 +50,14 @@ class RiskPolicy:
             return f"delay_s < {self.early_yellow_s:g} (опережение)"
         return "в пределах допустимого отклонения"
 
+    def attention(self, delay_s: float, late_probability: float | None) -> str | None:
+        """Why a dispatcher should look: a risky delay first, else a likely late arrival."""
+        if self.level(delay_s) != "green":
+            return "delay"
+        if late_probability is not None and late_probability >= self.late_probability_red:
+            return "probability"
+        return None
+
     def to_dict(self) -> dict:
         return {
             **asdict(self),
@@ -64,7 +72,7 @@ class Settings:
     split: str = "test"
     use_points: bool | None = None
     labels: Path | None = None
-    offline_metrics: Path | None = Path("ml/pretrained/v3/metrics.json")
+    offline_metrics: Path | None = Path("ml/pretrained/v5/metrics.json")
 
     ml_url: str = "http://ml:8001"
     ml_timeout_s: float = 3.0
@@ -144,7 +152,7 @@ class Settings:
                 else _bool("BACKEND_USE_POINTS", False)
             ),
             labels=_path("BACKEND_LABELS", None),
-            offline_metrics=_path("BACKEND_OFFLINE_METRICS", "ml/pretrained/v3/metrics.json"),
+            offline_metrics=_path("BACKEND_OFFLINE_METRICS", "ml/pretrained/v5/metrics.json"),
             ml_url=os.environ.get("BACKEND_ML_URL", "http://ml:8001").rstrip("/"),
             ml_timeout_s=_float("BACKEND_ML_TIMEOUT_S", 3.0),
             ml_batch_size=_int("BACKEND_ML_BATCH_SIZE", 64),

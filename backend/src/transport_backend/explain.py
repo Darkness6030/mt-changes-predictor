@@ -93,7 +93,12 @@ def evidence(features: dict, *, stale_after_s: float) -> list[dict]:
     return items
 
 
-def recommendation(delay_s: float, items: list[dict], policy: RiskPolicy) -> str:
+def recommendation(
+    delay_s: float,
+    items: list[dict],
+    policy: RiskPolicy,
+    late_probability: float | None = None,
+) -> str:
     """A check to perform, phrased as a hypothesis for the dispatcher to confirm."""
     kinds = {item["kind"] for item in items}
     if "stale_position" in kinds:
@@ -108,6 +113,12 @@ def recommendation(delay_s: float, items: list[dict], policy: RiskPolicy) -> str
         return "Связаться с водителем и оценить оперативное регулирование по действующим правилам"
     if delay_s < policy.early_yellow_s:
         return "Опережение графика: проверить интервал до предыдущего ТС перед целевой остановкой"
+    if late_probability is not None and late_probability >= policy.late_probability_red:
+        percent = round(late_probability * 100)
+        return (
+            f"Опоздание больше {policy.red_min_delay_s:g} с вероятно ({percent}%): уточнить "
+            "обстановку на участке заранее и подготовить регулирование интервала"
+        )
     if delay_s > policy.green_max_delay_s:
         return "Держать ТС под наблюдением: отклонение выше допустимого, но ниже порога внимания"
     return "Действий не требуется: прогноз в пределах допустимого отклонения"

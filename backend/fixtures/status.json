@@ -43,6 +43,7 @@
   "events_in_state": 2607,
   "accepted_events": 14355,
   "duplicate_events": 0,
+  "suspect_gps_fixes": 0,
   "rejected_future_events": 0,
   "unmapped_units": 0,
   "last_event_at": "2026-01-06 10:51:32",

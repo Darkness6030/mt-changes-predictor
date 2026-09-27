@@ -103,3 +103,16 @@ def test_feature_schema_and_invalid_recipes():
         Candidate("bad", "fallback", "base", 2, 10, residual=True)
     with pytest.raises(ValueError, match="no supplied hints"):
         Candidate("bad", "main", "base", 2, 10, augmentation=True)
+
+
+@pytest.mark.parametrize("splits", [[], ["validate"], ["train", "train"], ["train", "validate"]])
+def test_recipe_refit_accepts_only_labelled_splits(tmp_path, splits):
+    recipe = {
+        "models": {"main": [], "fallback": []},
+        "hint_policy": "supplied_only",
+        "feature_config": {"schedule_context": True},
+        "classifier_source": "ml/pretrained/v3",
+        "training_splits": splits,
+    }
+    with pytest.raises(ValueError, match="training_splits"):
+        research.train_recipe(tmp_path / "missing-data", tmp_path / "model", recipe)
