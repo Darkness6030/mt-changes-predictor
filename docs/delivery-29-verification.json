@@ -1,0 +1,47 @@
+{
+  "date": "2026-09-27",
+  "source_commit": "6b33e7af9cd8829f09e7ef57ee47e1a6c27e9361",
+  "host": "Darwin arm64",
+  "docker": {
+    "ServerVersion": "29.5.2",
+    "OSType": "linux",
+    "Architecture": "aarch64",
+    "NCPU": 10,
+    "MemTotal": 8321712128
+  },
+  "clean_clone": "Local Git clone of committed source, no .env, unchanged Dockerfiles, cached layers; not a no-cache cold start",
+  "compose_project": "delivery29check",
+  "ports": {
+    "ui": 8180,
+    "backend": 8110,
+    "ml": 8111,
+    "ndtp": 9301
+  },
+  "model_version": "03760ad92c2f44b167278f16033332c7e0305ba55f5585b3138c43464987344c",
+  "checks": {
+    "python_tests": 191,
+    "ruff": "passed",
+    "frontend_build": "passed",
+    "compose": "three healthy",
+    "replay": "passed",
+    "ndtp": "passed",
+    "forecast_points": null,
+    "active_predictions": 4,
+    "all_horizons_in_600_900": true,
+    "detail_whatif_explanation_http": "200"
+  },
+  "ndtp": {
+    "connections_total": 30,
+    "handshakes": 30,
+    "realtime_frames": 6707,
+    "crc_errors": 0,
+    "invalid_frames": 0,
+    "truncated_frames": 0,
+    "disconnects": 1
+  },
+  "limitations": [
+    "Short smoke, not a throughput/soak benchmark",
+    "Official emulator not repeated",
+    "No map API key in isolated clone"
+  ]
+}

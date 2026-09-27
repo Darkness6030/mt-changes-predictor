@@ -1,0 +1,67 @@
+{
+  "source_commit": "1eff547",
+  "date": "2026-09-27",
+  "model_version": "03760ad92c2f44b167278f16033332c7e0305ba55f5585b3138c43464987344c",
+  "runtime": "onnx",
+  "runtime_note": "ONNX Runtime, расхождение с CatBoost ≤ 8.0e-05 с",
+  "python_tests": 195,
+  "docker": "three healthy; replay predictions and SHAP HTTP 200",
+  "benchmark": {
+    "bundle": "ml/pretrained/v5",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "repeats": 300,
+    "parity": {
+      "delay_main_s": 8.013403470386038e-05,
+      "probability_main": 2.5637141121137574e-07,
+      "delay_no_hint_s": 6.734547753239895e-05,
+      "probability_no_hint": 2.9720845072522817e-07
+    },
+    "batches": {
+      "1": {
+        "catboost": {
+          "p50_ms": 3.1278959941118956,
+          "p95_ms": 7.359748426824812
+        },
+        "onnx": {
+          "p50_ms": 0.6193744484335184,
+          "p95_ms": 1.004087645560503
+        },
+        "speedup_p50": 5.0500888469370455
+      },
+      "8": {
+        "catboost": {
+          "p50_ms": 3.1764579471200705,
+          "p95_ms": 5.384920327924196
+        },
+        "onnx": {
+          "p50_ms": 0.69033307954669,
+          "p95_ms": 1.0200657881796362
+        },
+        "speedup_p50": 4.601341064527727
+      },
+      "32": {
+        "catboost": {
+          "p50_ms": 3.0728746205568314,
+          "p95_ms": 3.526127035729587
+        },
+        "onnx": {
+          "p50_ms": 1.000917050987482,
+          "p95_ms": 1.1489846045151353
+        },
+        "speedup_p50": 3.070059219717761
+      },
+      "128": {
+        "catboost": {
+          "p50_ms": 3.1352711375802755,
+          "p95_ms": 3.550114342942834
+        },
+        "onnx": {
+          "p50_ms": 2.6397709734737873,
+          "p95_ms": 5.527804605662825
+        },
+        "speedup_p50": 1.1877057400379087
+      }
+    }
+  },
+  "limitations": "Local macOS arm64 microbenchmark; run overlapped Docker build/tests; not a controlled production latency estimate. Original Linux benchmark remains separately attributed."
+}
