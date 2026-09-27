@@ -580,3 +580,15 @@ def test_env_defaults_align_live_streams_but_not_replay(monkeypatch):
     monkeypatch.setenv("BACKEND_MODE", "ndtp")
     monkeypatch.setenv("BACKEND_PLAN_SHIFT_S", "0")
     assert not Settings.from_env().plan_shift_auto
+
+
+def test_recommendation_prioritises_first_and_last_trips():
+    from transport_backend.explain import recommendation
+
+    policy = RiskPolicy()
+    last = {"number": 14, "total": 14, "first": False, "last": True}
+    middle = {"number": 5, "total": 14, "first": False, "last": False}
+    assert "последнего рейса дня (рейс 14 из 14)" in recommendation(150.0, [], policy, 0.9, last)
+    assert "рейса дня" not in recommendation(150.0, [], policy, 0.9, middle)
+    # An on-time first trip needs no escalation.
+    assert "рейса дня" not in recommendation(20.0, [], policy, 0.1, {**last, "first": True})

@@ -5,6 +5,7 @@ import {
   STATUS_LABEL,
   freshness,
   severity,
+  tripEdge,
   signedDelay,
   sourceTime,
   stopLabel,
@@ -146,6 +147,14 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                       title={`Вероятность задержки больше ${Math.round(prediction!.late_threshold_s ?? 120)} с`}
                     >
                       опоздание {Math.round(prediction!.late_probability * 100)}%
+                    </span>
+                  ) : null}
+                  {ok && tripEdge(prediction) ? (
+                    <span
+                      className={prediction!.attention ? "badge stale" : "badge"}
+                      title={`Рейс ${prediction!.trip!.number} из ${prediction!.trip!.total}: крайние рейсы дня критичны для выполнения плана`}
+                    >
+                      {tripEdge(prediction)}
                     </span>
                   ) : null}
                   {ok && prediction!.attention === "probability" ? (
