@@ -75,6 +75,26 @@ export interface WhatIfAnswer {
   assumptions?: string[];
 }
 
+export interface HotspotEnd {
+  target_stop_id: string;
+  address: string | null;
+  lon: number;
+  lat: number;
+}
+
+/** A segment where delay grew between consecutive GPS-observed stops, summed over the run. */
+export interface Hotspot {
+  segment_id: string;
+  tr_id: string;
+  from: HotspotEnd;
+  to: HotspotEnd;
+  passes: number;
+  gain_total_s: number;
+  gain_max_s: number;
+  gain_mean_s: number;
+  last_at?: string;
+}
+
 export interface ExplanationAnswer {
   run_id: string;
   tr_id: string;
@@ -268,6 +288,7 @@ export interface Snapshot {
   risk_policy: RiskPolicy;
   vehicles: Vehicle[];
   alerts: Alert[];
+  hotspots?: Hotspot[];
   fixture?: boolean;
 }
 

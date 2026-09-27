@@ -34,6 +34,7 @@ from transport_backend.config import Settings
 from transport_backend.current_deviation import CurrentDeviationMonitor
 from transport_backend.events import TelemetryEvent
 from transport_backend.explain import evidence, recommendation
+from transport_backend.hotspots import DelayHotspots
 from transport_backend.mlclient import Latency, MlClient
 from transport_backend.ndtp_server import NdtpServer
 from transport_backend.replay import PointSchedule, ReplaySource, load_mapping
@@ -232,6 +233,7 @@ class Engine:
         self.current_deviation = CurrentDeviationMonitor(
             settings.current_deviation_max_age_s, settings.risk
         )
+        self.hotspots = DelayHotspots()
         self.predictions: dict[str, dict] = {}
         # Feature row of each vehicle's current prediction: one per vehicle, so bounded by
         # the fleet. It lets a dispatcher ask why, without explaining every cycle.
@@ -379,6 +381,7 @@ class Engine:
         self.view_history = ViewHistory(self.settings)
         self.history_latency = Latency()
         self.current_deviation.clear()
+        self.hotspots.clear()
         self.predictions.clear()
         self.feature_rows.clear()
         self.explanations.clear()
@@ -479,6 +482,8 @@ class Engine:
                 self.state.add(event, now_ns)
         self.state.trim(now_ns)
         self.current_deviation.refresh(self.state, now_ns)
+        for tr_id, estimate in self.current_deviation.estimates.items():
+            self.hotspots.observe(tr_id, estimate, self.plan)
         self.cycles += 1
         self.last_cycle_at = wall_iso()
         if self.sidecar is not None:
@@ -1166,6 +1171,7 @@ class Engine:
             "risk_policy": self.settings.risk.to_dict(),
             "vehicles": filtered,
             "alerts": self.alert_list(closed_limit=20),
+            "hotspots": self.hotspots.report(5),
         }
 
     def alert_list(self, *, state: str | None = None, closed_limit: int | None = None) -> list:
