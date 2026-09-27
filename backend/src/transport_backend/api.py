@@ -171,6 +171,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise error(404, "unknown_vehicle", f"No state or plan for {tr_id}")
         return engine.whatif_reserve(tr_id, reserve_in_min)
 
+    @app.get("/api/v1/hotspots", tags=["dispatcher"])
+    def hotspots(engine: EngineDep, limit: Annotated[int, Query(ge=1, le=100)] = 10) -> dict:
+        """Segments where delay grew the most over this run (GPS-observed, no labels)."""
+        return {"run_id": engine.run_id, "segments": engine.hotspots.report(limit)}
+
     @app.get("/api/v1/history", tags=["dispatcher"])
     def history(
         engine: EngineDep,

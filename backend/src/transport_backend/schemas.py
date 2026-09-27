@@ -218,6 +218,9 @@ class Snapshot(Open):
     risk_policy: RiskPolicy
     vehicles: list[VehicleView]
     alerts: list[Alert]
+    hotspots: list[dict[str, Any]] = Field(
+        default=[], description="Segments where delay grew the most (GPS-observed)"
+    )
 
 
 class AlertList(Open):
