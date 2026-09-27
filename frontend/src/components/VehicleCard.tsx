@@ -151,8 +151,6 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
             </div>
           </div>
 
-          <WarningPassport detail={detail} alerts={alerts} />
-
           {ok && prediction!.prediction_id ? (
             <PredictionExplanation
               trId={detail.tr_id}
@@ -210,6 +208,8 @@ export function VehicleCard({ detail, alerts, policy, onAcknowledge, readOnly = 
           </div>
         </>
       )}
+
+      <WarningPassport detail={detail} alerts={alerts} />
 
       <div className="section">
         <h3>Качество данных</h3>
