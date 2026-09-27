@@ -1127,14 +1127,20 @@ class Engine:
         }
 
     def alert_list(self, *, state: str | None = None, closed_limit: int | None = None) -> list:
-        """Active incidents first; closed ones are trimmed so the snapshot stays small."""
+        """Active incidents, worst first; then closed ones, most recent first."""
         items = [alert for alert in self.alerts.values() if state is None or alert.state == state]
-        items.sort(key=lambda alert: (alert.state != "active", -abs(alert.delay_s)))
+        active = sorted(
+            (alert for alert in items if alert.state == "active"), key=lambda a: -abs(a.delay_s)
+        )
+        # Recent outcomes matter to the dispatcher and the warning passport.
+        closed = sorted(
+            (alert for alert in items if alert.state != "active"),
+            key=lambda a: a.target_planned_at,
+            reverse=True,
+        )
         if closed_limit is not None:
-            active = [alert for alert in items if alert.state == "active"]
-            closed = [alert for alert in items if alert.state != "active"][:closed_limit]
-            items = active + closed
-        return [alert.to_dict() for alert in items]
+            closed = closed[:closed_limit]
+        return [alert.to_dict() for alert in active + closed]
 
     def clock_view(self, now_ns: int | None = None) -> dict:
         view = self.clock.to_dict()
