@@ -157,6 +157,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 503, "ml_unavailable", f"Объяснение недоступно: {type(failure).__name__}"
             ) from failure
 
+    @app.get("/api/v1/vehicles/{tr_id}/whatif", tags=["dispatcher"])
+    def vehicle_whatif(
+        tr_id: str,
+        engine: EngineDep,
+        reserve_in_min: Annotated[float, Query(ge=0, le=120)] = 10.0,
+    ) -> dict:
+        """What-if: a reserve vehicle takes over the next trips of this vehicle's line.
+
+        A transparent schedule calculation with published assumptions, not a simulator.
+        """
+        if tr_id not in engine.state.tracks and tr_id not in engine.plan.visits:
+            raise error(404, "unknown_vehicle", f"No state or plan for {tr_id}")
+        return engine.whatif_reserve(tr_id, reserve_in_min)
+
     @app.get("/api/v1/history", tags=["dispatcher"])
     def history(
         engine: EngineDep,

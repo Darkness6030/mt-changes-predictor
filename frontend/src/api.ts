@@ -1,7 +1,7 @@
 /** One thin API layer. The UI never computes risk or picks a target: it renders Backend data. */
 
 import type {
-  DemoSource, DemoState, ExplanationAnswer, HistoryFrame, Quality, Snapshot, Status, VehicleDetail,
+  DemoSource, DemoState, ExplanationAnswer, WhatIfAnswer, HistoryFrame, Quality, Snapshot, Status, VehicleDetail,
 } from "./types";
 
 export class ApiError extends Error {
@@ -64,6 +64,11 @@ export const api = {
   quality: (signal?: AbortSignal) => request<Quality>("/api/v1/metrics/quality", signal),
   vehicle: (trId: string, signal?: AbortSignal) =>
     request<VehicleDetail>(`/api/v1/vehicles/${encodeURIComponent(trId)}`, signal),
+  whatif: (trId: string, reserveInMin: number, signal?: AbortSignal) =>
+    request<WhatIfAnswer>(
+      `/api/v1/vehicles/${encodeURIComponent(trId)}/whatif?${new URLSearchParams({ reserve_in_min: String(reserveInMin) })}`,
+      signal,
+    ),
   explanation: (trId: string, predictionId: string, signal?: AbortSignal) =>
     request<ExplanationAnswer>(
       `/api/v1/vehicles/${encodeURIComponent(trId)}/explanation?${new URLSearchParams({ prediction_id: predictionId })}`,

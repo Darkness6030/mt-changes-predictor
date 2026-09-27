@@ -39,6 +39,7 @@ from transport_backend.ndtp_server import NdtpServer
 from transport_backend.replay import PointSchedule, ReplaySource, load_mapping
 from transport_backend.state import FleetState, PlanStore
 from transport_backend.view_history import ViewHistory
+from transport_backend.whatif import reserve_whatif, trip_windows
 
 STATUS_NO_TARGET = "no_target_in_horizon"
 
@@ -890,6 +891,34 @@ class Engine:
             source = max(previous, key=lambda item: parse_source(item.latest_prediction_at))
             alert.acknowledged_at = source.acknowledged_at
             alert.acknowledged_from = source.acknowledged_from or source.alert_id
+
+    def whatif_reserve(self, tr_id: str, reserve_in_min: float) -> dict:
+        """What if a reserve vehicle reaches the terminal in ``reserve_in_min`` minutes."""
+        prediction = self.predictions.get(tr_id)
+        now_ns = self.clock.now_ns()
+        if prediction is None or prediction.get("status") != "ok" or now_ns is None:
+            return {"tr_id": tr_id, "available": False, "reason": "no_current_prediction"}
+        trip = prediction.get("trip")
+        if not trip:
+            return {"tr_id": tr_id, "available": False, "reason": "trip_unknown"}
+        visits = self.plan.visits.get(tr_id)
+        ids = [] if visits is None else list(visits.tt_action_item_id.astype(str))
+        result = reserve_whatif(
+            trip_windows(self.plan.trips, ids),
+            int(trip["number"]),
+            float(prediction["delay_s"]),
+            now_ns,
+            reserve_in_min * 60,
+        )
+        return {
+            "tr_id": tr_id,
+            "prediction_id": prediction["prediction_id"],
+            "delay_s": prediction["delay_s"],
+            "current_trip": trip["number"],
+            "trips_total": trip["total"],
+            "reserve_in_min": reserve_in_min,
+            **result,
+        }
 
     def _update_alert(self, view: dict) -> None:
         alert_id = f"{self.run_id}:{view['tr_id']}:{view['target_stop_id']}"
