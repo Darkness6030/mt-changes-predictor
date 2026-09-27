@@ -81,6 +81,7 @@ def main() -> None:
         },
     }
     output = args.output or args.bundle / "metrics.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
     write_json(output, report)
     pd.DataFrame({"sample_id": points.sample_id, "target_delay_s": outcome, **predictions}).to_csv(
         output.with_name("audit_test_predictions.csv"), index=False

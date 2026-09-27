@@ -76,7 +76,11 @@ class MlClient:
         results: dict[str, dict] = {}
         for start in range(0, len(items), self.batch_size):
             chunk = items[start : start + self.batch_size]
-            payload = {"feature_schema_version": feature_schema_version, "items": chunk}
+            payload = {
+                "feature_schema_version": feature_schema_version,
+                "items": chunk,
+                "explain": False,
+            }
             self.requests += 1
             try:
                 started = perf_counter()
@@ -103,6 +107,18 @@ class MlClient:
                 self.ready = False
                 self.last_error = f"{type(error).__name__}: {error}"
         return results
+
+    async def explain(self, item: dict, feature_schema_version: str) -> dict:
+        """One on-demand explanation; raises on any transport or contract error."""
+        payload = {
+            "feature_schema_version": feature_schema_version,
+            "items": [item],
+            "explain": True,
+        }
+        response = await self.client.post("/v1/predict", json=payload)
+        response.raise_for_status()
+        body = response.json()
+        return {**body["results"][0], "model_version": body["model_version"]}
 
     def to_dict(self) -> dict:
         model = self.model or {}

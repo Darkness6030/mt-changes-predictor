@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 import json
 import secrets
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
@@ -34,11 +34,13 @@ from transport_backend.config import Settings
 from transport_backend.current_deviation import CurrentDeviationMonitor
 from transport_backend.events import TelemetryEvent
 from transport_backend.explain import evidence, recommendation
+from transport_backend.hotspots import DelayHotspots
 from transport_backend.mlclient import Latency, MlClient
 from transport_backend.ndtp_server import NdtpServer
 from transport_backend.replay import PointSchedule, ReplaySource, load_mapping
 from transport_backend.state import FleetState, PlanStore
 from transport_backend.view_history import ViewHistory
+from transport_backend.whatif import reserve_whatif, trip_windows
 
 STATUS_NO_TARGET = "no_target_in_horizon"
 
@@ -60,6 +62,20 @@ class Alert:
     state: str = "active"
     acknowledged_at: str | None = None
     evidence: list = field(default_factory=list)
+    attention: str | None = None
+    # "first" / "last" when the target visit belongs to the vehicle's first or last trip.
+    trip_edge: str | None = None
+    # Set when the acknowledgement was carried over from the vehicle's previous incident.
+    acknowledged_from: str | None = None
+    # Warning passport: the arrival actually seen in GPS after the planned time (no labels).
+    observed_arrival_at: str | None = None
+    observed_delay_s: float | None = None
+    observed_distance_m: float | None = None
+    # First warning to the observed arrival: how early the dispatcher was told.
+    warning_lead_s: float | None = None
+    # confirmed: deviation in the warned direction outside the green band; within_norm;
+    # opposite: a real deviation, but in the other direction than warned.
+    warning_outcome: str | None = None
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -164,6 +180,41 @@ class Sidecar:
         return report
 
 
+EXPLANATION_CACHE = 256
+# A dispatcher who took a vehicle into work is not re-alerted at each next stop of the same
+# episode: an acknowledgement carries over to a new alert opened within this source time.
+ACK_CARRY_S = 900.0
+
+
+def warning_outcome(predicted_s: float, observed_s: float, policy) -> str:
+    """Did the observed arrival bear out the warning, in the warned direction?"""
+    if policy.level(observed_s) == "green":
+        return "within_norm"
+    warned_late = predicted_s >= 0
+    observed_late = observed_s > policy.green_max_delay_s
+    return "confirmed" if warned_late == observed_late else "opposite"
+
+
+def trip_edge(trip: dict | None) -> str | None:
+    if not trip:
+        return None
+    return "first" if trip.get("first") else "last" if trip.get("last") else None
+
+
+def needs_attention(vehicle: dict) -> bool:
+    prediction = vehicle.get("prediction") or {}
+    if prediction.get("status") not in {"ok", "ml_unavailable"}:
+        return False
+    if prediction.get("attention") is not None:
+        return True
+    # Older views without the field: the delay colour alone.
+    return prediction.get("risk_level") in {"yellow", "red"}
+
+
+class PredictionChanged(LookupError):
+    """The requested prediction is no longer the vehicle's current one."""
+
+
 class Engine:
     """One run: a fixed data source, one clock and one mutable fleet state."""
 
@@ -182,7 +233,14 @@ class Engine:
         self.current_deviation = CurrentDeviationMonitor(
             settings.current_deviation_max_age_s, settings.risk
         )
+        self.hotspots = DelayHotspots()
         self.predictions: dict[str, dict] = {}
+        # Feature row of each vehicle's current prediction: one per vehicle, so bounded by
+        # the fleet. It lets a dispatcher ask why, without explaining every cycle.
+        self.feature_rows: dict[str, dict] = {}
+        self.explanations: OrderedDict[str, dict] = OrderedDict()
+        # Passport outcomes survive alert trimming: (lead s, observed delay s, confirmed).
+        self.warning_outcomes: deque[tuple[float, float, bool]] = deque(maxlen=5000)
         self.prediction_log: deque[dict] = deque(maxlen=settings.max_predictions_kept)
         self.alerts: dict[str, Alert] = {}
         self.sidecar: Sidecar | None = None
@@ -209,8 +267,8 @@ class Engine:
 
     def _load_sources(self) -> None:
         settings = self.settings
-        if settings.plan_shift_auto:
-            self._plan_shift_s = self._auto_shift()
+        # "auto" is resolved from the first mapped event of the stream (see _align_plan).
+        self._plan_aligned = not settings.plan_shift_auto
         self.plan = PlanStore.from_csv(self._plan_path(), self._plan_shift_s)
         traffic_path = settings.data_root / settings.split / "traffic.csv"
         self.mapping = load_mapping(traffic_path)
@@ -236,19 +294,33 @@ class Engine:
         if settings.labels is not None and settings.labels.exists():
             self.sidecar = Sidecar(settings.labels)
 
-    def _auto_shift(self) -> float:
-        """Whole-day shift so a live stream of today lands inside the historical plan window.
+    def _align_plan(self, event_ns: int) -> None:
+        """Whole-day shift so the stream's date lands on the same timetable (``auto``).
 
-        Only used when explicitly requested; the applied shift is published in every
-        snapshot so a demo alignment can never look like real schedule data.
+        The organisers confirmed the check uses the same routes and timetable; an emulator
+        stamps packets with the current time. Only the date moves, never the time of day,
+        and the applied shift is published in every snapshot. A stream already on the plan's
+        date keeps shift 0.
         """
-        import pandas as pd
-
-        plan = pd.read_csv(self._plan_path(), usecols=["time_begin"])
-        median = pd.to_datetime(plan.time_begin).median()
-        today = pd.Timestamp(wall_now().replace(tzinfo=None).date())
-        days = (today - pd.Timestamp(median.date())).days
-        return float(days * 86400)
+        self._plan_aligned = True
+        times = self.plan.plan.time_begin.astype("int64")
+        if times.empty:
+            return
+        base_ns = int(times.min()) - int(self._plan_shift_s * SECOND_NS)
+        margin = int(self.settings.history_window_s * SECOND_NS)
+        span_ns = int(times.max()) - int(times.min())
+        day_ns = 86_400 * SECOND_NS
+        if base_ns - margin <= event_ns <= base_ns + span_ns + margin:
+            days = 0
+        else:
+            days = (event_ns - base_ns) // day_ns
+        shift_s = float(days * 86_400)
+        if shift_s == self._plan_shift_s:
+            return
+        self._plan_shift_s = shift_s
+        self.plan = PlanStore.from_csv(self._plan_path(), shift_s)
+        self.state.plan = self.plan
+        self.revision += 1
 
     def _replay_start_ns(self) -> int:
         settings = self.settings
@@ -309,7 +381,11 @@ class Engine:
         self.view_history = ViewHistory(self.settings)
         self.history_latency = Latency()
         self.current_deviation.clear()
+        self.hotspots.clear()
         self.predictions.clear()
+        self.feature_rows.clear()
+        self.explanations.clear()
+        self.warning_outcomes.clear()
         self.prediction_log.clear()
         self.alerts.clear()
         self.prediction_seq = 0
@@ -368,6 +444,8 @@ class Engine:
             self.state.key(event)
             return
         now_ns = self.clock.now_ns()
+        if now_ns is None and not self._plan_aligned:
+            self._align_plan(event.event_time_ns)
         if now_ns is None:
             # Bootstrap is constrained by the explicitly loaded plan, not host UTC.
             times = self.plan.plan.time_begin.astype("int64")
@@ -404,6 +482,8 @@ class Engine:
                 self.state.add(event, now_ns)
         self.state.trim(now_ns)
         self.current_deviation.refresh(self.state, now_ns)
+        for tr_id, estimate in self.current_deviation.estimates.items():
+            self.hotspots.observe(tr_id, estimate, self.plan)
         self.cycles += 1
         self.last_cycle_at = wall_iso()
         if self.sidecar is not None:
@@ -714,6 +794,7 @@ class Engine:
             "target_stop_id": request["target_stop_id"],
             "target_planned_at": format_source(target_planned_ns),
             "target_address": self.plan.address(request["target_stop_id"]),
+            "trip": self.plan.trip(request["target_stop_id"]),
             "target_lon": float(features["target_lon"]),
             "target_lat": float(features["target_lat"]),
             "horizon_s": (target_planned_ns - cutoff_ns) / SECOND_NS,
@@ -723,6 +804,7 @@ class Engine:
             ),
             "risk_level": policy.level(delay_s),
             "risk_basis": policy.basis(delay_s),
+            "attention": policy.attention(delay_s, result.get("late_probability")),
             "late_probability": result.get("late_probability"),
             "late_threshold_s": result.get("late_threshold_s"),
             "calibration": result.get("calibration"),
@@ -736,12 +818,26 @@ class Engine:
             "prediction_age_s": 0.0,
             "stale": False,
             "evidence": items,
-            "recommendation": recommendation(delay_s, items, policy),
+            "recommendation": recommendation(
+                delay_s,
+                items,
+                policy,
+                result.get("late_probability"),
+                self.plan.trip(request["target_stop_id"]),
+            ),
             "quality_flags": (
                 track.quality_flags(cutoff_ns, self.settings.stale_after_s) if track else []
             ),
         }
         self.predictions[tr_id] = view
+        self.feature_rows[tr_id] = {
+            "prediction_id": view["prediction_id"],
+            "schema_version": self.feature_config.schema_version,
+            "features": {
+                name: (None if value is None or np.isnan(value) else float(value))
+                for name, value in features.items()
+            },
+        }
         self.prediction_log.append(view)
         if request["trigger"] == "point":
             self.predicted_points += 1
@@ -751,10 +847,88 @@ class Engine:
 
     # ------------------------------------------------------------------ alerts
 
+    async def explanation(self, tr_id: str, prediction_id: str) -> dict:
+        """Exact split of the vehicle's current prediction, computed once on demand."""
+        current = self.predictions.get(tr_id)
+        row = self.feature_rows.get(tr_id)
+        if current is None or row is None or current.get("status") != "ok":
+            raise PredictionChanged(tr_id)
+        if current["prediction_id"] != prediction_id or row["prediction_id"] != prediction_id:
+            raise PredictionChanged(tr_id)
+        key = f"{self.run_id}:{prediction_id}"
+        if key in self.explanations:
+            self.explanations.move_to_end(key)
+            return self.explanations[key]
+        run_id = self.run_id
+        item = {"request_id": prediction_id, "tr_id": tr_id, "features": row["features"]}
+        result = await self.ml.explain(item, row["schema_version"])
+        if run_id != self.run_id:
+            raise PredictionChanged(tr_id)
+        # The explanation must describe exactly the published number, not a newer model.
+        if result.get("model_version") != current.get("model_version") or not np.isclose(
+            float(result["delay_s"]), float(current["delay_s"]), atol=1e-6
+        ):
+            raise PredictionChanged(tr_id)
+        answer = {
+            "run_id": run_id,
+            "tr_id": tr_id,
+            "prediction_id": prediction_id,
+            "model_version": result["model_version"],
+            "delay_s": current["delay_s"],
+            "explanation": result["explanation"],
+        }
+        self.explanations[key] = answer
+        while len(self.explanations) > EXPLANATION_CACHE:
+            self.explanations.popitem(last=False)
+        return answer
+
+    def _carry_acknowledgement(self, alert: Alert) -> None:
+        opened_ns = parse_source(alert.first_alert_at)
+        previous = [
+            item
+            for item in self.alerts.values()
+            if item.tr_id == alert.tr_id
+            and item.alert_id != alert.alert_id
+            and item.acknowledged_at is not None
+            and opened_ns - parse_source(item.latest_prediction_at) <= ACK_CARRY_S * SECOND_NS
+        ]
+        if previous:
+            source = max(previous, key=lambda item: parse_source(item.latest_prediction_at))
+            alert.acknowledged_at = source.acknowledged_at
+            alert.acknowledged_from = source.acknowledged_from or source.alert_id
+
+    def whatif_reserve(self, tr_id: str, reserve_in_min: float) -> dict:
+        """What if a reserve vehicle reaches the terminal in ``reserve_in_min`` minutes."""
+        prediction = self.predictions.get(tr_id)
+        now_ns = self.clock.now_ns()
+        if prediction is None or prediction.get("status") != "ok" or now_ns is None:
+            return {"tr_id": tr_id, "available": False, "reason": "no_current_prediction"}
+        trip = prediction.get("trip")
+        if not trip:
+            return {"tr_id": tr_id, "available": False, "reason": "trip_unknown"}
+        visits = self.plan.visits.get(tr_id)
+        ids = [] if visits is None else list(visits.tt_action_item_id.astype(str))
+        result = reserve_whatif(
+            trip_windows(self.plan.trips, ids),
+            int(trip["number"]),
+            float(prediction["delay_s"]),
+            now_ns,
+            reserve_in_min * 60,
+        )
+        return {
+            "tr_id": tr_id,
+            "prediction_id": prediction["prediction_id"],
+            "delay_s": prediction["delay_s"],
+            "current_trip": trip["number"],
+            "trips_total": trip["total"],
+            "reserve_in_min": reserve_in_min,
+            **result,
+        }
+
     def _update_alert(self, view: dict) -> None:
         alert_id = f"{self.run_id}:{view['tr_id']}:{view['target_stop_id']}"
         existing = self.alerts.get(alert_id)
-        risky = view["risk_level"] in {"yellow", "red"}
+        risky = view.get("attention") is not None
         if existing is None:
             if not risky:
                 return
@@ -771,7 +945,10 @@ class Engine:
                 late_probability=view.get("late_probability"),
                 latest_prediction_at=view["cutoff_t"],
                 evidence=view["evidence"],
+                attention=view.get("attention"),
+                trip_edge=trip_edge(view.get("trip")),
             )
+            self._carry_acknowledgement(self.alerts[alert_id])
             return
         existing.updates += 1
         existing.latest_prediction_at = view["cutoff_t"]
@@ -779,10 +956,61 @@ class Engine:
         existing.late_probability = view.get("late_probability")
         existing.risk_level = view["risk_level"]
         existing.evidence = view["evidence"]
+        existing.attention = view.get("attention") or existing.attention
         existing.state = "active" if risky else "resolved"
+
+    def _observe_arrivals(self, now_ns: int) -> None:
+        """Fill the warning passport once the target visit is seen in received GPS."""
+        early = 300 * SECOND_NS
+        late = 900 * SECOND_NS
+        for alert in self.alerts.values():
+            if alert.observed_arrival_at is not None:
+                continue
+            planned_ns = parse_source(alert.target_planned_at)
+            if not planned_ns - early <= now_ns <= planned_ns + late + 60 * SECOND_NS:
+                continue
+            seen = self.state.observed_arrival(alert.tr_id, alert.target_stop_id, now_ns)
+            # Wait until the vehicle has left the stop radius or the window is over, so the
+            # dwell middle does not move after publication.
+            if seen is None or now_ns - seen.arrival_ns < 60 * SECOND_NS:
+                continue
+            alert.observed_arrival_at = format_source(seen.arrival_ns)
+            alert.observed_delay_s = seen.seconds
+            alert.observed_distance_m = seen.distance_m
+            alert.warning_lead_s = (seen.arrival_ns - parse_source(alert.first_alert_at)) / (
+                SECOND_NS
+            )
+            alert.warning_outcome = warning_outcome(alert.delay_s, seen.seconds, self.settings.risk)
+            confirmed = alert.warning_outcome == "confirmed"
+            self.warning_outcomes.append((alert.warning_lead_s, seen.seconds, confirmed))
+            self.revision += 1
+
+    def warning_report(self) -> dict:
+        """Early warning on the stream: first alert vs the arrival later seen in GPS."""
+        rows = list(self.warning_outcomes)
+        if not rows:
+            return {
+                "observed": 0,
+                "note": "Появится после фактического прибытия ТС с алертом (по GPS)",
+            }
+        lead = np.array([row[0] for row in rows])
+        return {
+            "observed": len(rows),
+            "confirmed": int(sum(row[2] for row in rows)),
+            "confirmed_share": float(np.mean([row[2] for row in rows])),
+            "lead_s": {
+                "min": float(lead.min()),
+                "p50": float(np.median(lead)),
+                "max": float(lead.max()),
+            },
+            "lead_at_least_600s_share": float(np.mean(lead >= 600)),
+            "note": "Первое предупреждение → прибытие, наблюдаемое по GPS (без разметки). "
+            "Подтверждено: фактическое отклонение вне зелёного коридора в ту же сторону",
+        }
 
     def _expire_alerts(self, now_ns: int) -> None:
         """Expire incidents whose target time has passed and keep the store bounded."""
+        self._observe_arrivals(now_ns)
         stale_before = now_ns - int(self.settings.alert_retention_s * SECOND_NS)
         for alert_id, alert in list(self.alerts.items()):
             planned_ns = parse_source(alert.target_planned_at)
@@ -805,6 +1033,13 @@ class Engine:
             raise KeyError(alert_id)
         if alert.acknowledged_at is None:
             alert.acknowledged_at = wall_iso()
+            # The dispatcher took the vehicle into work: its other open alerts (later stops of
+            # the same episode, opened before this click) are covered by the same mark.
+            for other in self.alerts.values():
+                if other.tr_id == alert.tr_id and other.state == "active" and other is not alert:
+                    if other.acknowledged_at is None:
+                        other.acknowledged_at = alert.acknowledged_at
+                        other.acknowledged_from = alert.alert_id
             self.revision += 1
         return alert
 
@@ -819,8 +1054,9 @@ class Engine:
         if track is not None:
             if track.last_event_ns is not None:
                 telemetry_age_s = (now_ns - track.last_event_ns) / SECOND_NS
-            if track.last_valid is not None:
-                last = track.last_valid
+            if track.last_trusted is not None:
+                # A spoofed or jumped fix is never drawn: show the last plausible one, aged.
+                last = track.last_trusted
                 position_age_s = (now_ns - last.event_time_ns) / SECOND_NS
                 position = {
                     "lon": last.lon,
@@ -893,10 +1129,12 @@ class Engine:
             "with_prediction": sum(
                 1 for v in vehicles if v["prediction"] and v["prediction"]["status"] == "ok"
             ),
-            "attention": sum(
+            "attention": sum(1 for v in vehicles if needs_attention(v)),
+            # First/last trips at risk: the organisers named them as financially critical.
+            "edge_trips_at_risk": sum(
                 1
                 for v in vehicles
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
+                if needs_attention(v) and trip_edge((v["prediction"] or {}).get("trip"))
             ),
             "red": sum(
                 1
@@ -916,11 +1154,7 @@ class Engine:
                 v for v in filtered if v["prediction"] and v["prediction"].get("risk_level") == risk
             ]
         if only_attention:
-            filtered = [
-                v
-                for v in filtered
-                if v["prediction"] and v["prediction"].get("risk_level") in {"yellow", "red"}
-            ]
+            filtered = [v for v in filtered if needs_attention(v)]
         if stale is not None:
             filtered = [v for v in filtered if v["stale"] is stale]
         if limit is not None:
@@ -937,17 +1171,24 @@ class Engine:
             "risk_policy": self.settings.risk.to_dict(),
             "vehicles": filtered,
             "alerts": self.alert_list(closed_limit=20),
+            "hotspots": self.hotspots.report(5),
         }
 
     def alert_list(self, *, state: str | None = None, closed_limit: int | None = None) -> list:
-        """Active incidents first; closed ones are trimmed so the snapshot stays small."""
+        """Active incidents, worst first; then closed ones, most recent first."""
         items = [alert for alert in self.alerts.values() if state is None or alert.state == state]
-        items.sort(key=lambda alert: (alert.state != "active", -abs(alert.delay_s)))
+        active = sorted(
+            (alert for alert in items if alert.state == "active"), key=lambda a: -abs(a.delay_s)
+        )
+        # Recent outcomes matter to the dispatcher and the warning passport.
+        closed = sorted(
+            (alert for alert in items if alert.state != "active"),
+            key=lambda a: a.target_planned_at,
+            reverse=True,
+        )
         if closed_limit is not None:
-            active = [alert for alert in items if alert.state == "active"]
-            closed = [alert for alert in items if alert.state != "active"][:closed_limit]
-            items = active + closed
-        return [alert.to_dict() for alert in items]
+            closed = closed[:closed_limit]
+        return [alert.to_dict() for alert in active + closed]
 
     def clock_view(self, now_ns: int | None = None) -> dict:
         view = self.clock.to_dict()
@@ -978,7 +1219,7 @@ class Engine:
         track = self.state.tracks.get(tr_id)
         track_points = []
         if track is not None:
-            events = [event for event in track.events if event.gps_valid][
+            events = [event for event in track.events if track.trusted(event)][
                 -self.settings.track_points :
             ]
             track_points = [
@@ -1099,13 +1340,24 @@ class Engine:
                 "cur_dev_mae_s": test.get("cur_dev_mae_s"),
                 "zero_mae_s": test.get("zero_mae_s"),
                 "late_probability": test.get("late_probability"),
-                "note": "Offline benchmark на размеченном test одного дня, не score платформы",
+                "note": test.get(
+                    "note", "Offline benchmark на размеченном test одного дня, не score платформы"
+                ),
             }
+        sidecar = None if self.sidecar is None else self.sidecar.report()
+        group = (self.ml.model or {}).get("training_group") or ""
+        if sidecar is not None and "test" in group.split(";")[0] and "test" in sidecar["source"]:
+            # A bundle refitted on test labels cannot be scored honestly on the same labels.
+            sidecar["in_sample"] = True
+            sidecar["in_sample_note"] = (
+                "Модель обучена в том числе на этой разметке: MAE потока in-sample, оптимистична"
+            )
         return {
             "schema_version": "1",
             "run_id": self.run_id,
             "offline": offline,
-            "replay_sidecar": (None if self.sidecar is None else self.sidecar.report()),
+            "replay_sidecar": sidecar,
+            "early_warning": self.warning_report(),
             "model": self.ml.model
             and {
                 "model_version": self.ml.model.get("model_version"),

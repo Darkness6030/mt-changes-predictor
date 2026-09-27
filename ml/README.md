@@ -1,7 +1,7 @@
 # ML: прогноз задержки и оценка риска
 
-Текущий комплект — [`pretrained/v4`](pretrained/v4/README.md) (schema 3,
-[отчёт](reports/ml-v4.md)); v3 и старше сохранены. Общий FeatureBuilder
+Текущий комплект — [`pretrained/v6`](pretrained/v6/README.md) (schema 3, ансамбль v4 +
+trip-модели, [отчёт](reports/ml-v6.md)); v1–v5 сохранены. Общий FeatureBuilder
 используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
 Обучение выполняется отдельной командой, вне HTTP.
 
@@ -10,14 +10,14 @@
 Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v4 \
-  --output artifacts/check-v4/submission.csv
-ML_MODEL_DIR=ml/pretrained/v4 ML_PORT=8011 .venv/bin/transport-ml-serve
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
+  --output artifacts/check-v6/submission.csv
+ML_MODEL_DIR=ml/pretrained/v6 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
-побайтово совпадает с `ml/pretrained/v4/submission.csv`; все 151 ID проверяются повторным
-чтением. Комплекты v1–v3 сохранены и поддерживаются; default Compose — v4.
+побайтово совпадает с `ml/pretrained/v6/submission.csv`; все 151 ID проверяются повторным
+чтением. Комплекты v1–v5 сохранены и поддерживаются; default Compose — v6.
 
 ## Архитектура и контракт
 
@@ -47,17 +47,17 @@ GPS/плановый контекст рассчитывается общим bu
 Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
 1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
 
-## Результаты v4
+## Результаты trip-модели (ML-IMPROVE-13, половина v6)
 
-| Проверка | v3, MAE с | v4, MAE с |
+| Проверка | v3, MAE с | trip, MAE с |
 |---|---:|---:|
 | Same-day block CV, main | 68,59 | **62,97** |
 | Аудит без test labels → test, main | 71,77 | **66,68** |
 | Тот же аудит, без hint | 83,80 | **76,32** |
 
-V4 обучена на train+test labels и очищенной синтетике. Собственная ошибка комплекта
-на test не является out-of-sample числом, поэтому `metrics.json` содержит аудит.
-Подробно — [отчёт v4](reports/ml-v4.md).
+Trip-модель обучена на train+test labels и очищенной синтетике; platform score 0,85649
+(v4: 0,86126). V6 = их среднее; аудит v6 без test labels на test — 67,82 с (v3 71,74).
+Подробно — [отчёт v6](reports/ml-v6.md).
 
 ## Результаты v3
 
@@ -78,16 +78,18 @@ Test уже был исследован до этой работы, но не и
 
 ## Воспроизведение
 
-V4 (default): рецепт, аудит и block CV, около 60 с обучения на 4 CPU.
+V6 (default): trip-рецепт, аудит, block CV и сборка ансамбля.
 
 ```bash
 .venv/bin/python -m transport_ml train-recipe \
-  --recipe ml/experiments/improve13-recipe.json --model artifacts/v4-repeat
-.venv/bin/python -m transport_ml predict --model artifacts/v4-repeat \
-  --output artifacts/v4-repeat/submission.csv
-.venv/bin/python ml/experiments/improve13_audit.py \
-  --recipe ml/experiments/improve13-recipe.json --bundle artifacts/v4-repeat
-.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/v4-block-cv.json
+  --recipe ml/experiments/improve13-recipe.json --model artifacts/trip-repeat
+.venv/bin/python ml/experiments/improve13_audit.py --recipe ml/experiments/improve13-recipe.json \
+  --bundle artifacts/trip-repeat --output artifacts/trip-audit/metrics.json
+.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/trip-block-cv.json
+.venv/bin/python ml/experiments/improve13_build_v6.py --trip artifacts/trip-repeat \
+  --output artifacts/v6-repeat
+.venv/bin/python -m transport_ml predict --model artifacts/v6-repeat \
+  --output artifacts/v6-repeat/submission.csv
 ```
 
 V3 и ниже. Все каталоги результата должны быть новыми. Обучение v3 использует только

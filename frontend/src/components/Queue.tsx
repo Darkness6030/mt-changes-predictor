@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import {
-  HINT_LABEL,
   RISK_LABEL,
   RISK_SIGN,
   STATUS_LABEL,
   freshness,
   severity,
+  tripEdge,
   signedDelay,
   sourceTime,
+  stopLabel,
 } from "../format";
 import type { Snapshot, Vehicle } from "../types";
 
@@ -40,7 +41,8 @@ function matches(vehicle: Vehicle, filter: Filter): boolean {
     case "all":
       return true;
     case "attention":
-      return available && (prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
+      return available && (prediction!.attention != null ||
+        prediction!.risk_level === "red" || prediction!.risk_level === "yellow");
     case "late":
       return available && (prediction!.delay_s ?? 0) > 0;
     case "early":
@@ -100,6 +102,28 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
           ))}
         </div>
       </div>
+      {snapshot?.hotspots?.length ? (
+        <div className="hotspots" aria-label="Где копится опоздание">
+          <div className="hotspots-title">Где копится опоздание · за прогон</div>
+          {snapshot.hotspots.slice(0, 3).map((spot) => (
+            <button
+              key={spot.segment_id}
+              className="hotspot"
+              title="Прирост отклонения между соседними остановками, наблюдаемый по GPS. Нажмите, чтобы открыть ТС"
+              onClick={() => { onSelect(spot.tr_id); onFocus(spot.tr_id); }}
+            >
+              <span className="hotspot-gain risk-red">{signedDelay(spot.gain_total_s)}</span>
+              <span className="hotspot-where">
+                {stopLabel(spot.from.address, spot.from.target_stop_id)} →{" "}
+                {stopLabel(spot.to.address, spot.to.target_stop_id)}
+              </span>
+              <span className="hotspot-meta">
+                ТС {spot.tr_id} · проездов {spot.passes}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="list">
         {rows.length === 0 ? (
           <div className="empty">Под фильтр ничего не подходит.</div>
@@ -138,21 +162,32 @@ export function Queue({ snapshot, filter, search, selected, onFilter, onSearch, 
                 </div>
                 <div className="row-badges">
                   <span className={`badge ${fresh.tone}`}>{fresh.label}</span>
-                  {ok &&
-                  prediction!.late_probability !== null &&
-                  policy &&
-                  prediction!.late_probability >= policy.late_probability_red ? (
-                    <span className="badge stale" title="Калиброванная вероятность опоздания">
-                      P {Math.round(prediction!.late_probability * 100)}%
+                  {ok && prediction!.late_probability !== null ? (
+                    <span
+                      className={policy && prediction!.late_probability >= policy.late_probability_red
+                        ? "badge stale" : "badge"}
+                      title={`Вероятность задержки больше ${Math.round(prediction!.late_threshold_s ?? 120)} с`}
+                    >
+                      опоздание {Math.round(prediction!.late_probability * 100)}%
+                    </span>
+                  ) : null}
+                  {ok && tripEdge(prediction) ? (
+                    <span
+                      className={prediction!.attention ? "badge stale" : "badge"}
+                      title={`Рейс ${prediction!.trip!.number} из ${prediction!.trip!.total}: крайние рейсы дня критичны для выполнения плана`}
+                    >
+                      {tripEdge(prediction)}
+                    </span>
+                  ) : null}
+                  {ok && prediction!.attention === "probability" ? (
+                    <span className="badge stale" title="Задержка в норме, но опоздание вероятно">
+                      по вероятности
                     </span>
                   ) : null}
                 </div>
                 {ok ? (
                   <div className="addr" title={prediction!.target_address ?? ""}>
-                    {prediction!.target_address ?? "адрес остановки не указан"}
-                    {prediction!.cur_dev_source
-                      ? ` · ${HINT_LABEL[prediction!.cur_dev_source] ?? prediction!.cur_dev_source}`
-                      : ""}
+                    {stopLabel(prediction!.target_address, prediction!.target_stop_id)}
                   </div>
                 ) : null}
               </button>

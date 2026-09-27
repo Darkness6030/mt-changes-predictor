@@ -284,8 +284,10 @@ def load_training_data(root: Path, config: FeatureConfig, spec: dict | None):
     """
     spec = spec or {}
     splits = spec.get("splits", ["train"])
-    if "validate" in splits or "train" not in splits:
-        raise ValueError("Training splits must include train and exclude validate")
+    if not set(splits) <= {"train", "test"} or len(set(splits)) != len(splits):
+        raise ValueError("training_splits must be distinct labelled splits: train, test")
+    if "train" not in splits:
+        raise ValueError("training_splits must include train")
     frames, matrices, targets = [], [], []
     report = {"splits": splits, "synthetic": spec.get("synthetic", "exclude")}
     for split in splits:
@@ -328,10 +330,13 @@ def load_training_data(root: Path, config: FeatureConfig, spec: dict | None):
 
 
 def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
-    """Refit a frozen recipe on real train only; preserve the existing risk classifiers.
+    """Refit a frozen recipe on real labelled points; preserve the existing risk classifiers.
 
     Selection and final evaluation are separate commands. In particular this function
-    cannot silently inspect test or change a candidate based on its score.
+    cannot silently inspect test or change a candidate based on its score. By default only
+    train is used; ``training_splits`` may add the labelled test points for a final refit,
+    after which test is no longer an independent check of that bundle. Only plan columns
+    and label files are read: schedule facts never enter features or targets.
     """
     import shutil
 
@@ -349,6 +354,9 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
     write_json(directory / "recipe.json", recipe)
     started = perf_counter()
     training_data = recipe.get("training_data")
+    if training_data is None and "training_splits" in recipe:
+        # Recipe format of ML-V4-19: real points of the listed splits, synthetic excluded.
+        training_data = {"splits": recipe["training_splits"], "synthetic": "exclude"}
     needs_augmented = any(
         member["candidate"].get("augmentation", False)
         for members in recipe["models"].values()
@@ -357,6 +365,9 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
     if training_data is not None and needs_augmented:
         raise ValueError("Augmentation is defined for the real-train-only recipe")
     points, features, target, data_report = load_training_data(root, config, training_data)
+    if points.sample_id.duplicated().any():
+        raise ValueError("Training splits share a sample_id")
+    splits = data_report["splits"]
     fit = np.ones(len(points), dtype=bool)
     augmented = None
     if needs_augmented:
@@ -369,8 +380,10 @@ def train_recipe(root: Path, directory: Path, recipe: dict) -> dict:
         "time_basis": "dataset_naive_ns",
         "hint_policy": recipe["hint_policy"],
         "training_group": recipe.get(
-            "training_group", "real-only train; frozen train-only group/temporal selection"
+            "training_group",
+            f"real-only {'+'.join(splits)}; frozen train-only group/temporal selection",
         ),
+        "training_splits": splits,
         "training_data": data_report,
         "train_rows": len(points),
         "train_median_s": float(np.median(target)),

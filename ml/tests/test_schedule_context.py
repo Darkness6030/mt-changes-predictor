@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 from transport_ml.features import FeatureBuilder, FeatureConfig, prepare_plan
 
@@ -96,3 +97,23 @@ def test_context_nanosecond_cutoff_and_negative_delay():
     plan.loc[0, "time_begin"] = at
     result = features(traffic, plan, points).iloc[0]
     assert result.arrival_deviation_s == -60
+
+
+def test_vertex_tie_is_decided_by_time_not_float_noise():
+    from transport_ml.features import SECOND
+    from transport_ml.schedule_context import ScheduleContext
+
+    # The same stop Q is planned at +60 s and again at +600 s (a loop). A fix 33 m south of Q
+    # is equidistant from all adjacent segments. Float noise of ~1e-8 m (here: the second
+    # visit's coordinate) must not decide the match; the time-closest visit wins.
+    t0 = pd.Timestamp("2026-01-06 12:00").value
+    gps_ns = t0 + 590 * SECOND
+    for noise in (1e-13, 0.0, -1e-13):
+        plan = {
+            "time": np.array([t0, t0 + 60 * SECOND, t0 + 300 * SECOND, t0 + 600 * SECOND]),
+            "lon": np.array([37.60, 37.61, 37.61, 37.61]),
+            "lat": np.array([55.70, 55.70, 55.71, 55.70 + noise]),
+        }
+        result = {}
+        ScheduleContext._segments(result, plan, 37.61, 55.6997, 180.0, gps_ns, gps_ns)
+        assert result["match_deviation_s"] == pytest.approx(-10.0)

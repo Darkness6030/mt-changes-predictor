@@ -42,6 +42,24 @@ class PredictRequest(BaseModel):
     feature_schema_version: str
     items: Annotated[list[PredictItem], Field(min_length=1, max_length=MAX_ITEMS)]
     no_hint: bool = False
+    # SHAP costs ~2 ms per row and member: request it only for a prediction a user opened.
+    explain: bool = False
+
+
+class ContributionGroup(BaseModel):
+    group: str
+    label: str
+    seconds: float
+
+
+class Explanation(BaseModel):
+    """Exact additive split of ``delay_s``: base + groups + other = total (model arithmetic)."""
+
+    base_s: float
+    groups: list[ContributionGroup]
+    other_s: float
+    total_s: float
+    model_used: str
 
 
 class PredictResult(BaseModel):
@@ -52,6 +70,7 @@ class PredictResult(BaseModel):
     late_probability: float | None
     late_threshold_s: float | None
     calibration: dict[str, Any]
+    explanation: Explanation | None = None
 
 
 class PredictResponse(BaseModel):
@@ -75,16 +94,41 @@ class ModelInfo(BaseModel):
     training_group: str | None
     max_items: int
     hint_policy: str = "gps_estimated"
+    runtime: str = "catboost"
+    runtime_note: str | None = None
 
 
 def load_model(directory: Path) -> DelayModel:
-    return DelayModel(directory)
+    """CatBoost by default; ``ML_RUNTIME=onnx`` evaluates the same trees in ONNX Runtime.
+
+    The ONNX runtime is accepted only after a parity check against CatBoost on synthetic
+    rows spanning every split (with missing values); otherwise CatBoost serves, and the
+    reason is published in ``/v1/model``.
+    """
+    model = DelayModel(directory)
+    model.runtime_note = None
+    if os.environ.get("ML_RUNTIME", "catboost").strip().lower() != "onnx":
+        return model
+    from transport_ml.onnx_runtime import PARITY_TOLERANCE_S, OnnxDelayModel, probe_features
+
+    try:
+        candidate = OnnxDelayModel(directory, threads=int(os.environ.get("ML_ONNX_THREADS", "1")))
+        parity = candidate.parity(probe_features(model), reference=model)
+    except Exception as error:  # A missing runtime or export problem must not stop serving.
+        model.runtime_note = f"ONNX недоступен, работает CatBoost: {type(error).__name__}"
+        return model
+    worst = max(value for key, value in parity.items() if key.startswith("delay"))
+    if worst > PARITY_TOLERANCE_S:
+        model.runtime_note = f"ONNX отклонён: расхождение {worst:.2e} с, работает CatBoost"
+        return model
+    candidate.runtime_note = f"ONNX Runtime, расхождение с CatBoost ≤ {worst:.1e} с"
+    return candidate
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the artifact once at startup; readiness stays false if it cannot be loaded."""
-    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v4"))
+    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v6"))
     app.state.model_dir = directory
     app.state.model = None
     app.state.load_error = None
@@ -171,6 +215,8 @@ def model_info(request: Request) -> ModelInfo:
         train_rows=manifest.get("train_rows"),
         training_group=manifest.get("training_group"),
         max_items=MAX_ITEMS,
+        runtime=model.runtime,
+        runtime_note=getattr(model, "runtime_note", None),
         hint_policy=manifest.get("hint_policy", "gps_estimated"),
     )
 
@@ -227,6 +273,11 @@ def predict(payload: PredictRequest, request: Request) -> PredictResponse:
     started = perf_counter()
     try:
         inference = model.infer(frame, no_hint=payload.no_hint)
+        explanations = (
+            model.explain(frame, no_hint=payload.no_hint)
+            if payload.explain
+            else [None] * len(frame)
+        )
     except ValueError as error:
         raise HTTPException(
             status_code=422, detail={"code": "bad_request", "detail": str(error)}
@@ -242,6 +293,7 @@ def predict(payload: PredictRequest, request: Request) -> PredictResponse:
             late_probability=None if probability is None else float(probability[index]),
             late_threshold_s=inference["late_threshold_s"],
             calibration=inference["calibration"],
+            explanation=explanations[index],
         )
         for index, item in enumerate(payload.items)
     ]

@@ -1,0 +1,10 @@
+{
+  "rows": 151,
+  "submission_sha256": "8bf2c47edb3cef45afed0ead415831337854f7b8a5a918c1d4634374cdfcc202",
+  "model_manifest_sha256": "03760ad92c2f44b167278f16033332c7e0305ba55f5585b3138c43464987344c",
+  "input_sha256": {
+    "traffic.csv": "3c74bb9d3cc5e076a2e7f89de7e78fb103c350757d16c9d629de651ee09bf517",
+    "schedule_plan.csv": "c9b561743a5cb83616941b02b47c5aded89e75218d93c13a282a2e8c790787c8",
+    "points.csv": "284d35f25cf7b13ed3f1ef0556c41910c6e6abfe5c523d2c2d1d36f3d67c64a6"
+  }
+}
