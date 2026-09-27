@@ -6,6 +6,27 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/auth": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Auth State",
+        "operationId": "auth_state_api_v1_auth_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/demo/sources": {
       "get": {
         "tags": [
@@ -933,6 +954,18 @@
             ],
             "title": "Acknowledged From",
             "description": "Alert whose acknowledgement was carried over"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By",
+            "description": "Signed-in dispatcher, or the role name when auth is off"
           }
         },
         "additionalProperties": true,
@@ -997,6 +1030,56 @@
           "alerts"
         ],
         "title": "AlertList"
+      },
+      "AuthState": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "dispatcher",
+                  "viewer"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "can_act": {
+            "type": "boolean",
+            "title": "Can Act"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "authenticated",
+          "can_act"
+        ],
+        "title": "AuthState",
+        "description": "Who is calling. ``enabled=false``: accounts are off and everyone may act."
       },
       "Calibration": {
         "properties": {
