@@ -55,7 +55,7 @@ docker compose up -d --build --wait  # ML + Backend + UI
 В Compose по умолчанию `ML_RUNTIME=onnx`; фактически выбранный движок и причина
 возврата к CatBoost видны в http://localhost:8011/v1/model (`runtime`, `runtime_note`).
 Принудительный CatBoost: `ML_RUNTIME=catboost docker compose up -d --wait ml`.
-Локальный запуск сервиса без этой переменной использует CatBoost. Модель остаётся v5;
+Локальный запуск сервиса без этой переменной использует CatBoost. Модель остаётся v8;
 деревья экспортируются при старте во временный каталог, комплект модели не меняется.
 
 **Пошаговая инструкция для проверяющего — [`docs/DEMO.md`](docs/DEMO.md)**: подача

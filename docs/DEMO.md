@@ -109,7 +109,7 @@ curl -s localhost:8010/api/v1/status | python3 -m json.tool | sed -n '/"ndtp"/,/
 
 Видны `connections_total`, `handshakes`, `realtime_frames`, `crc_errors: 0`,
 `invalid_frames: 0`, список `units`. В UI появляются периодические прогнозы из бинарного потока. По умолчанию
-forecast points отключены (`status.points = null`). У default v6 (как и v3–v5) `cur_dev` отсутствует:
+forecast points отключены (`status.points = null`). У default v8 (как и v3–v6) `cur_dev` отсутствует:
 GPS/плановые оценки входят отдельными признаками в модель без подсказки. Совпадение с
 supplied offline-прогнозом не обещается.
 `BACKEND_USE_POINTS=true` включает points только для явной диагностики.
@@ -232,7 +232,7 @@ IntSensor02/Can10), незнакомое устройство `2147483000` по�
 
 Честная граница: автогенерация эмулятора двигает ТС случайно около Москвы и не следует
 расписанию. Этот сценарий доказывает приём бинарного протокола и живую цепочку
-«поток → признаки → ML → UI», но не качество прогноза по маршруту. Размеченный сценарий A показывает диагностику, но для v5 test вошёл в обучение:
+«поток → признаки → ML → UI», но не качество прогноза по маршруту. Размеченный сценарий A показывает диагностику, но для v8 test вошёл в обучение:
 независимую оценку качества смотреть в отчётах вне фолдов, а не по MAE этого replay.
 
 Остановка: `docker compose --profile emulator stop emulator`, возврат к replay —
@@ -252,7 +252,7 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 - `early_warning` — раннее предупреждение **на потоке без разметки**: для каждого алерта
   фактическое прибытие берётся из полученных GPS-точек; `confirmed_share`, упреждение
   `lead_s` и доля предупреждений за ≥10 мин. Работает и на живом NDTP.
-- `replay_sidecar` — метрика **этого** прогона по разметке test. Для v5 помечена
+- `replay_sidecar` — метрика **этого** прогона по разметке test. Для v8 помечена
   `in_sample_note`: модель обучена в том числе на этой разметке.
 - `GET /api/v1/hotspots` — отрезки, где копится опоздание; `GET /api/v1/vehicles/{id}/whatif`
   и `/explanation` — what-if резерва и разложение прогноза.
@@ -261,7 +261,7 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 Автономная event-time оценка без forecast points:
 `python -m transport_backend.live_evaluation --model ml/pretrained/v3 --output artifacts/live-eval`
-(результаты и границы — [отчёт v3](../ml/reports/ml-v3.md); для v4/v5 test в обучении,
+(результаты и границы — [отчёт v3](../ml/reports/ml-v3.md); для v4–v8 test в обучении,
 поэтому такая оценка на test была бы in-sample).
 
 ## 6. Проверка деградации
