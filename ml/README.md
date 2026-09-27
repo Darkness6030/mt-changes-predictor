@@ -1,6 +1,6 @@
 # ML: прогноз задержки и оценка риска
 
-Текущий комплект — [`pretrained/v3`](pretrained/v3/README.md). Общий FeatureBuilder
+Текущий комплект — [`pretrained/v5`](pretrained/v5/README.md). Общий FeatureBuilder
 используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
 Обучение выполняется отдельной командой, вне HTTP.
 
@@ -9,14 +9,14 @@
 Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
-  --output artifacts/check-v3/submission.csv
-ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v5 \
+  --output artifacts/check-v5/submission.csv
+ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
-побайтово совпадает с `ml/pretrained/v3/submission.csv`; все 151 ID проверяются повторным
-чтением. Комплекты v1/v2 сохранены и поддерживаются; default Compose — v3.
+побайтово совпадает с `ml/pretrained/v5/submission.csv`; все 151 ID проверяются повторным
+чтением. Комплекты v1–v4 сохранены и поддерживаются; default Compose — v5.
 
 ## Архитектура и контракт
 
@@ -39,12 +39,25 @@ ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
 при NaN; `no_hint=True` принудительно выбирает fallback. Порядок всех признаков должен
 совпадать с manifest. Отрицательные задержки сохраняются.
 
-У v3 `hint_policy=supplied_only`: backend не записывает GPS-оценку в поле CSV-подсказки;
+У v3–v5 `hint_policy=supplied_only`: backend не записывает GPS-оценку в поле CSV-подсказки;
 GPS/плановый контекст рассчитывается общим builder и используется автономной моделью.
 Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
 1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
 
-## Результаты
+## Текущая v5
+
+Регрессия v4: рецепт v3, обученный на 1494 real train+test точках; два ансамбля
+по три CatBoost. V5 добавляет классификаторы на schema 2 и Platt по OOF,
+статус `validated`, и поддерживает SHAP-объяснения по запросу.
+
+Оценка процедуры вне 5 фолдов test: MAE **67,87 / 80,12 с** (supplied/no-hint),
+Brier **0,1065 / 0,1162**. Это один день; итоговая модель включает test в обучение.
+Replay test — in-sample. Факты расписания, синтетические копии и validate labels
+не используются. Полный протокол — [отчёт v4/v5](reports/ml-v5.md),
+[воспроизведение v5](pretrained/v5/README.md). Готовый CSV можно получить командой выше,
+без обучения. Сообщённый пользователем score 0,86126 отдельно не сверялся с файлом загрузки.
+
+## Исторические результаты v3
 
 | Проверка | v2 / прежняя логика | v3, MAE с |
 |---|---:|---:|
@@ -59,12 +72,15 @@ Backend получает config и schema через `/v1/model`. Для schema 
 MAE с равным весом посещений: 96,4139 → 90,2839 с, покрыто 322/353 известных посещений.
 Test уже был исследован до этой работы, но не использовался для нового подбора.
 Один день и 13 ТС не доказывают перенос на новый день; срезы и ограничения —
-в [отчёте](reports/ml-v3.md). Вероятность и её development-калибровка сохранены из v2.
+в [отчёте](reports/ml-v3.md). В v3 вероятность и её development-калибровка сохранены из v2.
+После исправления геометрических ties (ML-AUDIT-18) test v3 даёт 71,7377 / 83,7155 с;
+таблица выше сохраняет исходные измерения ML-IMPROVE-12.
 
-## Воспроизведение
+## Воспроизведение исторического протокола v3
 
 Все каталоги результата должны быть новыми. Обучение использует только 1141 real train
-точку. Синтетические семейства неизвестны и исключены. Исходные CSV неизменны.
+точку. Синтетические семейства исключены; позднее ML-AUDIT-18 установил, что это копии
+реальных ТС со сдвигом времени. Исходные CSV неизменны.
 
 ```bash
 # Полный поиск 109 конфигураций: пять vehicle folds + два forward folds; без test.

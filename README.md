@@ -10,12 +10,12 @@
 | Score платформы | **0,86126** (27.09, после публикации v4; прежний лучший 0,70106) | сообщено пользователем |
 | MAE на test вне фолдов: v3-рецепт только на train → v4 | **70,67 → 67,87 с** (без подсказки 83,27 → 80,12 с) | [проверка](ml/experiments/improve18-test-refit.json) |
 | MAE v3 на размеченном test (test не в обучении) | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
-| MAE автономного periodic replay | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
+| Исторический periodic replay v3 (до исправления ties) | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
 | Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
 | Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 175 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
+| Тесты | 191 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
 [DEMO.md](docs/DEMO.md); тексты формы сдачи — [SUBMISSION.md](docs/SUBMISSION.md).
@@ -26,9 +26,17 @@
 Ключ JavaScript API используется браузером; после его изменения пересоберите UI.
 Без ключа очередь и управление временем работают, карта показывает сообщение настройки.
 
+Требуются Git и Docker с Compose v2. Из новой рабочей директории:
+
 ```bash
-docker compose up --build            # ML + Backend + UI
+git clone https://github.com/Darkness6030/mt-changes-predictor.git
+cd mt-changes-predictor
+# При необходимости создайте .env по .env.example и укажите ключ карты.
+docker compose up -d --build --wait  # ML + Backend + UI
 ```
+
+Для уже клонированного проекта достаточно последней команды из его корня.
+Пока репозиторий приватный, клонирование требует доступа к нему.
 
 | Сервис | Адрес по умолчанию | Назначение |
 |---|---|---|
@@ -84,7 +92,7 @@ Backend импортирует её, а не пишет вторую верси�
 | [`backend/README.md`](backend/README.md) | NDTP, часы, состояние, инциденты, endpoints |
 | [`frontend/README.md`](frontend/README.md) | Экраны, состояния, пороги, сборка |
 | [`ml/reports/ml-v3.md`](ml/reports/ml-v3.md) | 109 конфигураций, holdout, автономная оценка и ограничения |
-| `docs/sphinx/` | PyDoc/Sphinx по коду: `python -m sphinx -b html docs/sphinx docs/sphinx/_build/html` |
+| [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md) | Готовый HTML Sphinx, OpenAPI JSON и Swagger обоих сервисов, воспроизведение |
 | [`docs/RULES.md`](docs/RULES.md), [`docs/PLAN.md`](docs/PLAN.md), [`docs/RESEARCH.md`](docs/RESEARCH.md) | Требования, план, исследование до реализации |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Журнал фактически выполненного |
 | [`docs/HACKATHON_STRATEGY.md`](docs/HACKATHON_STRATEGY.md) | Приоритеты по критериям, вау-фичи и план до дедлайна |
@@ -98,7 +106,7 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 175 тестов
+.venv/bin/python -m pytest -q                                  # 191 тест
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
@@ -132,8 +140,9 @@ npm --prefix frontend run dev
   Поэтому ни то, ни другое не используется ни в признаках, ни в обучении (ML-IMPROVE-18).
   Так как test вошёл в обучение v4, для неё публикуется только оценка вне фолдов, а
   MAE replay на test в дашборде помечается как in-sample.
-- Вероятность опоздания калибрована на development-фолде того же дня; статус
-  `fitted_on_development` виден в API и в UI. Это не проверка на независимом дне.
+- У v5 вероятность калибрована Platt по out-of-fold оценкам и проверена вне фолдов
+  одного дня; статус `validated` виден в API/UI. Перенос на независимый день не доказан.
+  У исторических v2–v4 сохранена development-калибровка.
 - V3 отделяет supplied `cur_dev_s` от шумных оценок GPS/плана. В потоке без supplied
   подсказки работает обученная автономная модель с отдельными признаками matching.
   Старые v1/v2 сохраняют GPS-estimated hint; сравнение — в отчёте v3.
