@@ -1,6 +1,7 @@
 # ML: прогноз задержки и оценка риска
 
-Текущий комплект — [`pretrained/v3`](pretrained/v3/README.md). Общий FeatureBuilder
+Текущий комплект — [`pretrained/v4`](pretrained/v4/README.md) (schema 3,
+[отчёт](reports/ml-v4.md)); v3 и старше сохранены. Общий FeatureBuilder
 используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
 Обучение выполняется отдельной командой, вне HTTP.
 
@@ -9,20 +10,22 @@
 Из корня проекта после установки зависимостей по основному README:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
-  --output artifacts/check-v3/submission.csv
-ML_MODEL_DIR=ml/pretrained/v3 ML_PORT=8011 .venv/bin/transport-ml-serve
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v4 \
+  --output artifacts/check-v4/submission.csv
+ML_MODEL_DIR=ml/pretrained/v4 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
-побайтово совпадает с `ml/pretrained/v3/submission.csv`; все 151 ID проверяются повторным
-чтением. Комплекты v1/v2 сохранены и поддерживаются; default Compose — v3.
+побайтово совпадает с `ml/pretrained/v4/submission.csv`; все 151 ID проверяются повторным
+чтением. Комплекты v1–v3 сохранены и поддерживаются; default Compose — v4.
 
 ## Архитектура и контракт
 
 - `data.py` — allowlist входных полей; labels загружаются отдельно.
 - `features.py` — один причинный FeatureBuilder, точность времени до наносекунд.
 - `schedule_context.py` — GPS относительно плановых посещений, ограниченное окно 30 минут.
+- `trip_context.py` — schema 3: отстои на конечных и положение в рейсе, только по плану.
+- `synthetic.py` — семьи синтетических копий и удаление копий моментов validate.
 - `model.py` — native CatBoost, контроль schema/checksum, main/fallback и взвешенные ансамбли.
 - `research.py` — фиксированные group/forward splits, подбор кандидатов, refit рецепта.
 - `training.py`, `group_validation.py` — исходный протокол v1/v2 и прежний group holdout.
@@ -44,7 +47,19 @@ GPS/плановый контекст рассчитывается общим bu
 Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
 1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
 
-## Результаты
+## Результаты v4
+
+| Проверка | v3, MAE с | v4, MAE с |
+|---|---:|---:|
+| Same-day block CV, main | 68,59 | **62,97** |
+| Аудит без test labels → test, main | 71,77 | **66,68** |
+| Тот же аудит, без hint | 83,80 | **76,32** |
+
+V4 обучена на train+test labels и очищенной синтетике. Собственная ошибка комплекта
+на test не является out-of-sample числом, поэтому `metrics.json` содержит аудит.
+Подробно — [отчёт v4](reports/ml-v4.md).
+
+## Результаты v3
 
 | Проверка | v2 / прежняя логика | v3, MAE с |
 |---|---:|---:|
@@ -63,8 +78,20 @@ Test уже был исследован до этой работы, но не и
 
 ## Воспроизведение
 
-Все каталоги результата должны быть новыми. Обучение использует только 1141 real train
-точку. Синтетические семейства неизвестны и исключены. Исходные CSV неизменны.
+V4 (default): рецепт, аудит и block CV, около 60 с обучения на 4 CPU.
+
+```bash
+.venv/bin/python -m transport_ml train-recipe \
+  --recipe ml/experiments/improve13-recipe.json --model artifacts/v4-repeat
+.venv/bin/python -m transport_ml predict --model artifacts/v4-repeat \
+  --output artifacts/v4-repeat/submission.csv
+.venv/bin/python ml/experiments/improve13_audit.py \
+  --recipe ml/experiments/improve13-recipe.json --bundle artifacts/v4-repeat
+.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/v4-block-cv.json
+```
+
+V3 и ниже. Все каталоги результата должны быть новыми. Обучение v3 использует только
+1141 real train точку; синтетика там исключена. Исходные CSV неизменны.
 
 ```bash
 # Полный поиск 109 конфигураций: пять vehicle folds + два forward folds; без test.

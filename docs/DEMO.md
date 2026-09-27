@@ -84,7 +84,7 @@ curl -s localhost:8010/api/v1/status | python3 -m json.tool | sed -n '/"ndtp"/,/
 
 Видны `connections_total`, `handshakes`, `realtime_frames`, `crc_errors: 0`,
 `invalid_frames: 0`, список `units`. В UI появляются периодические прогнозы из бинарного потока. По умолчанию
-forecast points отключены (`status.points = null`). У default v3 `cur_dev` отсутствует:
+forecast points отключены (`status.points = null`). У default v4 (как и v3) `cur_dev` отсутствует:
 GPS/плановые оценки входят отдельными признаками в fallback. V1/v2 сохраняют прежнюю
 estimated/missing-политику. Совпадение с supplied offline-прогнозом не обещается.
 `BACKEND_USE_POINTS=true` включает points только для явной диагностики.
@@ -199,15 +199,17 @@ curl -s localhost:8010/api/v1/metrics/quality | python3 -m json.tool   # кач�
 curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # задержки/счётчики
 ```
 
-- `offline` — измеренный benchmark комплекта v3: MAE 71,7707 с против baseline
-  `cur_dev_s` 93,3598 с на 353 размеченных точках, плюс отчёт вероятности.
+- `offline` — аудит рецепта v4 без test labels: MAE 66,68 с (без подсказки 76,32 с)
+  против baseline `cur_dev_s` 93,3598 с на 353 размеченных точках, плюс отчёт вероятности.
+  Сам комплект v4 обучен и на test, поэтому sidecar на test для v4 оптимистичен.
 - `replay_sidecar` — метрика **этого** прогона: считается только после наступления
   фактического времени цели, разметка в инференс не попадает. Там же распределение
   фактического lead time.
 - `performance` — p50/p95 инференса, обращения к ML, цикла Backend и полного пути
   «событие → опубликованный прогноз». Подробности и условия — [`PERFORMANCE.md`](PERFORMANCE.md).
 
-Автономная оценка v3 без forecast points запускается отдельно:
+Автономная оценка без forecast points запускается отдельно (для честного числа на test
+используйте комплект, обученный без test, см. [отчёт v4](../ml/reports/ml-v4.md)):
 `python -m transport_backend.live_evaluation --model ml/pretrained/v3 --output artifacts/live-eval`.
 Это event-time эксперимент с bounded state; результаты и границы проверки —
 [отчёт v3](../ml/reports/ml-v3.md).
@@ -225,13 +227,13 @@ curl -s localhost:8010/api/v1/metrics | python3 -m json.tool           # зад�
 
 ## 7. CSV для Data Science
 
-Готовый файл — `ml/pretrained/v3/submission.csv` (151 строка, `sample_id;prediction`).
+Готовый файл — `ml/pretrained/v4/submission.csv` (151 строка, `sample_id;prediction`).
 Воспроизведение без обучения и без Docker:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v3 \
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v4 \
   --output artifacts/check/submission.csv
-shasum -a 256 artifacts/check/submission.csv ml/pretrained/v3/submission.csv
+shasum -a 256 artifacts/check/submission.csv ml/pretrained/v4/submission.csv
 ```
 
 В Docker:
