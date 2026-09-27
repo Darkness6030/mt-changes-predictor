@@ -177,7 +177,9 @@ class ScheduleContext:
         distances = np.hypot(ax + fraction * dx, ay + fraction * dy)
         implied = plan["time"][indices] + fraction * dt[indices] * SECOND
         # Time only breaks geometric ties; no supplied deviation participates in this match.
-        best = np.lexsort((np.abs(implied - gps_ns), distances))[0]
+        # A fix at a shared vertex is equidistant from both segments: rounding to a micrometre
+        # keeps that tie exact on every platform instead of deciding it by float noise.
+        best = np.lexsort((np.abs(implied - gps_ns), np.round(distances, 6)))[0]
         result["match_distance_m"] = float(distances[best])
         result["match_segment_s"] = float(dt[indices[best]])
         if distances[best] <= 200 and length2[best] >= 25:

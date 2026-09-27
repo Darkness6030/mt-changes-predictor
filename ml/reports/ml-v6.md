@@ -1,12 +1,36 @@
-# ML-IMPROVE-13: модель v4
+# ML-IMPROVE-13: trip-модель и ансамбль v6
 
-27.09.2026. Новый default-комплект [`ml/pretrained/v4`](../pretrained/v4/README.md).
+## Итог: v6 = 1/2 v4 + 1/2 trip-модель
+
+Параллельно работали два чата. ML-V4-19 выпустил **v4**: рецепт v3, обученный на
+train+test, schema 2. Платформа: **0,86126**. Этот чат выпустил **trip-модель**
+(описана ниже): 0,85649. На 151 точке validate разница в 0,005 — шум. Повторное обучение
+trip-модели после исправления детерминизма признаков (ML-AUDIT-18) сдвигает прогнозы
+в среднем на 8 с на точку. Поэтому по платформе победителя выбрать нельзя.
+
+**v6** — равновесный ансамбль шести регрессоров (3 из v4 + 3 trip), 1/6 каждому.
+Классификаторы вероятности — из v5. Веса не подбирались ни на какой оценке.
+Ансамбль уменьшает дисперсию и страхует от ошибки выбора между моделями.
+Все признаки причинные, работает в потоке, ONNX совпадает с CatBoost до 1e−4 с.
+
+| Аудит на test, модели обучены БЕЗ test labels | main, с | без подсказки, с |
+|---|---:|---:|
+| v3 (= половина v4 без test) | 71,74 | 83,72 |
+| trip-модель | 67,08 | 75,91 |
+| v6 (среднее) | 67,82 | 78,60 |
+
+Сборка: `ml/experiments/improve13_build_v6.py`; [метрики](../pretrained/v6/metrics.json).
+Platform score v6 не проверялся.
+
+## Trip-модель (ML-IMPROVE-13)
+
+27.09.2026. Комплект — половина v6.
 Три изменения: признаки структуры рейса из планового расписания, обучение на labelled
 train+test и синтетика train, из которой удалены копии моментов validate.
 
-| Протокол | V3 | V4 |
+| Протокол | V3 | Trip |
 |---|---:|---:|
-| Same-day block CV, main (выбор v4) | 68,59 с | **62,97 с** (−8,2%) |
+| Same-day block CV, main (выбор trip) | 68,59 с | **62,97 с** (−8,2%) |
 | Аудит: refit без test labels → test, main | 71,77 с | **66,68 с** (−7,1%) |
 | Тот же аудит, без подсказки (fallback) | 83,80 с | **76,32 с** (−8,9%) |
 | Periodic event-time replay без points, комплект без test labels | 91,18 с | **82,86 с** (−9,1%) |
@@ -14,7 +38,7 @@ train+test и синтетика train, из которой удалены ко�
 Нулевой прогноз на test: 103,34 с; `cur_dev_s`: 93,36 с. Replay: 1311 оценённых
 прогнозов / 322 посещения, как у v3. MAE с равным весом посещений 90,28 → **80,94 с**.
 Батч признаков и трёх режимов: p50 56,8 мс, p95 79,0 мс (у v3 35,3 / 43,2 мс).
-[Полный отчёт replay](ml-v4-autonomous.json): аудиторский комплект, обученный
+[Полный отчёт replay](ml-trip-autonomous.json): аудиторский комплект, обученный
 без test labels, с очищенными копиями test/validate.
 
 ## 1. Как устроен validate и почему изменился протокол
@@ -22,7 +46,7 @@ train+test и синтетика train, из которой удалены ко�
 Все train/test/validate точки — моменты T на 5-минутной сетке **одних и тех же 11–13
 реальных ТС одного дня**. Точки идут непрерывными блоками по split. Validate — 31 блок,
 медиана 6 точек (30 мин), и каждый зажат между блоками train/test тех же ТС. Поэтому
-v4 выбиралась на **same-day block CV**: пул real train + test (1494 точки, 200 блоков),
+Trip-модель выбиралась на **same-day block CV**: пул real train + test (1494 точки, 200 блоков),
 10 folds целыми блоками × 2 повтора (seeds 100/101). Это та же геометрия, что у validate.
 Group-CV по целым ТС из v3 отвечает на другой вопрос (новое ТС) и для платформы пессимистична.
 
@@ -38,14 +62,14 @@ Test labels — выданные организаторами размеченн
 +33 мин). Задержки коррелируют с оригиналом с r≈0,99, шум около 16 с. Значит, синтетика
 содержит зашумлённые ответы validate: копии тех же визитов, сдвинутые по времени.
 
-| Block CV, main v4 | MAE |
+| Block CV, main trip | MAE |
 |---|---:|
 | Без синтетики | 64,4 с |
 | Вся синтетика (утечка) | 56,3 с для одиночной модели |
 | Синтетика без копий отложенных и validate моментов ±1200 с | **62,97 с** |
 
 Почти весь «выигрыш» полной синтетики — утечка. Честная польза после очистки — 1–1,5 с.
-В v4 семьи определяются только по плановым геометрии и времени
+В trip-модели семьи определяются только по плановым геометрии и времени
 ([`synthetic.py`](../src/transport_ml/synthetic.py)). Удаляются синтетические точки,
 чей реальный момент ближе 1200 с к любой точке validate того же родителя: 604 из 3293.
 Для этой очистки из validate читаются только `tr_id` и `T` из `points.csv`.
@@ -69,7 +93,7 @@ Fallback исключает оба hint-признака. Batch/stream испо�
 деревьев немного помогает, остальное — в пределах шума. Признаки рейса дали около 2 с,
 direct-модели с ними — ещё около 0,5 с. Лучшие пары residual+direct: около 63,1–63,3 с.
 
-Рецепт v4 ([`improve13-recipe.json`](../experiments/improve13-recipe.json)):
+Рецепт trip-модели ([`improve13-recipe.json`](../experiments/improve13-recipe.json)):
 - main: residual d6/600 + direct d6/1000/lr 0,03 + direct d8/600;
 - fallback: direct d6/600 + d4/1000/lr 0,03 + d8/600;
 - все признаки, MAE, L2=5, seed 42, веса 1/3.
@@ -80,20 +104,20 @@ Seed 7 дал 63,29 с, ансамбль из 6 моделей — 62,96 с: в�
 
 ```bash
 .venv/bin/python -m transport_ml train-recipe --recipe ml/experiments/improve13-recipe.json \
-  --model artifacts/v4-repeat
-.venv/bin/python -m transport_ml predict --model artifacts/v4-repeat \
-  --output artifacts/v4-repeat/submission.csv
+  --model artifacts/trip-repeat
+.venv/bin/python -m transport_ml predict --model artifacts/trip-repeat \
+  --output artifacts/trip-repeat/submission.csv
 .venv/bin/python ml/experiments/improve13_audit.py \
-  --recipe ml/experiments/improve13-recipe.json --bundle artifacts/v4-repeat
-.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/v4-block-cv.json
+  --recipe ml/experiments/improve13-recipe.json --bundle artifacts/trip-repeat
+.venv/bin/python ml/experiments/improve13_block_cv.py --output artifacts/trip-block-cv.json
 ```
 
 Обучение занимает около 60 с на 4 CPU; block CV — несколько десятков минут. Итог block CV
-сохранён в [`ml-v4-block-cv.json`](ml-v4-block-cv.json).
+сохранён в [`ml-trip-block-cv.json`](ml-trip-block-cv.json).
 
 ## 6. Ограничения
 
-- В аудите на test v4 лучше v3 на 8 из 13 ТС. Bootstrap целыми ТС (5000 повторов,
+- В аудите на test trip-модель лучше v3 на 8 из 13 ТС. Bootstrap целыми ТС (5000 повторов,
   seed 20260927): выигрыш 5,1 с, 95% интервал **[−2,0; 12,7] с**. Всего 13 кластеров,
   поэтому отдельно этот интервал не доказывает улучшение. Сильнее всего ухудшилось ТС
   122048 (120 → 144 с, 24 точки): эпизод задержек 7–9 минут.
@@ -101,7 +125,7 @@ Seed 7 дал 63,29 с, ансамбль из 6 моделей — 62,96 с: в�
 - Всё это один день. Выигрыш от test labels и от признаков, связанных со временем суток
   и координатами, особенно велик для validate того же дня. Для нового дня перенос
   не доказан; признаки рейса от дня не зависят.
-- `metrics.json` комплекта — это аудит без test labels. Replay sidecar на test с v4
+- `metrics.json` комплекта — это аудит без test labels. Replay sidecar на test с v6
   оптимистичен, потому что test входит в обучение.
 - Классификаторы вероятности и калибровка не менялись (v2, `fitted_on_development`).
 - Порог отстоя 240 с выбран по анализу ошибок train+test, а не отдельной подгонкой.

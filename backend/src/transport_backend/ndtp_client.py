@@ -41,6 +41,29 @@ class ReplayStats:
     errors: int = 0
 
 
+RETRY_DELAYS_S = (0.5, 1.0, 2.0, 4.0, 8.0)
+
+
+async def _open_unit(host: str, port: int, unit_id: str):
+    reader, writer = await asyncio.open_connection(host, port)
+    writer.write(encode_handshake(int(unit_id)))
+    await writer.drain()
+    await asyncio.sleep(0.2)  # The specification pauses 200 ms after the handshake.
+    return reader, writer
+
+
+async def _close(writer, stats: ReplayStats, *, broken: bool = False) -> None:
+    if writer is None:
+        return
+    writer.close()
+    try:
+        await writer.wait_closed()
+    except Exception:
+        # Closing a connection that has just been reset is expected to fail.
+        if not broken:
+            stats.errors += 1
+
+
 async def _send_unit(
     host: str,
     port: int,
@@ -51,45 +74,59 @@ async def _send_unit(
     stats: ReplayStats,
     origin_ns: int,
     started: float,
+    retry_delays_s: tuple[float, ...] = RETRY_DELAYS_S,
 ) -> None:
-    reader = writer = None
+    """Send one unit's rows; reconnect with backoff and resume at the first unsent row.
+
+    A frame counts as sent after ``drain``. A frame written just before a reset may still be
+    lost or arrive twice; the receiver deduplicates identical events.
+    """
+    writer = None
+    attempt = 0
+    request_id = 2
+    records = list(rows.itertuples())
+    position = 0
+    loop = asyncio.get_running_loop()
     try:
-        reader, writer = await asyncio.open_connection(host, port)
-        writer.write(encode_handshake(int(unit_id)))
-        await writer.drain()
-        await asyncio.sleep(0.2)  # The specification pauses 200 ms after the handshake.
-        request_id = 2
-        loop = asyncio.get_running_loop()
-        for row in rows.itertuples():
-            event_ns = int(row.event_time.value)
-            # All units share one virtual timeline. Pacing each unit by its own gaps would let
-            # a sparse device race ahead in source time and age the others out of the window.
-            due = started + (event_ns - origin_ns) / SECOND_NS / speed
-            await asyncio.sleep(max(0.0, due - loop.time()))
-            cell = encode_nav00(
-                timestamp=int(round(event_ns / SECOND_NS - offset_s)),
-                lon=None if pd.isna(row.lon) else float(row.lon),
-                lat=None if pd.isna(row.lat) else float(row.lat),
-                gps_valid=bool(row.gps_valid),
-                speed_kmh=0.0 if pd.isna(row.speed) else float(row.speed),
-                heading_deg=0.0 if pd.isna(row.heading) else float(row.heading),
-            )
-            frame = encode_realtime(int(unit_id), request_id, cell)
-            request_id += 1
-            writer.write(frame)
-            await writer.drain()
-            stats.frames += 1
-            stats.bytes_sent += len(frame)
+        while position < len(records):
+            try:
+                if writer is None:
+                    _, writer = await _open_unit(host, port, unit_id)
+                row = records[position]
+                event_ns = int(row.event_time.value)
+                # All units share one virtual timeline. Pacing each unit by its own gaps would
+                # let a sparse device race ahead in source time and age the others out.
+                due = started + (event_ns - origin_ns) / SECOND_NS / speed
+                await asyncio.sleep(max(0.0, due - loop.time()))
+                cell = encode_nav00(
+                    timestamp=int(round(event_ns / SECOND_NS - offset_s)),
+                    lon=None if pd.isna(row.lon) else float(row.lon),
+                    lat=None if pd.isna(row.lat) else float(row.lat),
+                    gps_valid=bool(row.gps_valid),
+                    speed_kmh=0.0 if pd.isna(row.speed) else float(row.speed),
+                    heading_deg=0.0 if pd.isna(row.heading) else float(row.heading),
+                )
+                frame = encode_realtime(int(unit_id), request_id, cell)
+                writer.write(frame)
+                await writer.drain()
+                request_id += 1
+                position += 1
+                attempt = 0
+                stats.frames += 1
+                stats.bytes_sent += len(frame)
+            except (ConnectionError, OSError, asyncio.IncompleteReadError):
+                await _close(writer, stats, broken=True)
+                writer = None
+                if attempt >= len(retry_delays_s):
+                    raise
+                await asyncio.sleep(retry_delays_s[attempt])
+                attempt += 1
+                stats.reconnects += 1
     except Exception:
         stats.errors += 1
         raise
     finally:
-        if writer is not None:
-            writer.close()
-            try:
-                await writer.wait_closed()
-            except Exception:
-                stats.errors += 1
+        await _close(writer, stats)
 
 
 async def replay_to_ndtp(

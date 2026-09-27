@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { signedDelay, sourceTime } from "../format";
+import { signedDelay, sourceTime, stopLabel } from "../format";
 import { forecastColour as colourOf, RISK_COLOURS as COLOURS } from "../mapPresentation";
 import { VehicleMarker } from "../vehicleMarker";
 import { hintHtml, loadYandexMaps, svgImage } from "../yandexMaps";
@@ -140,7 +140,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
         color: colourOf(vehicle), weight: vehicle.tr_id === selected ? 7 : 4,
         opacity: vehicle.stale ? 0.35 : 0.8,
         dashArray: vehicle.prediction?.status === "ok" ? undefined : "5 5",
-      }, `ТС ${vehicle.tr_id}: ${segment.from.address ?? "посещение"} → ${segment.to.address ?? "цель"} (схема)`, vehicle.tr_id);
+      }, `ТС ${vehicle.tr_id}: ${stopLabel(segment.from.address, segment.from.target_stop_id)} → ${stopLabel(segment.to.address, segment.to.target_stop_id)} (схема)`, vehicle.tr_id);
     }
     if (detail) {
       const plan = detail.plan ?? [];
@@ -150,7 +150,7 @@ export function MapView({ snapshot, detail, selected, onSelect, focusRequest }: 
       for (const visit of plan) point(`visit:${detail.tr_id}:${visit.target_stop_id}`, [visit.lat, visit.lon], {
         radius: 4, color: visit.passed ? "#4a5a6d" : "#4da3ff",
         fillColor: visit.passed ? "#2a3542" : "#1d3a58", fillOpacity: 1, weight: 1,
-      }, `${sourceTime(visit.planned_at)} · ${visit.address ?? "адрес не указан"}` + (visit.passed ? " · пройдено" : ""));
+      }, `${sourceTime(visit.planned_at)} · ${stopLabel(visit.address, visit.target_stop_id)}` + (visit.passed ? " · пройдено" : ""));
       const track = (detail.track ?? []).filter((item) => item.lon !== null && item.lat !== null);
       if (track.length > 1) line(`track:${detail.tr_id}`,
         track.map((item) => [item.lat as number, item.lon as number]),

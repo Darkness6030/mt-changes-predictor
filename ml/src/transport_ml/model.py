@@ -85,6 +85,19 @@ class DelayModel:
             "fit_rows": spec["calibration"]["fit_rows"],
         }
 
+    def _member_predict(self, name: str, index: int, model, frame: pd.DataFrame) -> np.ndarray:
+        """One ensemble member; an alternative runtime overrides only this and _raw_scores."""
+        return np.asarray(model.predict(frame), dtype=float)
+
+    def _raw_scores(self, name: str, frame: pd.DataFrame) -> np.ndarray:
+        return np.asarray(
+            self.classifiers[name].predict(frame, prediction_type="RawFormulaVal"), dtype=float
+        )
+
+    @property
+    def runtime(self) -> str:
+        return "catboost"
+
     def _check(self, features: pd.DataFrame) -> None:
         if list(features.columns) != self.manifest["features"] or not features.columns.is_unique:
             raise ValueError("Feature names/order do not match the model manifest")
@@ -103,8 +116,10 @@ class DelayModel:
             if not mask.any():
                 continue
             values = np.zeros(int(mask.sum()))
-            for spec, model, weight in self.models[name]:
-                member = model.predict(features.loc[mask, spec["features"]])
+            for index, (spec, model, weight) in enumerate(self.models[name]):
+                member = self._member_predict(
+                    name, index, model, features.loc[mask, spec["features"]]
+                )
                 if spec["residual"]:
                     member += features.loc[mask, "cur_dev_s"].to_numpy()
                 values += weight * member
@@ -126,12 +141,38 @@ class DelayModel:
             if not mask.any():
                 continue
             spec = self.manifest["classifiers"][name]
-            scores = self.classifiers[name].predict(
-                features.loc[mask, spec["features"]], prediction_type="RawFormulaVal"
-            )
+            scores = self._raw_scores(name, features.loc[mask, spec["features"]])
             result[mask] = self.calibration[name].apply(np.asarray(scores, dtype=float))
         if not np.isfinite(result).all():
             raise ValueError("Classifier returned a non-finite probability")
+        return result
+
+    def explain(self, features: pd.DataFrame, *, no_hint: bool = False) -> list[dict]:
+        """Grouped additive contributions per row; they sum to :meth:`predict` exactly."""
+        from transport_ml.explanation import member_shap, summarise
+
+        self._check(features)
+        fallback = self._routing(features, no_hint)
+        result: list[dict | None] = [None] * len(features)
+        for name, mask in (("main", ~fallback), ("fallback", fallback)):
+            if not mask.any():
+                continue
+            rows = features.loc[mask]
+            contributions = pd.DataFrame(0.0, index=rows.index, columns=features.columns)
+            base = np.zeros(len(rows))
+            residual_weight = 0.0
+            for spec, model, weight in self.models[name]:
+                values, expected = member_shap(model, rows[spec["features"]])
+                contributions[spec["features"]] += weight * values
+                base += weight * expected
+                residual_weight += weight if spec["residual"] else 0.0
+            offset = residual_weight * rows.cur_dev_s.fillna(0.0).to_numpy()
+            for position, index in enumerate(np.flatnonzero(mask)):
+                summary = summarise(
+                    contributions.iloc[position].to_dict(), base[position], offset[position]
+                )
+                summary["model_used"] = name
+                result[index] = summary
         return result
 
     def infer(self, features: pd.DataFrame, *, no_hint: bool = False) -> dict:

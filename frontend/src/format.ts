@@ -76,9 +76,25 @@ export function freshness(vehicle: { stale: boolean; position: unknown }): {
 }
 
 /** Severity for the queue: red first, then yellow, then everything without a forecast. */
+/** Queue order: red, then a first/last trip at risk, yellow, probability-only, the rest. */
 export function severity(prediction: Prediction | null): number {
   if (!prediction || prediction.status !== "ok") return 1;
-  if (prediction.risk_level === "red") return 4;
-  if (prediction.risk_level === "yellow") return 3;
+  const edge = Boolean(prediction.trip?.first || prediction.trip?.last);
+  if (prediction.risk_level === "red") return edge ? 7 : 6;
+  if (prediction.risk_level === "yellow") return edge ? 5 : 4;
+  if (prediction.attention === "probability") return edge ? 5 : 3;
   return 2;
+}
+
+/** "первый рейс" / "последний рейс" label for the target visit, if it is a day's edge. */
+export function tripEdge(prediction: Prediction | null | undefined): string | null {
+  if (prediction?.trip?.first) return "первый рейс";
+  if (prediction?.trip?.last) return "последний рейс";
+  return null;
+}
+
+/** A planned-visit label a dispatcher can read when the dataset has no address. */
+export function stopLabel(address: string | null | undefined, visitId: string | null | undefined): string {
+  if (address) return address;
+  return visitId ? `остановка без адреса · №…${visitId.slice(-4)}` : "остановка без адреса";
 }

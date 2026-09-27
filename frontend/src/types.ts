@@ -25,6 +25,85 @@ export interface Calibration {
   fit_rows?: number;
 }
 
+export interface ContributionGroup {
+  group: string;
+  label: string;
+  seconds: number;
+}
+
+/** Exact split of delay_s from the ML service: base + groups + other = total. */
+export interface Explanation {
+  base_s: number;
+  groups: ContributionGroup[];
+  other_s: number;
+  total_s: number;
+  model_used: string;
+}
+
+/** Trip of the target visit, reconstructed from the plan (no trip ids in the data). */
+export interface Trip {
+  number: number;
+  total: number;
+  first: boolean;
+  last: boolean;
+  start_at: string;
+  end_at: string;
+}
+
+export interface WhatIfTrip {
+  trip: number;
+  planned_start_at: string;
+  delay_without_s: number;
+  delay_with_s: number;
+  served_by: "vehicle" | "reserve";
+}
+
+export interface WhatIfAnswer {
+  tr_id: string;
+  available: boolean;
+  reason?: string;
+  prediction_id?: string;
+  current_trip?: number;
+  trips_total?: number;
+  reserve_in_min?: number;
+  reserve_ready_at?: string;
+  reserve_takes_trip?: number | null;
+  trips?: WhatIfTrip[];
+  late_trips_without?: number;
+  late_trips_with?: number;
+  delay_saved_s?: number;
+  assumptions?: string[];
+}
+
+export interface HotspotEnd {
+  target_stop_id: string;
+  address: string | null;
+  lon: number;
+  lat: number;
+}
+
+/** A segment where delay grew between consecutive GPS-observed stops, summed over the run. */
+export interface Hotspot {
+  segment_id: string;
+  tr_id: string;
+  from: HotspotEnd;
+  to: HotspotEnd;
+  passes: number;
+  gain_total_s: number;
+  gain_max_s: number;
+  gain_mean_s: number;
+  last_at?: string;
+}
+
+export interface ExplanationAnswer {
+  run_id: string;
+  tr_id: string;
+  prediction_id: string;
+  model_version: string;
+  delay_s: number;
+  explanation: Explanation;
+}
+
 export interface Prediction {
   prediction_id: string;
   run_id: string;
@@ -44,6 +123,8 @@ export interface Prediction {
   expected_arrival_at?: string | null;
   risk_level: RiskLevel | null;
   risk_basis: string | null;
+  attention?: "delay" | "probability" | null;
+  trip?: Trip | null;
   late_probability: number | null;
   late_threshold_s?: number | null;
   calibration?: Calibration | null;
@@ -151,6 +232,14 @@ export interface Alert {
   updates: number;
   state: "active" | "resolved" | "expired";
   acknowledged_at: string | null;
+  acknowledged_from?: string | null;
+  attention?: "delay" | "probability" | null;
+  trip_edge?: "first" | "last" | null;
+  observed_arrival_at?: string | null;
+  observed_delay_s?: number | null;
+  observed_distance_m?: number | null;
+  warning_lead_s?: number | null;
+  warning_outcome?: "confirmed" | "within_norm" | "opposite" | null;
   evidence: Evidence[];
 }
 
@@ -194,10 +283,12 @@ export interface Snapshot {
     stale: number;
     unmapped: number;
     alerts_active: number;
+    edge_trips_at_risk?: number;
   };
   risk_policy: RiskPolicy;
   vehicles: Vehicle[];
   alerts: Alert[];
+  hotspots?: Hotspot[];
   fixture?: boolean;
 }
 
@@ -302,6 +393,14 @@ export interface Quality {
     late_probability?: Record<string, unknown>;
     note: string;
   } | null;
+  early_warning?: {
+    observed: number;
+    confirmed?: number;
+    confirmed_share?: number;
+    lead_s?: { min: number; p50: number; max: number };
+    lead_at_least_600s_share?: number;
+    note: string;
+  };
   replay_sidecar: {
     source: string;
     measured_rows: number;
@@ -314,6 +413,8 @@ export interface Quality {
     late_probability_brier?: number;
     hint_sources?: Record<string, number>;
     note?: string;
+    in_sample?: boolean;
+    in_sample_note?: string;
   } | null;
   model: Record<string, unknown> | null;
 }

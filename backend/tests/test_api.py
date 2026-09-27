@@ -148,3 +148,35 @@ def test_seek_outside_data_moves_clock_and_returns_empty_snapshot(client, start_
     snapshot = client.get("/api/v1/snapshot").json()
     assert snapshot["vehicles"] == []
     assert snapshot["alerts"] == []
+
+
+@pytest.mark.parametrize(
+    ("fixture", "model"), [("snapshot.json", "Snapshot"), ("vehicle.json", "VehicleDetail")]
+)
+def test_contract_fixtures_match_the_published_schemas(fixture, model):
+    import json
+    from pathlib import Path
+
+    from transport_backend import schemas
+
+    data = json.loads((Path("backend/fixtures") / fixture).read_text())
+    getattr(schemas, model).model_validate(data)
+
+
+def test_openapi_documents_typed_dispatcher_responses(client):
+    spec = client.get("/openapi.json").json()
+    for path in ("/api/v1/snapshot", "/api/v1/vehicles/{tr_id}", "/api/v1/alerts"):
+        schema = spec["paths"][path]["get"]["responses"]["200"]["content"]["application/json"]
+        assert "$ref" in schema["schema"], path
+    assert {"Snapshot", "VehicleDetail", "Prediction", "ExplanationAnswer"} <= set(
+        spec["components"]["schemas"]
+    )
+
+
+def test_whatif_endpoint_answers_and_validates(client):
+    snapshot = client.get("/api/v1/snapshot").json()
+    tr_id = snapshot["vehicles"][0]["tr_id"] if snapshot["vehicles"] else "129964"
+    body = client.get(f"/api/v1/vehicles/{tr_id}/whatif", params={"reserve_in_min": 15}).json()
+    assert body["tr_id"] == tr_id and "available" in body
+    assert client.get("/api/v1/vehicles/unknown/whatif").status_code == 404
+    assert client.get(f"/api/v1/vehicles/{tr_id}/whatif?reserve_in_min=-1").status_code == 422

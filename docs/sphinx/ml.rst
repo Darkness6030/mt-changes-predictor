@@ -13,10 +13,14 @@ ML: признаки, модели, сервис
 
 .. automodule:: transport_ml.schedule_context
 
+.. automodule:: transport_ml.gps_trust
+
 Модель и артефакт
 -----------------
 
 .. automodule:: transport_ml.model
+
+.. automodule:: transport_ml.explanation
 
 Калибровка вероятности
 ----------------------

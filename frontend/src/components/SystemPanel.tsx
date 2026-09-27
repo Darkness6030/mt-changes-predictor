@@ -119,6 +119,7 @@ export function SystemPanel({ status, quality }: Props) {
             <Row label="ТС в состоянии" value={String(status?.state.vehicles ?? "—")} />
             <Row label="Событий в памяти" value={String(status?.state.events_in_state ?? "—")} />
             <Row label="Дубликатов" value={String(status?.state.duplicate_events ?? "—")} />
+            <Row label="Скрыто GPS-точек" value={String(status?.state.suspect_gps_fixes ?? "—")} />
             <Row label="Событий из будущего" value={String(status?.state.rejected_future_events ?? "—")} />
             <Row label="Несопоставленных устройств" value={String(status?.state.unmapped_units ?? "—")} />
           </tbody>
@@ -153,9 +154,35 @@ export function SystemPanel({ status, quality }: Props) {
           <div className="hint">Offline-отчёт не подключён.</div>
         )}
         {offline ? <div className="hint">{offline.note}</div> : null}
+        {quality?.early_warning ? (
+          <>
+            <h3>Раннее предупреждение на потоке</h3>
+            {quality.early_warning.observed ? (
+              <table>
+                <tbody>
+                  <Row label="Алертов с наблюдаемым фактом" value={String(quality.early_warning.observed)} />
+                  <Row
+                    label="Подтвердились"
+                    value={`${quality.early_warning.confirmed} (${Math.round((quality.early_warning.confirmed_share ?? 0) * 100)}%)`}
+                  />
+                  <Row
+                    label="Предупредили до прибытия, мин / медиана"
+                    value={`${duration(quality.early_warning.lead_s?.min)} / ${duration(quality.early_warning.lead_s?.p50)}`}
+                  />
+                  <Row
+                    label="Предупреждено за ≥10 мин"
+                    value={`${Math.round((quality.early_warning.lead_at_least_600s_share ?? 0) * 100)}%`}
+                  />
+                </tbody>
+              </table>
+            ) : null}
+            <div className="hint">{quality.early_warning.note}</div>
+          </>
+        ) : null}
         {sidecar ? (
           <>
             <h3 style={{ marginTop: 10 }}>Этот прогон по разметке</h3>
+            {sidecar.in_sample_note ? <div className="hint">{sidecar.in_sample_note}</div> : null}
             {sidecar.measured_rows ? (
               <table>
                 <tbody>

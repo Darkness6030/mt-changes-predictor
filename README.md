@@ -6,13 +6,19 @@
 
 | Что | Значение | Где проверить |
 |---|---|---|
-| MAE основной модели v4, аудит на test без test labels | **66,68 с** (v3: 71,77 с) | [исследование ML v4](ml/reports/ml-v4.md) |
-| MAE v4 в same-day block CV (геометрия validate) | **62,97 с** (рецепт v3: 68,59 с) | [протокол](ml/reports/ml-v4.md) |
-| MAE автономного periodic replay (v3) | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
+| Модель по умолчанию | **v6**: равновесный ансамбль регрессии v4 и trip-модели (структура рейса, schema 3) + вероятность v5 | [отчёт ML v6](ml/reports/ml-v6.md) |
+| Score платформы | **0,86126** у v4, 0,85649 у trip-модели; v6 (их среднее) не загружался | сообщено пользователем |
+| MAE на test вне фолдов: v3-рецепт только на train → v4 | **70,67 → 67,87 с** (без подсказки 83,27 → 80,12 с) | [проверка](ml/experiments/improve18-test-refit.json) |
+| MAE v3 на размеченном test (test не в обучении) | **71,7707 с** | [исследование ML v3](ml/reports/ml-v3.md) |
+| MAE автономного periodic replay | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
-| Вероятность `P(задержка > 120 с)` (сохранена из v2) | Brier 0,1395 против 0,1843 у базовой частоты, ROC-AUC 0,8177 | [отчёт ML v2](ml/reports/ml-v2.md) |
-| CSV для Data Science (151 прогноз) | [`ml/pretrained/v4/submission.csv`](ml/pretrained/v4/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 136 (ML, признаки, NDTP, состояние, движок, API, демо, история) | `python -m pytest -q` |
+| Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
+| Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
+| CSV для Data Science (151 прогноз) | [`ml/pretrained/v6/submission.csv`](ml/pretrained/v6/submission.csv); v4/v5 — [`v5`](ml/pretrained/v5/submission.csv) | [проверка формата](ml/src/transport_ml/submission.py) |
+| Тесты | 175 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
+
+Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
+[DEMO.md](docs/DEMO.md); тексты формы сдачи — [SUBMISSION.md](docs/SUBMISSION.md).
 
 ## Запуск за одну команду
 
@@ -77,7 +83,7 @@ Backend импортирует её, а не пишет вторую верси�
 | [`ml/README.md`](ml/README.md) | Признаки, обучение, модели, вероятность, CLI, сервис |
 | [`backend/README.md`](backend/README.md) | NDTP, часы, состояние, инциденты, endpoints |
 | [`frontend/README.md`](frontend/README.md) | Экраны, состояния, пороги, сборка |
-| [`ml/reports/ml-v4.md`](ml/reports/ml-v4.md) | v4: структура рейса, train+test, утечка синтетики и её очистка, block CV |
+| [`ml/reports/ml-v6.md`](ml/reports/ml-v6.md) | trip-модель и ансамбль v6: структура рейса, утечка синтетики и её очистка, block CV |
 | [`ml/reports/ml-v3.md`](ml/reports/ml-v3.md) | 109 конфигураций, holdout, автономная оценка и ограничения |
 | `docs/sphinx/` | PyDoc/Sphinx по коду: `python -m sphinx -b html docs/sphinx docs/sphinx/_build/html` |
 | [`docs/RULES.md`](docs/RULES.md), [`docs/PLAN.md`](docs/PLAN.md), [`docs/RESEARCH.md`](docs/RESEARCH.md) | Требования, план, исследование до реализации |
@@ -93,11 +99,11 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 136 тестов
+.venv/bin/python -m pytest -q                                  # 175 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах
-ML_MODEL_DIR=ml/pretrained/v4 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_MODEL_DIR=ml/pretrained/v6 ML_PORT=8011 .venv/bin/transport-ml-serve
 BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.csv \
   .venv/bin/transport-backend serve --port 8010
 
@@ -110,8 +116,8 @@ npm --prefix frontend run dev
 Готовый CSV для платформы воспроизводится без обучения:
 
 ```bash
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v4 \
-  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v4/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 \
+  --output artifacts/check/submission.csv   # побайтово равен ml/pretrained/v6/submission.csv
 ```
 
 ## Что честно, а что ограничено
@@ -121,6 +127,12 @@ npm --prefix frontend run dev
   тесты). Цель — первое плановое посещение в `(T+600, T+900]`.
 - Отсутствие прогноза публикуется статусом (`no_target_in_horizon`, `stale`,
   `warming_up`, `ml_unavailable`, …), а не нулевой задержкой.
+- Обучение только на реальных размеченных точках train и test. Синтетические ТС train —
+  сдвинутые во времени копии реальных с почти теми же задержками, в том числе на
+  validate-посещениях; факты `time_fact_begin` train/test покрывают все validate-цели.
+  Поэтому ни то, ни другое не используется ни в признаках, ни в обучении (ML-IMPROVE-18).
+  Так как test вошёл в обучение v4, для неё публикуется только оценка вне фолдов, а
+  MAE replay на test в дашборде помечается как in-sample.
 - Вероятность опоздания калибрована на development-фолде того же дня; статус
   `fitted_on_development` виден в API и в UI. Это не проверка на независимом дне.
 - V3 отделяет supplied `cur_dev_s` от шумных оценок GPS/плана. В потоке без supplied

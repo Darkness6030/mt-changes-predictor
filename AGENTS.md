@@ -27,11 +27,11 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
 .venv/bin/python -m pytest -q
-.venv/bin/python -m transport_ml predict --model ml/pretrained/v4 --output artifacts/onboarding/submission.csv
+.venv/bin/python -m transport_ml predict --model ml/pretrained/v6 --output artifacts/onboarding/submission.csv
 ```
 
 Последняя команда создаёт новый файл; при повторе выбрать новый output. Эталонный готовый
-CSV — `ml/pretrained/v4/submission.csv`. Обучать заново для знакомства не требуется.
+CSV — `ml/pretrained/v6/submission.csv`. Обучать заново для знакомства не требуется.
 Рабочий вход — `python -m transport_ml`; `main.py` пуст и не используется.
 Подробности Docker и воспроизведения — [ml/README.md](ml/README.md).
 
@@ -45,7 +45,7 @@ Docker-проверки — в PROGRESS. Это результаты выпол�
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
-| ML | v4: 82 признака (schema 3, структура рейса), train+test + очищенная синтетика; main/fallback ансамбли; periodic event-time оценка; классификаторы v2 | LIVE-EVAL-01: доставка/публикация; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/ml-v4.md`, `ml/pretrained/v4/` |
+| ML | v6: равновесный ансамбль v4 (рецепт v3 на train+test) и trip-модели (schema 3, структура рейса, очищенная синтетика); вероятность v5, SHAP, ONNX; periodic event-time оценка; классификаторы v2 | LIVE-EVAL-01: доставка/публикация; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/ml-v6.md`, `ml/pretrained/v6/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
 | Backend | CSV replay, NDTP TCP, state, GPS-оценки, alerts/ack, snapshot, runtime metrics, смена демо-источника и история NDTP | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
 | Frontend | React/Vite/TS/Яндекс Карты API 2.1; очередь, карта, карточка, системная/демо-панели, свободный таймлайн с отдельным drag красной метки, просмотр истории NDTP | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
@@ -129,11 +129,11 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 ## Особенности текущего live-контура
 
-- Обновление 27.09 (ML-IMPROVE-13): default **v4**, schema 3 / 82 признака (+9 признаков
-  структуры рейса по плану), обучение train+test labels + синтетика без копий моментов
-  validate (синтетика — сдвинутые копии реальных ТС того же дня: без очистки это утечка).
-  Аудит без test labels: test main 66,68 с, no-hint 76,32 с; периодический replay 82,86 с.
-  Отчёт — `ml/reports/ml-v4.md`. Ниже — описание v3, сохранённого для сравнения.
+- Обновление 27.09 (ML-IMPROVE-13): default **v6** = 1/2 v4 (рецепт v3, train+test, platform
+  0,86126) + 1/2 trip-модели (schema 3 / 82 признака: +9 признаков структуры рейса по плану;
+  train+test + синтетика без копий моментов validate; platform 0,85649). Синтетика — сдвинутые
+  копии реальных ТС того же дня: без очистки это утечка ответов validate. Классификаторы v5.
+  Отчёт — `ml/reports/ml-v6.md`. Ниже — описание v3, сохранённого для сравнения.
 - Обновление 27.09: v3 использует schema 2 / 73 признака и `hint_policy=supplied_only`.
   Backend получает config из ML API; GPS-оценки входят отдельными признаками, а не
   подставляются в `cur_dev_s`. V1/v2 сохраняют schema 1 и старую политику.
@@ -183,7 +183,7 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 
 Не коммитить `.env`, токены, `.venv`, IDE, кэши, Docker-слои и большие модели.
 Исключение для передачи команде: небольшие `ml/pretrained/v1/`, `ml/pretrained/v2/` и
-`ml/pretrained/v3/`, `ml/pretrained/v4/` хранят модели, manifests и CSV. По умолчанию используется v4. Не менять эти комплекты
+`ml/pretrained/v3/`–`ml/pretrained/v6/` хранят модели, manifests и CSV. По умолчанию используется v6. Не менять эти комплекты
 на месте; эксперименты писать в `artifacts/<run>/`.
 Исходные CSV включены в приватный репозиторий для воспроизводимости; OCI-образ остаётся
 локальным. Не менять публичность репозитория и не удалять исходные файлы по собственной

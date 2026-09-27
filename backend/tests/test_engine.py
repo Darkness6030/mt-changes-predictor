@@ -423,3 +423,189 @@ async def test_incompatible_model_contract_cannot_send_wrong_features():
     assert not engine.ml.ready
     assert "disagree" in engine.ml.last_error
     assert engine.ml.seen == []
+
+
+class ExplainingMl(FakeMl):
+    """Adds the on-demand explanation call and counts how often it is used."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.explain_calls = 0
+        self.delay_override: float | None = None
+
+    async def explain(self, item, feature_schema_version):
+        self.explain_calls += 1
+        delay = self.delay_s if self.delay_override is None else self.delay_override
+        groups = [{"group": "movement", "label": "Скорость и движение", "seconds": delay - 10}]
+        return {
+            "request_id": item["request_id"],
+            "delay_s": delay,
+            "model_version": "fake",
+            "explanation": {
+                "base_s": 10.0,
+                "groups": groups,
+                "other_s": 0.0,
+                "total_s": delay,
+                "model_used": "main",
+            },
+        }
+
+
+async def test_explanation_is_on_demand_cached_and_bound_to_the_prediction():
+    from transport_backend.engine import PredictionChanged
+
+    engine = make_engine(replay_speed=600.0, replay_autostart=True)
+    engine.ml = ExplainingMl()
+    await engine.start()
+    try:
+        deadline = asyncio.get_running_loop().time() + 20
+        while asyncio.get_running_loop().time() < deadline and engine.predicted_points < 3:
+            await asyncio.sleep(0.2)
+    finally:
+        await engine.stop()  # Freeze the current predictions for the checks below.
+    ready = [tr for tr, view in engine.predictions.items() if view["status"] == "ok"]
+    assert ready and engine.ml.explain_calls == 0  # The cycle never explains.
+    tr_id = ready[0]
+    prediction_id = engine.predictions[tr_id]["prediction_id"]
+    first = await engine.explanation(tr_id, prediction_id)
+    again = await engine.explanation(tr_id, prediction_id)
+    assert first is again and engine.ml.explain_calls == 1
+    assert first["explanation"]["total_s"] == engine.predictions[tr_id]["delay_s"]
+    with pytest.raises(PredictionChanged):
+        await engine.explanation(tr_id, "p-999999")
+    # A different number from ML (e.g. a swapped model) is refused, not shown as the reason.
+    engine.explanations.clear()
+    engine.ml.delay_override = 1.0
+    with pytest.raises(PredictionChanged):
+        await engine.explanation(tr_id, prediction_id)
+    await engine.reset()
+    assert not engine.feature_rows and not engine.explanations
+
+
+def test_attention_uses_delay_first_then_calibrated_probability():
+    from transport_backend.engine import needs_attention
+
+    policy = RiskPolicy()
+    assert policy.attention(150.0, 0.1) == "delay"
+    assert policy.attention(-90.0, None) == "delay"  # Early running is also a risk.
+    assert policy.attention(30.0, 0.7) == "probability"
+    assert policy.attention(30.0, 0.2) is None
+    assert policy.attention(30.0, None) is None
+    ok = {"status": "ok", "risk_level": "green", "attention": "probability"}
+    assert needs_attention({"prediction": ok})
+    assert not needs_attention({"prediction": {**ok, "status": "stale"}})
+    assert not needs_attention({"prediction": None})
+
+
+def test_recommendation_escalates_a_likely_late_arrival():
+    from transport_backend.explain import recommendation
+
+    policy = RiskPolicy()
+    calm = recommendation(80.0, [], policy, 0.2)
+    likely = recommendation(80.0, [], policy, 0.6)
+    assert "наблюдением" in calm and "60%" in likely
+    assert recommendation(80.0, [], policy) == calm  # Without a classifier: delay only.
+    assert "Опережение" in recommendation(-90.0, [], policy, 0.9)
+
+
+def test_acknowledgement_carries_to_the_next_stop_of_the_same_episode():
+    engine = make_engine()
+
+    def view(stop, cutoff, delay=150.0):
+        return {
+            "tr_id": "bus",
+            "target_stop_id": stop,
+            "target_planned_at": cutoff,
+            "cutoff_t": cutoff,
+            "computed_at": "wall",
+            "horizon_s": 700.0,
+            "risk_level": "red",
+            "delay_s": delay,
+            "late_probability": 0.8,
+            "evidence": [],
+            "attention": "delay",
+        }
+
+    engine._update_alert(view("s1", "2026-01-06 10:00:00"))
+    first = next(iter(engine.alerts.values()))
+    engine.acknowledge(first.alert_id)
+    engine._update_alert(view("s2", "2026-01-06 10:05:00"))
+    second = engine.alerts[f"{engine.run_id}:bus:s2"]
+    assert second.acknowledged_at == first.acknowledged_at
+    assert second.acknowledged_from == first.alert_id
+    # Alerts already open for the vehicle's later stops are covered by the click as well.
+    engine._update_alert(view("s3", "2026-01-06 10:06:00"))
+    engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_at = None
+    engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_from = None
+    engine.alerts[f"{engine.run_id}:bus:s1"].acknowledged_at = None
+    engine.acknowledge(f"{engine.run_id}:bus:s1")
+    assert engine.alerts[f"{engine.run_id}:bus:s3"].acknowledged_from == first.alert_id
+    # A new episode long after the last acknowledged prediction must be seen again.
+    engine._update_alert(view("s9", "2026-01-06 11:00:00"))
+    assert engine.alerts[f"{engine.run_id}:bus:s9"].acknowledged_at is None
+
+
+@pytest.mark.parametrize(("date", "days"), [("2026-09-28", 265), ("2026-01-06", 0)])
+def test_live_stream_date_aligns_the_timetable_by_whole_days(date, days):
+    from transport_backend.events import TelemetryEvent
+
+    engine = make_engine(mode="ndtp", plan_shift_auto=True, use_points=False)
+    unit, tr_id = next(iter(engine.mapping.items()))
+    event = TelemetryEvent(
+        source="ndtp_live",
+        unit_id=unit,
+        event_time_ns=pd.Timestamp(f"{date} 08:00:00").value,
+        gps_valid=True,
+        lon=37.6,
+        lat=55.7,
+        speed_kmh=20.0,
+        heading_deg=90.0,
+    )
+    engine._ingest(event)
+    assert engine._plan_shift_s == days * 86_400
+    assert engine.state.plan is engine.plan
+    assert tr_id in engine.state.tracks  # Accepted, not rejected as a far-future packet.
+    # The next plan visit is on the stream's day at the same time of day as in the dataset.
+    first = engine.plan.plan.time_begin.min()
+    assert first.date() == (pd.Timestamp("2026-01-06") + pd.Timedelta(days=days)).date()
+    assert first.time() == pd.Timestamp("2026-01-06 02:18:00").time()
+
+
+def test_env_defaults_align_live_streams_but_not_replay(monkeypatch):
+    monkeypatch.delenv("BACKEND_PLAN_SHIFT_S", raising=False)
+    monkeypatch.setenv("BACKEND_MODE", "ndtp")
+    assert Settings.from_env().plan_shift_auto
+    monkeypatch.setenv("BACKEND_MODE", "replay")
+    assert not Settings.from_env().plan_shift_auto
+    monkeypatch.setenv("BACKEND_MODE", "ndtp")
+    monkeypatch.setenv("BACKEND_PLAN_SHIFT_S", "0")
+    assert not Settings.from_env().plan_shift_auto
+
+
+def test_recommendation_prioritises_first_and_last_trips():
+    from transport_backend.explain import recommendation
+
+    policy = RiskPolicy()
+    last = {"number": 14, "total": 14, "first": False, "last": True}
+    middle = {"number": 5, "total": 14, "first": False, "last": False}
+    assert "последнего рейса дня (рейс 14 из 14)" in recommendation(150.0, [], policy, 0.9, last)
+    assert "рейса дня" not in recommendation(150.0, [], policy, 0.9, middle)
+    # An on-time first trip needs no escalation.
+    assert "рейса дня" not in recommendation(20.0, [], policy, 0.1, {**last, "first": True})
+
+
+def test_warning_outcome_respects_the_warned_direction():
+    from transport_backend.engine import warning_outcome
+
+    policy = RiskPolicy()
+    assert warning_outcome(150.0, 180.0, policy) == "confirmed"
+    assert warning_outcome(150.0, 30.0, policy) == "within_norm"
+    assert warning_outcome(150.0, -276.0, policy) == "opposite"  # Warned late, came early.
+    assert warning_outcome(-120.0, -90.0, policy) == "confirmed"  # Early warning held.
+
+
+def test_early_running_advice_names_a_hold_time():
+    from transport_backend.explain import recommendation
+
+    advice = recommendation(-190.0, [], RiskPolicy())
+    assert "придержать" in advice and "3 мин" in advice
