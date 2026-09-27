@@ -1,7 +1,8 @@
 # Frontend
 
 React / TypeScript / Vite / Яндекс Карты JavaScript API 2.1. Очередь рисков, карта, карточка ТС,
-управление replay и системная панель. Docker отдаёт сборку через nginx на порту 8080.
+управление replay и системная панель. Docker отдаёт сборку через nginx на порту 8080, включая `icon.svg`
+и `manifest.webmanifest` из `public/`.
 
 ```bash
 npm --prefix frontend ci

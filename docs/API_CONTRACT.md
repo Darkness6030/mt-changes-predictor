@@ -682,3 +682,8 @@ CSV показывает историческую линейку; TCP — тек
 
 Пример записанного ответа: `backend/fixtures/history.json`. Сценарии ошибок и UI:
 `backend/fixtures/history-cases.json`.
+
+## Статические файлы интерфейса
+
+UI-контейнер раздаёт `icon.svg` и `manifest.webmanifest` из `frontend/public/`.
+Они не меняют JSON-контракты API и примеры в `backend/fixtures/`.

@@ -5,6 +5,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/tsconfig.json frontend/vite.config.ts frontend/index.html ./
 COPY frontend/src ./src
+COPY frontend/public ./public
 # The checked-in demo configuration makes a clean clone build without a local .env.
 COPY .env.example ./.env
 # The build fails on a type error, so a broken contract cannot reach the image.
