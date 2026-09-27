@@ -38,6 +38,11 @@ def main() -> None:
     )
     parser.add_argument("--recipe", type=Path, default=Path("ml/experiments/improve13-recipe.json"))
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--zero-gate",
+        action="store_true",
+        help="v8: add the hurdle gate trained on the trip recipe's training data",
+    )
     args = parser.parse_args()
     if not args.trip.exists():
         subprocess.run(
@@ -95,6 +100,13 @@ def main() -> None:
             "note": "Risk classifiers and out-of-fold calibration copied from v5 unchanged.",
         },
     }
+    if args.zero_gate:
+        from transport_ml.zero_gate import fit_zero_gate, save_zero_gate
+
+        recipe = json.loads(args.recipe.read_text())
+        gate = fit_zero_gate(args.data, config, recipe["training_data"])
+        manifest["zero_gate"] = save_zero_gate(*gate, args.output)
+        manifest["training_group"] += "; hurdle zero gate (P(delay == 0) > 0.5 -> 0)"
     write_json(args.output / "manifest.json", manifest)
     restored = DelayModel(args.output)
     print(

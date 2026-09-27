@@ -128,7 +128,7 @@ def load_model(directory: Path) -> DelayModel:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the artifact once at startup; readiness stays false if it cannot be loaded."""
-    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v6"))
+    directory = Path(os.environ.get("ML_MODEL_DIR", "ml/pretrained/v8"))
     app.state.model_dir = directory
     app.state.model = None
     app.state.load_error = None

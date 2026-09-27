@@ -376,8 +376,9 @@ delay_without_s, delay_with_s, served_by}`, `late_trips_without/with` (>120 с),
 
 `base_s + Σ groups.seconds + other_s = total_s = delay_s` (±0,01 с). Для основной модели в
 группу `hint` входит сама подсказка `cur_dev_s`. До 4 групп с наибольшим |вкладом|, остальные
-в `other_s`. Группы: `hint`, `schedule_match`, `dwell`, `movement`, `route_ahead`,
-`place_time`, `data_quality`. Это SHAP-арифметика CatBoost, не подтверждённая причина.
+в `other_s`. Группы: `hint`, `trip` (schema 3), `schedule_match`, `dwell`, `movement`,
+`route_ahead`, `place_time`, `data_quality`. Если main-прогноз обнулён гейтом v8, приходит
+`zero_gate: true`, `groups: []`, `total_s: 0`. Это SHAP-арифметика CatBoost, не подтверждённая причина.
 Ошибки: `409 prediction_changed` — прогноз уже обновился или ML вернул другое число/модель;
 `503 ml_unavailable`. Основной цикл объяснения не запрашивает (задержка потока не растёт).
 
