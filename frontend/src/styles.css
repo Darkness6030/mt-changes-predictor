@@ -411,3 +411,52 @@ a { color: var(--accent); }
 .hotspot-gain { grid-row: span 2; font-weight: 600; font-variant-numeric: tabular-nums; align-self: center; }
 .hotspot-where { overflow-wrap: anywhere; }
 .hotspot-meta { color: var(--muted); font-size: 11px; }
+
+/* Phone: one panel at a time under a tab bar instead of three stacked panels. */
+.mobile-tabs { display: none; }
+@media (max-width: 640px) {
+  .app { height: 100dvh; min-height: 0; }
+  .body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .body > .queue, .body > .map-wrap, .body > .card { display: none; height: auto; flex: 1 1 auto; min-height: 0; }
+  .body[data-mobile-tab="queue"] > .queue { display: flex; }
+  .body[data-mobile-tab="map"] > .map-wrap { display: block; min-height: 260px; border-top: 0; }
+  .body[data-mobile-tab="card"] > .card { display: block; overflow-y: auto; border-top: 0; }
+  .mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex: none;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+  .mobile-tabs button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    min-width: 0;
+    padding: 6px 4px;
+    border: 0;
+    border-top: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    font-size: 12px;
+  }
+  .mobile-tabs button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-tabs button.active { border-top-color: var(--accent); color: var(--accent); background: #1d2f45; }
+  .mobile-tab-count { flex: none; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; line-height: 18px; }
+  .header { padding: 8px 12px; gap: 6px; }
+  .header .kpis { display: flex; overflow-x: auto; scrollbar-width: none; gap: 4px; }
+  .header .kpi { flex: 0 0 auto; min-width: 78px; padding: 4px 6px; }
+  .header .kpi b { font-size: 15px; }
+}
+
+/* Optional sign-in (BACKEND_AUTH_USERS); hidden entirely when accounts are off. */
+.auth-screen { min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+.auth-form { width: min(380px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.auth-form h1 { margin: 0; font-size: 17px; }
+.auth-form label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); }
+.auth-form input { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.auth-error { color: var(--red); margin: 0; }
+.header-user { display: inline-flex; align-items: center; gap: 6px; }
+.link-button { padding: 0 4px; border: 0; background: none; color: var(--accent); font-size: 12px; }
