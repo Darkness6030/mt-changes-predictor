@@ -1,6 +1,6 @@
 # Контракт API и snapshot, версия 1
 
-Актуализация: 27.09.2026, код `6b33e7a`. OpenAPI Backend
+Актуализация: 27.09.2026, код `1eff547`. OpenAPI Backend
 (`/openapi.json`, Swagger `/docs`) типизирует snapshot/detail/predictions/alerts/ack/explanation.
 Status/metrics/demo/history/what-if/hotspots ещё содержат общие объекты; их поля описаны ниже.
 ML-сервис имеет типизированные схемы. [Готовые OpenAPI и Sphinx](DOCUMENTATION.md).
@@ -74,6 +74,18 @@ schema/config должны согласовываться. Schema 2 требуе
 выбирается обученный автономный `fallback`. Неизвестный контракт → `ml_unavailable`.
 Примеры новой версии: `backend/fixtures/model-v3.json`, `prediction-v3.json`.
 Старые примеры запросов ниже относятся к schema 1; клиент всегда берёт текущую версию из API.
+
+С `1eff547` `GET /v1/model` также возвращает:
+
+- `runtime`: фактический движок `onnx` или `catboost`;
+- `runtime_note`: сообщение о проверке ONNX/возврате к CatBoost, либо `null`.
+
+`ML_RUNTIME=onnx` — default Compose; прямой запуск сервиса по умолчанию `catboost`.
+Выбор runtime не меняет manifest hash, feature schema или формат `/v1/predict`.
+ONNX вычисляет float32-деревья, поэтому возможны малые численные отличия. Стартовая
+проверка задержки main/no-hint имеет допуск 0,001 с на 64 синтетических строках.
+SHAP остаётся CatBoost-объяснением; равенство его суммы с ONNX-прогнозом численное,
+а не побайтовое. Backend snapshot schema остаётся 1.
 
 `POST /v1/predict` запрос:
 

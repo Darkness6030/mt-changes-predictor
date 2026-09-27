@@ -13,9 +13,10 @@
 | Исторический periodic replay v3 (до исправления ties) | **91,1775 с** вместо 100,4563 с у прежней логики | [протокол](ml/reports/ml-v3.md) |
 | Baseline `cur_dev_s` / нулевой прогноз | 93,3598 с / 103,3371 с | там же |
 | Вероятность `P(задержка > 120 с)`, вне фолдов на test | Brier 0,1065 (без подсказки 0,1162) против 0,1843 у базовой частоты; ROC-AUC 0,895 / 0,878 | [отчёт ML v4/v5](ml/reports/ml-v5.md) |
+| Движок инференса в Docker | **ONNX Runtime** с проверкой задержки и возвратом к CatBoost | [режимы и замеры](docs/PERFORMANCE.md) |
 | Объяснение прогноза | SHAP-вклады групп признаков в секундах, точная сумма, в API и карточке ТС | [отчёт](ml/reports/ml-v5.md) |
 | CSV для Data Science (151 прогноз) | [`ml/pretrained/v5/submission.csv`](ml/pretrained/v5/submission.csv) (= v4) | [проверка формата](ml/src/transport_ml/submission.py) |
-| Тесты | 191 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
+| Тесты | 195 (ML, признаки, NDTP, состояние, движок, API, демо, история, GPS-фильтр) | `python -m pytest -q` |
 
 Возможности и зачем они диспетчеру — [FEATURES.md](docs/FEATURES.md); инструкция для жюри —
 [DEMO.md](docs/DEMO.md); тексты формы сдачи — [SUBMISSION.md](docs/SUBMISSION.md).
@@ -50,6 +51,12 @@ docker compose up -d --build --wait  # ML + Backend + UI
 8000/8001 специально не заняты, чтобы не конфликтовать с другими проектами.
 По умолчанию запускается **исторический replay размеченного дня** со скоростью 60×
 с 08:00 — на нём сразу видны алерты, и по факту события считается MAE потока.
+
+В Compose по умолчанию `ML_RUNTIME=onnx`; фактически выбранный движок и причина
+возврата к CatBoost видны в http://localhost:8011/v1/model (`runtime`, `runtime_note`).
+Принудительный CatBoost: `ML_RUNTIME=catboost docker compose up -d --wait ml`.
+Локальный запуск сервиса без этой переменной использует CatBoost. Модель остаётся v5;
+деревья экспортируются при старте во временный каталог, комплект модели не меняется.
 
 **Пошаговая инструкция для проверяющего — [`docs/DEMO.md`](docs/DEMO.md)**: подача
 живого NDTP, официальный эмулятор, просмотр алертов и метрик, проверка деградации.
@@ -106,7 +113,7 @@ Swagger Backend — `/docs`, схема — `/openapi.json`; ML-сервис и�
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r ml/requirements.lock
 .venv/bin/python -m pip install --no-deps -e ml -e backend
-.venv/bin/python -m pytest -q                                  # 191 тест
+.venv/bin/python -m pytest -q                                  # 195 тестов
 .venv/bin/ruff check ml backend && .venv/bin/ruff format --check ml backend
 
 # ML-сервис и Backend в двух терминалах

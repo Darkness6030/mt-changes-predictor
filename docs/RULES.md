@@ -1,6 +1,6 @@
 # Правила и важные ограничения
 
-Источники проанализированы 25–27.09.2026; реализационные разделы обновлены по `6b33e7a`. Это рабочая сводка,
+Источники проанализированы 25–27.09.2026; реализационные разделы обновлены по `1eff547`. Это рабочая сводка,
 а не новый официальный регламент. Источники: [PDF задания](%D0%9F%D1%80%D0%B5%D0%B4%D0%B8%D0%BA%D1%82%D0%BE%D1%80%20%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%B2%20%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%BA%D0%B5%20%D0%B4%D0%B2%D0%B8%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%20%D1%82%D1%80%D0%B0%D0%BD%D1%81%D0%BF%D0%BE%D1%80%D1%82%D0%B0.pdf), [ТЗ](description.md),
 [сообщения организаторов и заметки Q&A](messages.md), [README](../dataset/README.md),
 [NDTP-спецификация](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
@@ -274,6 +274,9 @@ Python 3.12+, PyTorch/CatBoost — рекомендуемый стек; обяз
   копии и факты расписания исключены; validate labels не используются.
   Калибровка имеет статус `validated` по оценке вне фолдов одного дня; независимый день
   не проверен. Исторические v1–v4 сохранены, протокол — `ml/reports/ml-v5.md`.
+- Compose по умолчанию запрашивает ONNX Runtime для тех же деревьев; сервис проверяет
+  задержку на синтетических строках и при ошибке/расхождении возвращается к CatBoost.
+  Движок виден в `/v1/model.runtime`, модель/schema не меняются. CLI остаётся CatBoost.
 - Отдельно обучен no-hint fallback; при отсутствующем `cur_dev_s` он выбирается автоматически.
   V3 не подставляет GPS-hint в `cur_dev_s`: GPS-оценки входят отдельными признаками.
   V1/v2 сохраняют прежнюю estimated-политику. Не переносить supplied MAE на автономный
@@ -293,6 +296,7 @@ Python 3.12+, PyTorch/CatBoost — рекомендуемый стек; обяз
 от feature schema 1/2. Основные Backend responses типизированы; диагностические
 и сценарные ответы требуют также сверки с API_CONTRACT.
 
-DELIVERY-29, 27.09: 191 Python-тест, Ruff ML/Backend, TypeScript/Vite и Docker build/up.
+DOCS-ONNX-30, 27.09: 195 Python-тестов, Ruff ML/Backend, Docker/ONNX и Sphinx;
+UI не менялся, TypeScript/Vite проверен ранее в DELIVERY-29.
 Готовая документация кода/API — [DOCUMENTATION](DOCUMENTATION.md), материалы формы —
 [SUBMISSION](SUBMISSION.md). Для редакционной правки не нужны обучение и полный тестовый прогон.

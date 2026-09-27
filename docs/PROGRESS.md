@@ -6,9 +6,11 @@
 
 ## Точка продолжения для команды
 
-**Срез 27.09.2026, код `6b33e7a`, ветка `main`.** Объединена работа ветки
+**Срез 27.09.2026, код `1eff547`, ветка `main`.** Объединена работа ветки
 `claude/jolly-noether-9yp4y4`: v5, SHAP по запросу, новые классификаторы, GPS-фильтр,
 типизированные основные ответы API, паспорт предупреждения, what-if и hotspots.
+Добавлен ONNX Runtime (`8e0961e`): Compose запрашивает ONNX, фактический движок
+и результат стартовой проверки опубликованы в `/v1/model`.
 [Стратегия](HACKATHON_STRATEGY.md) — исторический план, не текущая очередь.
 
 ### Что работает сейчас
@@ -16,6 +18,7 @@
 | Часть / задача | Статус | Подтверждённый результат |
 |---|---|---|
 | ML v5 / ML-V4-19 / ML-V5-20 | Default, реализовано | 73 признака schema 2; ансамбли 3+3 CatBoost, регрессия v4 на 1494 real train+test точках, новые классификаторы и Platt по OOF |
+| ONNX / DOCS-ONNX-30 | Реализовано и проверено | Те же деревья v5, ONNX CPU, стартовая проверка задержки/возврат к CatBoost; документация и OpenAPI обновлены |
 | ML-API-01 / WOW-02 | Реализовано | FastAPI inference, checksum/schema/health; SHAP по запросу карточки с кэшем, вне основного цикла |
 | BE-01/02 / LIVE-01 | Реализовано | CSV replay, NDTP framing/CRC/reconnect, причинное состояние, алерты/ack, stale и деградация при отказе ML |
 | BE-03 / BASE-21 | Основные ответы типизированы | Snapshot/detail/predictions/alerts/ack/explanation; status/metrics/what-if/hotspots ещё общие объекты |
@@ -47,6 +50,13 @@ Score **0,86126** сообщён пользователем согласно з�
 
 ### Последние проверки и запуск
 
+DOCS-ONNX-30 (`1eff547`): **195 passed**, Ruff ML/Backend; Docker build/up,
+фактический ONNX, replay-прогнозы/SHAP, Sphinx/OpenAPI и побайтовое воспроизведение CSV.
+Погрешность на 151 строке совпала с исходным ONNX benchmark. Новый runtime не меняет
+manifest/модель/схему; CLI сохраняет CatBoost. [Протокол](onnx-30-verification.json).
+Следующие проверки DELIVERY-29 относятся к предыдущему CatBoost runtime.
+
+
 DELIVERY-29: **191 passed**, одно предупреждение Starlette/httpx; Ruff ML/Backend
 и TypeScript/Vite build успешны. Sphinx с `-W`, ZIP/ссылки, OpenAPI и CSV проверены.
 Docker v5: основной стенд healthy; отдельный чистый clone без адаптации дал 6707
@@ -55,13 +65,14 @@ NDTP-кадров без CRC/invalid/truncated ошибок, прогнозы в
 
 Запуск: `docker compose up -d --build --wait`. UI — `http://localhost:8080`,
 Backend — `http://localhost:8010`, ML — `http://localhost:8011`, NDTP — TCP 9201.
-Default — v5, replay/test, старт 08:00, скорость 60×. Перезапуск очищает состояние
+Default Compose — v5/ONNX (с возвратом к CatBoost при отклонении стартовой проверки),
+replay/test, старт 08:00, скорость 60×. Перезапуск очищает состояние
 и историю в RAM. Карта требует `VITE_YANDEX_MAPS_API_KEY` в `.env` и пересборки UI.
 Замеры с условиями и границами — [PERFORMANCE](PERFORMANCE.md).
 
 ### Активная задача
 
-Нет активной задачи Codex. DELIVERY-29 завершена, работа одним агентом в `main`.
+Нет активной задачи Codex. DOCS-ONNX-30 завершена в `main`, одним агентом.
 
 ### Следующие задачи (не выполнены)
 
@@ -69,7 +80,7 @@ Default — v5, replay/test, старт 08:00, скорость 60×. Перез
 |---|---|---|
 | DELIVERY-01 | P0 | Передать три ссылки и текст, обеспечить доступ к моменту проверки; загрузка формы/CSV, питч и резервное демо — отдельные действия команды |
 | LIVE-EVAL-01 | P0 | Независимый день и оценка фактической доставки/публикации; отделить от GPS-паспорта и исторического event-time отчёта |
-| INT-02 | P0 | Cold start без cache, часы нагрузки, throughput/очереди и latency до браузера; чистый clone runtime `6b33e7a` без адаптации уже проверен |
+| INT-02 | P0 | ONNX: cold start/память/сквозная latency; часы нагрузки, throughput/очереди и latency до браузера; чистый clone runtime `6b33e7a` без адаптации уже проверен |
 | CAL-01 | P1 | Независимый день/ТС для вероятности; оценка вне фолдов того же дня уже есть |
 | BE-03 | P1 | Типизировать оставшиеся диагностические/what-if/hotspots ответы |
 | BE-04 | P1 | Проверки caps инцидентов, bootstrap/drift/разрывов времени и нагрузочных штормов; retry отправителя уже реализован |
@@ -82,6 +93,33 @@ Default — v5, replay/test, старт 08:00, скорость 60×. Перез
 графа, дверей/ДТП/пассажиропотока. What-if — сценарий с допущениями, не модель города.
 
 ## Журнал выполненного
+
+## 27.09.2026 — DOCS-ONNX-30: документация после нового коммита
+
+- Codex, один агент, `main`, исходный merge `1eff547` (новый runtime `8e0961e`).
+  Изучен diff всех 10 файлов, стартовая проверка/возврат, модель, тесты и benchmark.
+  Существовавший на старте неотслеживаемый файл `ф` не менялся и не включён в коммит.
+- ONNX добавлен в README, ML README, DEMO, FEATURES, PERFORMANCE, API_CONTRACT,
+  SUBMISSION, PROGRESS/PLAN/RULES/AGENTS и Sphinx. Уточнено: Compose default ONNX,
+  прямой сервис/CLI default CatBoost; проверка при старте пороговая только по delay,
+  64 синтетические строки; вероятность проверяется тестами. SHAP — CatBoost.
+- Отделён исходный Linux-микрозамер 300 повторов от старых Docker/NDTP/RSS чисел:
+  batch=1 p50/p95 8,87/12,71 → 1,85/3,26 мс, p50 4,80×; это не ускорение NDTP→UI.
+  Повтор на macOS arm64 сохранил погрешности (delay max 0,00008014 с,
+  probability max 2,98×10⁻⁷), результаты/ограничения — [JSON](onnx-30-verification.json).
+- Установлен обновлённый `ml/requirements.lock`; **195 pytest passed**, одно прежнее
+  предупреждение Starlette/httpx. Ruff check и format ML/Backend успешны.
+  `docker compose up -d --build --wait` — три healthy; `/v1/model.runtime=onnx`,
+  replay-прогнозы в (600,900], SHAP HTTP 200. UI-код не менялся, отдельный UI/E2E
+  прогон и новый чистый clone не выполнялись.
+- Sphinx собран с `-W --keep-going`, пересобран ZIP, обновлён OpenAPI ML с полями
+  `runtime/runtime_note`; проверены локальные ссылки и совпадение OpenAPI с сервисами.
+  CSV v5 воспроизведён: 151 строка, побайтовое совпадение с эталоном, SHA256
+  `8bf2c47edb3cef45afed0ead415831337854f7b8a5a918c1d4634374cdfcc202`.
+- Runtime-код/модели/CSV не редактировались. Три ссылки сдачи сохраняются; четвёртый
+  пункт дополнен ONNX. Следующий шаг — передача актуального текста из SUBMISSION;
+  остаются независимый день и отдельные ONNX cold start/RSS/end-to-end измерения.
+
 
 ## 27.09.2026 — DELIVERY-29: актуальный комплект для сдачи
 

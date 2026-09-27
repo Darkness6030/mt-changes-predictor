@@ -23,6 +23,7 @@ ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
 - `data.py` — allowlist входных полей; labels загружаются отдельно.
 - `features.py` — один причинный FeatureBuilder, точность времени до наносекунд.
 - `schedule_context.py` — GPS относительно плановых посещений, ограниченное окно 30 минут.
+- `onnx_runtime.py` — экспорт тех же деревьев, ONNX Runtime CPU и проверка совпадения.
 - `model.py` — native CatBoost, контроль schema/checksum, main/fallback и взвешенные ансамбли.
 - `research.py` — фиксированные group/forward splits, подбор кандидатов, refit рецепта.
 - `training.py`, `group_validation.py` — исходный протокол v1/v2 и прежний group holdout.
@@ -43,6 +44,41 @@ ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
 GPS/плановый контекст рассчитывается общим builder и используется автономной моделью.
 Backend получает config и schema через `/v1/model`. Для schema 2 нужно хранить минимум
 1800 секунд истории; caps памяти сохраняются. Snapshot API остаётся версии 1.
+
+## Движки инференса
+
+Модель v5 не переобучалась. Compose выбирает `ML_RUNTIME=onnx`: шесть регрессоров и
+два классификатора экспортируются при старте во временный каталог и исполняются
+через ONNX Runtime CPU. Файлы `ml/pretrained/` остаются неизменными. Классификаторы
+экспортируются как raw score, затем применяется та же Platt-калибровка.
+
+Перед включением ONNX сервис сравнивает задержку с CatBoost в main/no-hint режимах
+на 64 синтетических строках, включая пропуски. При ошибке загрузки/экспорта/расчёта
+или расхождении задержки больше 0,001 с выбирается CatBoost; `GET /v1/model` возвращает
+`runtime` и `runtime_note`. Вероятности сравниваются тестами, но их расхождение не
+является отдельным порогом стартовой проверки. Проверка конечного набора строк не
+гарантирует равенство на всех возможных входах.
+
+Вне Compose сервис по умолчанию использует CatBoost. Для ONNX локально:
+
+```bash
+ML_RUNTIME=onnx ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
+```
+
+`ML_ONNX_THREADS` задаёт число потоков ONNX при прямом запуске сервиса (default 1);
+Compose этот параметр отдельно не пробрасывает. SHAP продолжает использовать CatBoost.
+CLI `predict` также использует CatBoost и сохраняет побайтовую воспроизводимость CSV.
+ONNX float32 может давать малые отличия чисел, поэтому CSV из него не обещается идентичным.
+
+Замер автора коммита `8e0961e`: 300 повторов `infer` (delay + probability), готовые
+признаки validate; для batch=1 CatBoost 8,87/12,71 мс → ONNX 1,85/3,26 мс p50/p95,
+ускорение p50 4,80×. Это не HTTP/end-to-end замер. Условия, все размеры batch и
+погрешность — [PERFORMANCE](../docs/PERFORMANCE.md).
+
+```bash
+# Повтор без обучения: выбрать новый файл результата, эталонный JSON не перезаписывать.
+.venv/bin/python ml/experiments/onnx_benchmark.py artifacts/onnx-benchmark-repeat.json
+```
 
 ## Текущая v5
 

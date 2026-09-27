@@ -38,9 +38,13 @@ CSV — `ml/pretrained/v5/submission.csv`. Обучать заново для з
 
 ## Карта проекта и точка продолжения
 
-Срез кода: `6b33e7a`, 27.09.2026: объединены ML v5, SHAP, паспорт предупреждения,
+Срез кода: `1eff547`, 27.09.2026: объединены ML v5, SHAP, паспорт предупреждения,
 what-if, hotspots, приоритет крайних рейсов и основные типизированные API-ответы.
-DELIVERY-29: **191 Python-тест**, Ruff ML/Backend, TypeScript/Vite и Docker build/up.
+Добавлен ONNX Runtime (`8e0961e`): Compose default `ML_RUNTIME=onnx`, проверка
+задержки при старте и возврат к CatBoost; `/v1/model` показывает `runtime/runtime_note`.
+Прямой запуск сервиса и CLI по умолчанию остаются CatBoost.
+DOCS-ONNX-30: **195 Python-тестов**, Ruff ML/Backend, Docker build/up,
+проверены ONNX/прогнозы/SHAP; UI не менялся, TypeScript/Vite проверен в DELIVERY-29.
 Это результаты проверок, а не требование повторять всё при редакционной правке.
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
