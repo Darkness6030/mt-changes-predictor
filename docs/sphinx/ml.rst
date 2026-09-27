@@ -11,6 +11,8 @@ ML: признаки, модели, сервис
 
 .. automodule:: transport_ml.features
 
+.. automodule:: transport_ml.schedule_context
+
 Модель и артефакт
 -----------------
 
@@ -25,6 +27,10 @@ ML: признаки, модели, сервис
 -----------------
 
 .. automodule:: transport_ml.training
+
+.. automodule:: transport_ml.group_validation
+
+.. automodule:: transport_ml.research
 
 Submission
 ----------

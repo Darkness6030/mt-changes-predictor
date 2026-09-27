@@ -47,7 +47,7 @@ docker compose up --build            # ML + Backend + UI
                                            v
 CSV replay (event-time) ──> [ Backend: framing/CRC → нормализованное событие →
                               состояние ТС (ограниченное) → общий FeatureBuilder →
-                              оценка cur_dev → инциденты → snapshot API ]
+                              GPS-оценки / политика hint → инциденты → snapshot API ]
                                            │ HTTP /v1/predict (готовые признаки)
                                            v
                               [ ML-сервис: CatBoost + калибровка ]
@@ -100,7 +100,9 @@ BACKEND_ML_URL=http://127.0.0.1:8011 BACKEND_LABELS=dataset/labels/labels_test.c
   .venv/bin/transport-backend serve --port 8010
 
 # UI в режиме разработки (прокси на 8010)
-cd frontend && npm install && npm run dev
+# Сначала задать VITE_YANDEX_MAPS_API_KEY в frontend/.env.local или окружении.
+npm --prefix frontend ci
+npm --prefix frontend run dev
 ```
 
 Готовый CSV для платформы воспроизводится без обучения:
@@ -149,3 +151,6 @@ CSV раздачи сохранены в репозитории неизменн
 снимок и вернуться «К потоку», пока приём и прогнозы продолжаются. Это журнал реально
 выданных состояний, без пересчёта прошлого по будущим данным. По умолчанию — до 2 часов
 времени источника / 7200 снимков / 64 МиБ сжатых записей, только текущий прогон.
+
+Красную метку времени можно плавно перетаскивать отдельно; вне метки drag сдвигает
+диапазон. В replay отпускание делает один seek, в NDTP выбирает снимок истории.

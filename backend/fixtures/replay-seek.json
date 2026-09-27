@@ -80,7 +80,9 @@
     "terms_link_visible": false,
     "copyright_text_visible": false,
     "logo_visible": false,
-    "legend_vehicle_colour_alignment": "center"
+    "legend_vehicle_colour_alignment": "center",
+    "legend_bottom_px": 10,
+    "legend_left_px": 10
   },
   "ui_demo": {
     "placement": "time_toolbar_before_system",

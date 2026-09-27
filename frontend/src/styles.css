@@ -160,7 +160,7 @@ input[type="search"], select {
   position: absolute;
   z-index: 500;
   left: 10px;
-  bottom: 26px;
+  bottom: 10px;
   max-width: min(320px, calc(100% - 20px));
   background: rgba(22, 28, 36, 0.92);
   border: 1px solid var(--line);

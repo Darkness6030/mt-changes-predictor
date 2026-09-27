@@ -46,6 +46,15 @@ TCP-сервер NDTP
 
 .. automodule:: transport_backend.explain
 
+.. automodule:: transport_backend.current_deviation
+
+Демо и история просмотра
+--------------------------------------------------
+
+.. automodule:: transport_backend.demo
+
+.. automodule:: transport_backend.view_history
+
 Движок
 ------
 
@@ -60,6 +69,11 @@ API
 -------------------------
 
 .. automodule:: transport_backend.hint_check
+
+Автономная оценка по времени событий
+--------------------------------------------------
+
+.. automodule:: transport_backend.live_evaluation
 
 Собственный NDTP-replayer
 -------------------------

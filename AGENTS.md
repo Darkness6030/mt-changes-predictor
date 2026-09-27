@@ -37,16 +37,18 @@ CSV — `ml/pretrained/v3/submission.csv`. Обучать заново для з
 
 ## Карта проекта и точка продолжения
 
-Срез кода: `74ffbe8`, 26.09.2026. Проверенная база: **80 Python-тестов**,
-Ruff ML/Backend, TypeScript/Vite build, три healthy Docker-сервиса. Это результаты
-предыдущих проверок, а не требование запускать все проверки при редакционной правке.
+Срез кода: `2f03b9e`, 27.09.2026: объединены ML v3, история NDTP и Яндекс Карты.
+Последняя полная проверка ML-IMPROVE-12: **131 Python-тест**, Ruff ML/Backend;
+карта/таймлайн отдельно проверены сборкой TypeScript/Vite и в браузере. Текущие
+Docker-проверки — в PROGRESS. Это результаты выполненных проверок, а не требование
+запускать все проверки при редакционной правке.
 
 | Часть | Реализовано | Ближайшая задача | Основные файлы |
 |---|---|---|---|
 | ML | v3: 73 причинных признака, main/fallback ансамбли; train-only подбор, periodic event-time оценка; классификаторы v2 | LIVE-EVAL-01: доставка/публикация; CAL-01: независимая проверка вероятности | `ml/src/transport_ml/`, `ml/reports/ml-v3.md`, `ml/pretrained/v3/` |
 | ML API | FastAPI, health/ready, model/schema, batch predict | Сохранять контракт; не обучать в HTTP | `ml/src/transport_ml/service.py` |
-| Backend | CSV replay, NDTP TCP, state, GPS-hint, alerts/ack, snapshot, runtime metrics | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
-| Frontend | React/Vite/TS/Leaflet; очередь, карта, участки, карточка, системная панель, адаптивная вёрстка | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
+| Backend | CSV replay, NDTP TCP, state, GPS-оценки, alerts/ack, snapshot, runtime metrics, смена демо-источника и история NDTP | BE-03: строгие response-модели; BE-04: оставшиеся caps/clock cases | `backend/src/transport_backend/` |
+| Frontend | React/Vite/TS/Яндекс Карты API 2.1; очередь, карта, карточка, системная/демо-панели, свободный таймлайн с отдельным drag красной метки, просмотр истории NDTP | FE-QA-01: браузерные сценарии ошибок и понятность диспетчеру | `frontend/src/` |
 | Интеграция | Compose ML/Backend/UI, trainer, NDTP sender, официальный emulator smoke | INT-02: длительная нагрузка, cold start и чистый clone текущей поставки | `compose.yaml`, `docs/DEMO.md`, `docs/PERFORMANCE.md` |
 
 Запуск полного стенда: `docker compose up -d --build --wait`.
@@ -54,6 +56,11 @@ UI: `http://localhost:8080`, Backend: `http://localhost:8010`, ML: `http://local
 NDTP TCP: `localhost:9201`. По умолчанию **исторический replay**, а не live;
 режим/порты задаются через `.env` по `.env.example`. Frontend локально:
 `npm --prefix frontend ci`, затем `npm --prefix frontend run dev`.
+Для карты нужен `VITE_YANDEX_MAPS_API_KEY`: Compose читает корневой `.env`, локальный
+Vite — `frontend/.env.local` или окружение. Ключ публичный браузерный, но в Git его
+не добавлять; после изменения пересобрать UI. Кнопки переходов, подпись и логотип
+Яндекса скрыты по запросу пользователя; CSS зависит от DOM API 2.1. Легенда имеет
+отступ 10 px слева/снизу, кружок выровнен по центру пояснения. Детали — frontend/README.
 
 Полные условия задач и зависимости — в начале `docs/PROGRESS.md`. Не выбирать задачу из
 старой записи журнала, пока не проверено её состояние в таблице. Если пользователь задал
@@ -136,8 +143,9 @@ NDTP: TCP — поток байтов; не приравнивать `recv` к �
 - GPS-estimated hint не равен supplied hint. Test MAE 79,0874 с относится к supplied;
   диагностический estimated+fallback дал 90,6019 с, all-fallback 87,3271 с.
   Это не end-to-end live benchmark и не основание подбирать политику на test.
-- Sidecar считает известные `sample_id`; periodic live-запросы без них не оцениваются.
-  LIVE-EVAL-01 должен устранить этот пробел, не добавляя labels в inference.
+- Sidecar считает известные `sample_id`; для periodic без них реализован отдельный
+  event-time evaluator (`transport_backend.live_evaluation`). LIVE-EVAL-01 остаётся
+  открытой для доставки/публикации и независимого дня; labels не входят в inference.
 - Mapping проверяется до общих часов. Первая метка ограничена диапазоном плана
   ± history_window, далее допуск будущего 60 с. Неверную первую метку внутри диапазона
   эта политика не обнаруживает; её дальнейшее изменение требует регрессионных проверок.
