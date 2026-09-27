@@ -41,12 +41,12 @@ def timing(model: DelayModel, frame: pd.DataFrame) -> dict:
     return {"p50_ms": float(np.median(samples)), "p95_ms": float(np.quantile(samples, 0.95))}
 
 
-def main(output: Path) -> None:
-    catboost = DelayModel(BUNDLE)
-    onnx = OnnxDelayModel(BUNDLE, threads=1)
+def main(output: Path, bundle: Path = BUNDLE) -> None:
+    catboost = DelayModel(bundle)
+    onnx = OnnxDelayModel(bundle, threads=1)
     rows = features(catboost)
     report = {
-        "bundle": str(BUNDLE),
+        "bundle": str(bundle),
         "platform": platform.platform(),
         "repeats": REPEATS,
         "parity": onnx.parity(rows, reference=catboost),
@@ -64,4 +64,4 @@ def main(output: Path) -> None:
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]))
+    main(Path(sys.argv[1]), Path(sys.argv[2]) if len(sys.argv) > 2 else BUNDLE)

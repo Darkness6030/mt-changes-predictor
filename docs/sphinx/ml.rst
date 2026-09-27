@@ -13,6 +13,10 @@ ML: признаки, модели, сервис
 
 .. automodule:: transport_ml.schedule_context
 
+.. automodule:: transport_ml.trip_context
+
+.. automodule:: transport_ml.synthetic
+
 .. automodule:: transport_ml.gps_trust
 
 Модель и артефакт
@@ -23,6 +27,8 @@ ML: признаки, модели, сервис
 .. automodule:: transport_ml.onnx_runtime
 
 .. automodule:: transport_ml.explanation
+
+.. automodule:: transport_ml.zero_gate
 
 Калибровка вероятности
 ----------------------

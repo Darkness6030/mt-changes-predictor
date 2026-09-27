@@ -68,7 +68,7 @@ Backend и offline-инференс строят признаки одним `Fe
 учитываются только события, доступные к моменту прогноза.
 
 Файл [submission.csv](ml/pretrained/v8/submission.csv) готов для сдачи в разделе
-Data Science: 151 прогноз в формате `sample_id;prediction`. Подробнее о [модели v8](ml/pretrained/v8/README.md)
+Data Science: 151 прогноз в формате `sample_id;prediction`, score платформы **0,95394**. Подробнее о [модели v8](ml/pretrained/v8/README.md)
 и [датасете](dataset/README.md).
 
 Итоговая модель обучена на train и test, поэтому метрика replay на test

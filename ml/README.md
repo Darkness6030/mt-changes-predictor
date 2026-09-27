@@ -1,7 +1,8 @@
 # ML: прогноз задержки и оценка риска
 
-Текущий комплект — [`pretrained/v6`](pretrained/v6/README.md) (schema 3, ансамбль v4 +
-trip-модели, [отчёт](reports/ml-v6.md)); v1–v5 сохранены. Общий FeatureBuilder
+Текущий комплект — [`pretrained/v8`](pretrained/v8/README.md): ансамбль v6 (v4 + trip-модель,
+schema 3, [отчёт](reports/ml-v6.md)) и гейт нулевой задержки; score платформы **0,95394**.
+Комплекты v1–v6 сохранены. Общий FeatureBuilder
 используется в batch, CSV replay и NDTP; FastAPI принимает готовые признаки.
 Обучение выполняется отдельной командой, вне HTTP.
 
@@ -11,13 +12,13 @@ trip-модели, [отчёт](reports/ml-v6.md)); v1–v5 сохранены. 
 
 ```bash
 .venv/bin/python -m transport_ml predict --model ml/pretrained/v8 \
-  --output artifacts/check-v6/submission.csv
+  --output artifacts/check-v8/submission.csv
 ML_MODEL_DIR=ml/pretrained/v8 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 Выходной CSV должен отсутствовать: команда отказывается перезаписывать его. Результат
 побайтово совпадает с `ml/pretrained/v8/submission.csv`; все 151 ID проверяются повторным
-чтением. Комплекты v1–v5 сохранены и поддерживаются; default Compose — v6.
+чтением. Комплекты v1–v6 сохранены и поддерживаются; default Compose — v8.
 
 ## Архитектура и контракт
 
@@ -64,8 +65,8 @@ Trip-модель обучена на train+test labels и очищенной с
 
 ## Движки инференса
 
-Движок одинаков для v5 и v6 (в v6 — двенадцать регрессоров). Compose выбирает `ML_RUNTIME=onnx`: шесть регрессоров и
-два классификатора экспортируются при старте во временный каталог и исполняются
+Движок одинаков для всех комплектов (в v8 — двенадцать регрессоров). Compose выбирает `ML_RUNTIME=onnx`: регрессоры и
+классификаторы вероятности экспортируются при старте во временный каталог и исполняются
 через ONNX Runtime CPU. Файлы `ml/pretrained/` остаются неизменными. Классификаторы
 экспортируются как raw score, затем применяется та же Platt-калибровка.
 
@@ -79,7 +80,7 @@ Trip-модель обучена на train+test labels и очищенной с
 Вне Compose сервис по умолчанию использует CatBoost. Для ONNX локально:
 
 ```bash
-ML_RUNTIME=onnx ML_MODEL_DIR=ml/pretrained/v5 ML_PORT=8011 .venv/bin/transport-ml-serve
+ML_RUNTIME=onnx ML_MODEL_DIR=ml/pretrained/v8 ML_PORT=8011 .venv/bin/transport-ml-serve
 ```
 
 `ML_ONNX_THREADS` задаёт число потоков ONNX при прямом запуске сервиса (default 1);
@@ -87,9 +88,9 @@ Compose этот параметр отдельно не пробрасывает
 CLI `predict` также использует CatBoost и сохраняет побайтовую воспроизводимость CSV.
 ONNX float32 может давать малые отличия чисел, поэтому CSV из него не обещается идентичным.
 
-Замер автора коммита `8e0961e`: 300 повторов `infer` (delay + probability), готовые
-признаки validate; для batch=1 CatBoost 8,87/12,71 мс → ONNX 1,85/3,26 мс p50/p95,
-ускорение p50 4,80×. Это не HTTP/end-to-end замер. Условия, все размеры batch и
+Замер v8 (300 повторов `infer`, delay + probability, готовые признаки validate): для batch=1
+CatBoost 19,65/28,02 мс → ONNX 6,15/7,13 мс p50/p95, ускорение p50 3,2×. У v5 на другой машине
+было 8,87/12,71 → 1,85/3,26 мс. Это не HTTP/end-to-end замер. Условия, все размеры batch и
 погрешность — [PERFORMANCE](../docs/PERFORMANCE.md).
 
 ```bash
@@ -97,7 +98,7 @@ ONNX float32 может давать малые отличия чисел, по�
 .venv/bin/python ml/experiments/onnx_benchmark.py artifacts/onnx-benchmark-repeat.json
 ```
 
-## Текущая v5
+## v5 (предыдущая основная модель)
 
 Регрессия v4: рецепт v3, обученный на 1494 real train+test точках; два ансамбля
 по три CatBoost. V5 добавляет классификаторы на schema 2 и Platt по OOF,
