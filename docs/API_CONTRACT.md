@@ -1,19 +1,18 @@
 # Контракт API и snapshot, версия 1
 
-Актуализация: 27.09.2026, код `1eff547`. OpenAPI Backend
+Контракт поставки, 27.09.2026. OpenAPI Backend
 (`/openapi.json`, Swagger `/docs`) типизирует snapshot/detail/predictions/alerts/ack/explanation.
 Status/metrics/demo/history/what-if/hotspots ещё содержат общие объекты; их поля описаны ниже.
 ML-сервис имеет типизированные схемы. [Готовые OpenAPI и Sphinx](DOCUMENTATION.md).
 Этот файл описывает согласованные
 имена, единицы, статусы и правила времени, чтобы Backend, ML и UI не расходились.
-Требования, из которых он выведен: [RULES](RULES.md), [PLAN](PLAN.md),
-[README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
+Формат исходных данных: [README датасета](../dataset/README.md), [NDTP](../dataset/docs/Emulator-and-Telematic-Packets-Specification.md).
 
-Версии: `schema_version = "1"` для Backend snapshot; признаки — `"1"` у v1/v2 (44 поля)
-и `"2"` у v3–v5 (73 поля). Версию определяет `FeatureConfig.schema_version` и manifest модели.
+Версии: `schema_version = "1"` для Backend snapshot; признаки — `"1"` у v1/v2 (44 поля),
+`"2"` у v3–v5 (73 поля) и `"3"` у v6/v8 (82 поля). Версию определяет `FeatureConfig.schema_version` и manifest модели.
 Несовместимое изменение — новая версия строки, а не молчаливое изменение поля.
 
-Примеры с `fitted_on_development` ниже сохранены для v2–v4. У default v5
+Примеры с `fitted_on_development` ниже сохранены для v2–v4. У v8, как и у v5,
 калибровка имеет `status=validated`, `report=ml/experiments/improve18-late.json`,
 `fit_rows=1494`: оценка вне фолдов одного дня, не независимая проверка нового дня.
 

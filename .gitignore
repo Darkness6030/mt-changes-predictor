@@ -36,3 +36,23 @@ docs/sphinx/_build/
 # Frontend dependencies and local Vite cache
 node_modules/
 .vite/
+
+# Local planning, agent notes and superseded delivery drafts
+/AGENTS.md
+/main.py
+/docs/COMPLIANCE_AUDIT.md
+/docs/HACKATHON_STRATEGY.md
+/docs/PLAN.md
+/docs/PROGRESS.md
+/docs/RESEARCH.md
+/docs/RULES.md
+/docs/SUBMISSION.md
+/docs/description.md
+/docs/messages.md
+/docs/research-backend.md
+/docs/research-competition.md
+/docs/research-frontend.md
+/docs/research-ml.md
+/docs/FEATURES.md
+/docs/performance-live01-sample.json
+/docs/Предиктор изменений в графике движения городского транспорта.pdf
