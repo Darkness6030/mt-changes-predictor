@@ -1,49 +1,37 @@
-# Документация кода и API для жюри
+# Документация кода и API
 
-Актуальный код поставки — `1eff547` (27.09.2026), модель по умолчанию v5.
-Точка входа для третьего поля формы сдачи. [Запуск системы](../README.md),
-[инструкция жюри](DEMO.md), [контракт API](API_CONTRACT.md).
+## Sphinx: код ML и Backend
 
-## Sphinx: готовая документация по коду
+**[Скачать готовую HTML-документацию](code-reference.zip)** — нажмите
+**Download raw file**, распакуйте архив и откройте `index.html`.
+Python и запущенный стенд для чтения не нужны.
 
-**[Скачать HTML-документацию Sphinx](code-reference.zip)** — на странице файла GitHub
-нажать **Download raw file**, распаковать ZIP и открыть `index.html` в браузере.
-Сборка и Python для чтения не нужны. В архиве есть исходный код с подсветкой,
-справочники модулей/функций, индекс и снимки OpenAPI обоих сервисов.
+В справочнике описаны признаки и модели, обучение, инференс, NDTP,
+состояние транспорта, предупреждения и API. В архив включены исходники
+с подсветкой и схемы OpenAPI. [Исходники Sphinx](sphinx/).
 
-Описаны общий FeatureBuilder, модели, ONNX Runtime и SHAP, обучение и калибровка, NDTP/TCP,
-состояние транспорта, движок предупреждений, what-if, проблемные участки,
-демо-источники и история. Исходники Sphinx — [sphinx/](sphinx/).
-Документация интерфейса — [frontend/README.md](../frontend/README.md).
+## Swagger: API работающей системы
 
-Если браузер ограничивает поиск при открытии локальных файлов, из распакованного
-каталога выполнить `python3 -m http.server 8090` и открыть http://localhost:8090.
+После [запуска Docker](../README.md):
 
-## OpenAPI и Swagger
+| Сервис | Swagger | OpenAPI без запуска |
+|---|---|---|
+| Backend | http://localhost:8080/docs | [backend.json](openapi/backend.json) |
+| ML | http://localhost:8011/docs | [ml.json](openapi/ml.json) |
 
-После `docker compose up -d --build --wait` из корня проекта:
+В Swagger Backend попробуйте `GET /api/v1/snapshot` — текущие ТС, прогнозы
+и алерты; затем `GET /api/v1/metrics/quality` — метрики качества.
+В Swagger ML запрос `GET /v1/model` покажет модель и движок инференса.
+`POST /v1/predict` принимает готовые признаки, которые рассчитывает Backend.
 
-| Сервис | Интерактивный Swagger | OpenAPI JSON | Снимок для чтения без запуска |
-|---|---|---|---|
-| Backend | http://localhost:8080/docs | http://localhost:8080/openapi.json | [backend.json](openapi/backend.json) |
-| ML | http://localhost:8011/docs | http://localhost:8011/openapi.json | [ml.json](openapi/ml.json) |
+Живые схемы доступны по `/openapi.json` на тех же адресах.
+При запуске на сервере замените `localhost` на его адрес.
+Единицы, статусы и поля диагностических ответов описаны в
+[контракте API](API_CONTRACT.md); [интерфейс — в README Frontend](../frontend/README.md).
 
-В Swagger Backend открыть `GET /api/v1/snapshot` → **Try it out** → **Execute**:
-ответ содержит ТС, прогнозы, алерты и проблемные участки. `GET /api/v1/metrics/quality`
-показывает качество и паспорт предупреждений; `GET /api/v1/status` — готовность,
-версию модели, приём NDTP и latency. В Swagger ML проверить `GET /v1/model`: поля `runtime` и `runtime_note` показывают
-фактический движок и результат проверки ONNX.
-`POST /v1/predict` принимает готовые признаки по схеме модели; их строит Backend.
+## Пересборка документации
 
-Snapshot/detail/predictions/alerts/ack/explanation и запрос ML типизированы.
-Часть диагностических ответов, what-if и hotspots пока описана общими объектами:
-точные поля и единицы приведены в [API_CONTRACT.md](API_CONTRACT.md).
-Адреса `localhost` работают на машине, где запущен Docker; при удалённом запуске
-заменить хост и учитывать настроенные порты.
-
-## Воспроизведение документации
-
-Из корня чистого клона (Python 3.12):
+Из корня проекта, Python 3.12:
 
 ```bash
 python3.12 -m venv .venv
@@ -53,7 +41,5 @@ python3.12 -m venv .venv
 .venv/bin/python docs/build_reference.py
 ```
 
-Команда собирает Sphinx с `-W --keep-going`, обновляет `docs/code-reference.zip` и
-`docs/openapi/*.json`. Внешний intersphinx отключён для сборки без сети после установки
-зависимостей. Внутри ZIP `provenance.json` указывает исходный Git commit.
-OpenAPI получен из приложений FastAPI без запуска фонового потока и загрузки модели.
+Команда обновляет ZIP и обе схемы OpenAPI. Сервисы и обучение запускать не нужно.
+Версия исходного кода записана в `provenance.json` внутри архива.
