@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 import { signedDelay } from "../format";
 import type { Explanation } from "../types";
 
@@ -25,7 +25,10 @@ export function PredictionExplanation({ trId, predictionId, readOnly = false }: 
     api.explanation(trId, predictionId, controller.signal)
       .then((answer) => setState({ kind: "ready", value: answer.explanation }))
       .catch((error: Error) => {
-        if (!controller.signal.aborted) setState({ kind: "error", message: error.message });
+        if (controller.signal.aborted) return;
+        // 409: the forecast was replaced meanwhile; the card re-requests for the new id.
+        if (error instanceof ApiError && error.status === 409) return;
+        setState({ kind: "error", message: error.message });
       });
     return () => controller.abort();
   }, [trId, predictionId, readOnly]);
